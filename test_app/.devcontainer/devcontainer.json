@@ -1,0 +1,23 @@
+{
+    "name": "Platformics devcontainer",
+    "dockerComposeFile": [
+        "../docker-compose.yml"
+    ],
+    "service": "testapp",
+    "workspaceFolder": "/app",
+    "shutdownAction": "echo shutting down",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                 "extensions.verifySignature": false
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "matangover.mypy",
+                "GitHub.copilot"
+            ]
+        }
+    }
+}

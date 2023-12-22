@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  platformics-db:
+    profiles: ["dev"]
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password_postgres
+      - POSTGRES_DB=platformics
+      # The postgres image declares a mounted volume at /var/lib/postgresql/data
+      # by default, which means that the data in that directory is difficult to
+      # snapshot and export. Here, we're telling Postgres to use this (non-mounted)
+      # directory as its storage location instead so it works with our db snapshot
+      # workflow.
+      - PGDATA=/var/lib/platformics/data
+  cerbos:
+    profiles: ["dev"]
+    image: ghcr.io/cerbos/cerbos:0.29.0
+    ports:
+      - "3592:3592"
+      - "3593:3593"
+    volumes:
+      - ./app/cerbos:/platformics
+    command:
+      ["server", "--config", "/platformics/config.yaml"]
+  platformics:
+    image: "platformics"
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+  platformics-dev:
+    profiles: ["dev"]
+    image: "platformics-dev"
+    build:
+      context: "."
+      dockerfile: "Dockerfile.dev"
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    restart: always
+    stdin_open: true # Helps with pdb
+    tty: true # Helps with pdb
+    ports:
+      - "9008:8008"
+      - "9009:8009"
+    environment:
+      - CERBOS_URL=http://cerbos:3592
+      - PLATFORMICS_DATABASE_HOST=platformics-db.platformics
+      - PLATFORMICS_DATABASE_PORT=5432
+      - PLATFORMICS_DATABASE_USER=postgres
+      - PLATFORMICS_DATABASE_PASSWORD=password_postgres
+      - PLATFORMICS_DATABASE_NAME=platformics
+      - DEFAULT_UPLOAD_BUCKET=local-bucket
+      - DEFAULT_UPLOAD_PROTOCOL=s3
+      - BOTO_ENDPOINT_URL=http://motoserver.platformics:4000
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      # TODO - these are keypairs for testing only! Do not use in prod!!
+      - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
+      - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
+    volumes:
+      - ./test_app:/app
+      - ./platformics:/app/platformics
+      - ./poetry.lock:/app/poetry.lock
+      - ./pyproject.toml:/app/pyproject.toml
+    command: ["/usr/local/bin/supervisord", "-c", "/app/etc/supervisord.conf"]
+networks:
+  default:
+    name: platformics
+    driver: overlay
+    attachable: true

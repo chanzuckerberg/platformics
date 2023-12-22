@@ -1,0 +1,193 @@
+id: https://czid.org/entities/schema/platformics
+title: CZID Platformics Bio-Entities Schema
+name: platformics
+default_range: string
+
+types:
+  string:
+    uri: xsd:string
+    base: str
+    description: A character string
+
+  integer:
+    uri: xsd:integer
+    base: int
+    description: An integer
+
+  uuid:
+    uri: xsd:string
+    typeof: str
+    base: str
+    description: A UUID
+
+enums:
+  FileStatus:
+    permissible_values:
+      SUCCESS:
+      FAILED:
+      PENDING:
+  FileAcessProtocol:
+    permissible_values:
+      s3:
+  NucleicAcid:
+    permissible_values:
+      RNA:
+      DNA:
+  SequencingProtocol:
+    permissible_values:
+      MNGS:
+      TARGETED:
+      MSSPE:
+  SequencingTechnology:
+    permissible_values:
+      Illumina:
+      Nanopore:
+
+classes:
+  Entity:
+    attributes:
+      id:
+        identifier: true
+        range: uuid
+      producing_run_id:
+        range: int
+        minimum_value: 0
+      owner_user_id:
+        range: int
+        minimum_value: 0
+      collection_id:
+        range: int
+        minimum_value: 0
+    annotations:
+      plural: Entities
+ 
+  File:
+    attributes:
+      id:
+        identifier: true
+        range: uuid
+      entity_field_name:
+        range: string
+        required: true
+      entity:
+        range: Entity
+        required: true
+      status:
+        range: FileStatus
+        required: true
+      protocol:
+        range: FileAccessProtocol
+        required: true
+      namespace:
+        range: string
+        required: true
+      path:
+        range: string
+        required: true
+      file_format:
+        range: string
+        required: true
+      compression_type:
+       range: string
+      size:
+        range: int
+        minimum_value: 0
+
+  Sample:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      sample_type:
+        range: string
+        required: true
+      water_control:
+        range: boolean
+        required: true
+      collection_date:
+        range: date
+      collection_location:
+        range: string
+        required: true
+      description:
+        range: string
+      sequencing_reads:
+        range: SequencingRead
+        multivalued: true
+        inverse: SequencingRead.sample
+    annotations:
+      plural: Samples
+
+  SequencingRead:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      sample:
+        range: Sample
+        inverse: Sample.sequencing_reads
+      protocol:
+        range: SequencingProtocol
+        required: true
+      r1_file:
+        range: File
+      r2_file:
+        range: File
+      technology:
+        range: SequencingTechnology
+        required: true
+      nucleic_acid:
+        range: NucleicAcid
+        required: true
+      has_ercc:
+        range: boolean
+        required: true
+      primer_file:
+        range: GenomicRange
+        inverse: GenomicRange.sequencing_reads
+      contigs:
+        range: Contig
+        inverse: Contig.sequencing_read
+        multivalued: true
+    annotations:
+      plural: SequencingReads
+
+  GenomicRange:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      file:
+        range: File
+      sequencing_reads:
+        range: SequencingRead
+        inverse: SequencingRead.primer_file
+        multivalued: true
+    annotations:
+      plural: GenomicRanges
+
+  Contig:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      sequencing_read:
+        range: SequencingRead
+        inverse: Sample.contigs
+      sequence:
+        required: true
+    annotations:
+      plural: Contigs
+
+  EntityMixin:
+    mixin: true
+    attributes:
+      entity_id:
+        required: true
+        readonly: true
+        range: uuid
+        identifier: true
+        inverse: entity.id
