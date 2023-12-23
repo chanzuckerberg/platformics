@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 FOLDER = /app
-CONTAINER= platformics
+CONTAINER= platformics-dev
 
 ### DATABASE VARIABLES #################################################
 LOCAL_DB_NAME= 
@@ -86,7 +86,7 @@ local-tests: ## Run tests
 
 .PHONY: local-token
 local-token: ## Copy an auth token for this local dev env to the system clipboard
-	TOKEN=$$($(docker_compose_run) $(CONTAINER) ../platformics/cli/generate_token.py auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
+	TOKEN=$$($(docker_compose_run) $(CONTAINER) platformics auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
 
 .PHONY: fix-lint
 fix-lint: ## Apply linting rules to the code in this directory.
@@ -109,9 +109,9 @@ update-cli:  ## Update the GQL types used by the CLI
 	$(docker_compose) exec $(CONTAINER) sgqlc-codegen schema api/schema.json cli/gql_schema.py
 
 .PHONY: codegen-tests
-codegen-tests: ## Run tests
+codegen-tests: codegen  ## Run tests
 	$(docker_compose) up -d
-	$(docker_compose) exec platformics python3 platformics/codegen/generator.py api generate --schemafile platformics/codegen/tests/test_schemas/platformics.yaml --output-prefix .
+	$(docker_compose) run -v platformics api generate --schemafile /platformics/test_app/schema/test_app.yaml --output-prefix /platformics/test_app/
 	$(docker_compose_run) $(CONTAINER) black  .
 	$(docker_compose_run) $(CONTAINER) ruff check --fix  .
 	$(docker_compose_run) $(CONTAINER) pytest
@@ -139,14 +139,15 @@ build:
 
 .PHONY: codegen
 codegen:
-	rm -rf dist/*.whl
-	poetry build
-	docker compose --profile dev build
-	docker run -v $$PWD:/platformics platformics codegen api generate --schema-file /platformics/test_app/schema/schema/test.yaml --output-prefix /platformics/test_app/
-	docker run -v $$PWD:/platformics-dev black
-	docker run -v $$PWD:/platformics-dev ruff check --fix
-	docker run -v $$PWD:/platformics-dev strawberry export-schema api.main:schema > api/schema.graphql
-	docker run -v $$PWD:/platformics platformics-dev python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:8008/graphql api/schema.json
+	#rm -rf dist/*.whl
+	#poetry build
+	#docker compose --profile dev build
+	#docker run -v $$PWD:/platformics platformics api generate --schemafile /platformics/test_app/schema/test_app.yaml --output-prefix /platformics/test_app/
+	$(docker_compose_run) $(CONTAINER) platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app/
+	$(docker_compose_run) $(CONTAINER) black .
+	$(docker_compose_run) $(CONTAINER) ruff check --fix .
+	$(docker_compose_run) $(CONTAINER) strawberry export-schema main:schema > api/schema.graphql
+	$(docker_compose_run) $(CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
 
 
 .PHONY: clean

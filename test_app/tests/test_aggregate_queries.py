@@ -66,13 +66,14 @@ async def test_basic_aggregate_query(
     min_collectionLocation = output["data"]["samplesAggregate"]["aggregate"]["min"]["collectionLocation"]
     stddev_collectionId = output["data"]["samplesAggregate"]["aggregate"]["stddev"]["collectionId"]
     sum_ownerUserId = output["data"]["samplesAggregate"]["aggregate"]["sum"]["ownerUserId"]
-    
+
     assert avg_collectionId == 189
     assert count == 5
     assert max_collectionLocation == "San Francisco, CA"
     assert min_collectionLocation == "Mountain View, CA"
     assert stddev_collectionId == 60
     assert sum_ownerUserId == 61725
+
 
 @pytest.mark.asyncio
 async def test_nested_aggregate_query(
@@ -86,8 +87,12 @@ async def test_nested_aggregate_query(
         SessionStorage.set_session(session)
         sample_1 = SampleFactory(owner_user_id=111, collection_id=888)
         sample_2 = SampleFactory(owner_user_id=111, collection_id=888)
-        SequencingReadFactory.create_batch(2, sample=sample_1, owner_user_id=sample_1.owner_user_id, collection_id=sample_1.collection_id)
-        SequencingReadFactory.create_batch(3, sample=sample_2, owner_user_id=sample_2.owner_user_id, collection_id=sample_2.collection_id)
+        SequencingReadFactory.create_batch(
+            2, sample=sample_1, owner_user_id=sample_1.owner_user_id, collection_id=sample_1.collection_id
+        )
+        SequencingReadFactory.create_batch(
+            3, sample=sample_2, owner_user_id=sample_2.owner_user_id, collection_id=sample_2.collection_id
+        )
 
     query = """
         query MyQuery {
@@ -103,6 +108,7 @@ async def test_nested_aggregate_query(
     results = await gql_client.query(query, user_id=111, member_projects=[888])
     assert results["data"]["samples"][0]["sequencingReadsAggregate"]["aggregate"]["count"] == 2
     assert results["data"]["samples"][1]["sequencingReadsAggregate"]["aggregate"]["count"] == 3
+
 
 @pytest.mark.asyncio
 async def test_count_distinct_query(

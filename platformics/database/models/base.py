@@ -1,13 +1,13 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import MetaData, Column, Integer, String
-import uuid6
-
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
 from typing import TYPE_CHECKING
 
+import uuid6
+from sqlalchemy import Column, Integer, MetaData, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 if TYPE_CHECKING:
-    from database.models.file import File
+    from platformics.database.models.file import File
 else:
     File = "File"
 

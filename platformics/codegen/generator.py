@@ -6,12 +6,9 @@ Cerbos policies, and Factoryboy factories from a LinkML schema.
 import logging
 import os
 
-import click
 from jinja2 import Environment, FileSystemLoader
 from linkml_runtime.utils.schemaview import SchemaView
 from platformics.codegen.lib.linkml_wrappers import ViewWrapper
-from platformics.security.token_auth import ProjectRole, create_token
-from platformics.settings import Settings
 
 DIR_CODEGEN = ["support", "api/types", "database/models", "cerbos/policies", "test_infra/factories"]
 
@@ -77,7 +74,10 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     Launch code generation
     """
     template_paths = list(template_override_paths)
-    template_paths.append("platformics/codegen/templates/")  # default template path
+    template_paths.append(
+        os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates/")
+    )  # default template path
+    print(os.path.join(os.path.abspath(__file__), "templates/"))  # default template path
     environment = Environment(loader=FileSystemLoader(template_paths))
     view = SchemaView(schemafile)
     view.imports_closure()

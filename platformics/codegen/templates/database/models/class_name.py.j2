@@ -23,7 +23,7 @@ from support.enums import
 {%- endfor %}
 
 if TYPE_CHECKING:
-    from database.models.file import File
+    from platformics.database.models.file import File
     {%- for related_field in cls.related_fields %}
         {%- if related_field.related_class.name not in ["File", "Entity"] %}
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}

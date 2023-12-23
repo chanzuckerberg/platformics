@@ -14,7 +14,7 @@ from platformics.database.models.base import Base, meta, Entity  # noqa: F401
 from database.models.{{ class.snake_name }} import {{ class.name }}  # noqa: F401
 {%- endfor %}
 
-from database.models.file import File, FileStatus  # noqa: F401
+from platformics.database.models.file import File, FileStatus  # noqa: F401
 
 configure_mappers()
 

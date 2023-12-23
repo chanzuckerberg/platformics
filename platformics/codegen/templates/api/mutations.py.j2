@@ -8,7 +8,7 @@ Make changes to the template codegen/templates/api/mutations.py.j2 instead.
 import strawberry
 from typing import Sequence
 {%- if render_files %}
-from api.files import File, create_file, upload_file, mark_upload_complete, concatenate_files, SignedURL, MultipartUploadResponse
+from platformics.api.files import File, create_file, upload_file, mark_upload_complete, concatenate_files, SignedURL, MultipartUploadResponse
 {%- endif %}
 
 {%- for class in classes %}

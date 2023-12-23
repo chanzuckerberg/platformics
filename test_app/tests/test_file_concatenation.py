@@ -8,9 +8,9 @@ from platformics.database.connect import SyncDB
 from platformics.codegen.conftest import SessionStorage, GQLTestClient
 from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
 
+
 @pytest.mark.parametrize(
-    "file_name_1,file_name_2",
-    [("test1.fasta", "test2.fasta"), ("test1.fasta.gz", "test2.fasta.gz")]
+    "file_name_1,file_name_2", [("test1.fasta", "test2.fasta"), ("test1.fasta.gz", "test2.fasta.gz")]
 )
 @pytest.mark.asyncio
 async def test_concatenation(
@@ -93,7 +93,7 @@ async def test_concatenation(
     # Validate concatenated files
     contents_expected = b""
     with open(fasta_file_1, "rb") as f:
-      contents_expected += f.read()
+        contents_expected += f.read()
     with open(fasta_file_2, "rb") as f:
-      contents_expected += f.read()
+        contents_expected += f.read()
     assert contents_expected == contents_observed

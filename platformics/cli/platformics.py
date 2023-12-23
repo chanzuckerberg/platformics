@@ -4,14 +4,10 @@ Cerbos policies, and Factoryboy factories from a LinkML schema.
 """
 
 import logging
-import os
 
 import click
-from jinja2 import Environment, FileSystemLoader
-from linkml_runtime.utils.schemaview import SchemaView
 
 from platformics.codegen.generator import generate
-from platformics.codegen.lib.linkml_wrappers import ViewWrapper
 from platformics.security.token_auth import ProjectRole, create_token
 from platformics.settings import Settings
 
