@@ -32,12 +32,15 @@ services:
       dockerfile: "Dockerfile"
       args:
         - BUILDKIT_INLINE_CACHE=1
-  platformics-dev:
+    volumes:
+      - ./test_app:/app
+      - ./platformics:/app/platformics
+  platformics-app:
     profiles: ["dev"]
-    image: "platformics-dev"
+    image: "platformics-app"
     build:
-      context: "."
-      dockerfile: "Dockerfile.dev"
+      context: "./test_app"
+      dockerfile: "Dockerfile"
       args:
         - BUILDKIT_INLINE_CACHE=1
     restart: always
@@ -64,9 +67,7 @@ services:
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
     volumes:
       - ./test_app:/app
-      - ./platformics:/app/platformics
-      - ./poetry.lock:/app/poetry.lock
-      - ./pyproject.toml:/app/pyproject.toml
+      - .:/platformics
     command: ["/usr/local/bin/supervisord", "-c", "/app/etc/supervisord.conf"]
 networks:
   default:

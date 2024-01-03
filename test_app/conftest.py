@@ -153,11 +153,3 @@ async def api(async_db: AsyncDB) -> FastAPI:
     api = get_app(use_test_schema=False)
     overwrite_api(api, async_db)
     return api
-
-
-@pytest_asyncio.fixture()
-async def http_client(api: FastAPI) -> AsyncClient:
-    """
-    Create an HTTP client.
-    """
-    return AsyncClient(app=api, base_url="http://test")

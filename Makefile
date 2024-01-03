@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 FOLDER = /app
-CONTAINER= platformics-dev
+CONTAINER= platformics-app
 
 ### DATABASE VARIABLES #################################################
 LOCAL_DB_NAME= 
@@ -162,4 +162,4 @@ clean:
 test: build
 	docker compose --profile dev build
 	docker compose --profile dev up -d
-	docker compose exec platformics-dev pytest -vvv
+	docker compose exec $(CONTAINER) pytest -vvv

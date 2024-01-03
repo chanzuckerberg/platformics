@@ -3,14 +3,15 @@ Test file mutations for upload, linking an existing S3 file, and marking a file 
 """
 
 import os
+
 import pytest
 import sqlalchemy as sa
 from mypy_boto3_s3.client import S3Client
-from platformics.database.connect import SyncDB
-from database.models import File, FileStatus
-from platformics.codegen.conftest import SessionStorage, FileFactory, GQLTestClient
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from platformics.codegen.conftest import FileFactory, GQLTestClient, SessionStorage
 from platformics.codegen.tests.output.database.models import SequencingRead
+from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from platformics.database.connect import SyncDB
+from platformics.database.models import File, FileStatus
 
 
 @pytest.mark.asyncio
@@ -105,8 +106,16 @@ async def test_invalid_fastq(
 @pytest.mark.parametrize(
     "member_projects,project_id,entity_field",
     [
-        ([456], 123, "r1_file"),  # Can't create file for entity you don't have access to
-        ([123], 123, "does_not_exist"),  # Can't create file for entity that isn't connected to a valid file type
+        (
+            [456],
+            123,
+            "r1_file",
+        ),  # Can't create file for entity you don't have access to
+        (
+            [123],
+            123,
+            "does_not_exist",
+        ),  # Can't create file for entity that isn't connected to a valid file type
         ([123], 123, "r1_file"),  # Can create file for entity you have access to
     ],
 )

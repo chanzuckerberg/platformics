@@ -2,7 +2,7 @@ import strawberry
 from strawberry import relay
 from strawberry.types import Info
 from typing import Iterable
-import database.models as db
+import platformics.database.models as db
 
 
 @strawberry.type
