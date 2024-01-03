@@ -1,7 +1,9 @@
 SHELL := /bin/bash
 
 FOLDER = /app
-CONTAINER= platformics-app
+CONTAINER=dev-app
+TEST_CONTAINER=test-app
+BUILD_CONTAINER=platformics
 
 ### DATABASE VARIABLES #################################################
 LOCAL_DB_NAME= 
@@ -80,28 +82,15 @@ local-update-deps: ## Update poetry.lock to reflect pyproject.toml file changes.
 local-update-backend-deps: ## Update poetry.lock to reflect pyproject.toml file changes.
 	$(docker_compose) exec backend poetry update
 
-.PHONY: local-tests
-local-tests: ## Run tests
-	$(docker_compose_run) $(CONTAINER) bash -c "poetry run pytest"
-
 .PHONY: local-token
 local-token: ## Copy an auth token for this local dev env to the system clipboard
 	TOKEN=$$($(docker_compose_run) $(CONTAINER) platformics auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
-
-.PHONY: fix-lint
-fix-lint: ## Apply linting rules to the code in this directory.
-	$(docker_compose_run) $(CONTAINER) black .
-	$(docker_compose_run) $(CONTAINER) ruff check --fix .
 
 .PHONY: check-lint
 check-lint: ## Check for bad linting
 	$(docker_compose_run) $(CONTAINER) black --check .
 	$(docker_compose_run) $(CONTAINER) ruff check .
 	$(docker_compose_run) $(CONTAINER) mypy .
-
-.PHONY: local-mypy
-local-mypy: ## Run type checking
-	$(docker_compose) exec $(CONTAINER) mypy .
 
 .PHONY: update-cli
 update-cli:  ## Update the GQL types used by the CLI
@@ -143,7 +132,7 @@ codegen:
 	#poetry build
 	#docker compose --profile dev build
 	#docker run -v $$PWD:/platformics platformics api generate --schemafile /platformics/test_app/schema/test_app.yaml --output-prefix /platformics/test_app/
-	$(docker_compose_run) $(CONTAINER) platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app/
+	$(docker_compose_run) $(BUILD_CONTAINER) platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app/
 	$(docker_compose_run) $(CONTAINER) black .
 	$(docker_compose_run) $(CONTAINER) ruff check --fix .
 	$(docker_compose_run) $(CONTAINER) strawberry export-schema main:schema > api/schema.graphql
@@ -156,10 +145,16 @@ clean:
 	rm -rf test_app/api
 	rm -rf test_app/database
 	rm -rf test_app/database_migrations
-	docker compose build
+	docker compose --profile '*' down
 
 .PHONY: test
 test: build
+	docker compose --profile test build
+	docker compose --profile test up -d
+	docker compose exec $(TEST_CONTAINER) pytest -vvv
+
+.PHONY: dev
+dev: build
 	docker compose --profile dev build
 	docker compose --profile dev up -d
 	docker compose exec $(CONTAINER) pytest -vvv

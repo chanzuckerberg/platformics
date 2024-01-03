@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   platformics-db:
-    profiles: ["dev"]
+    profiles: ["dev", "test"]
     image: postgres:15
     restart: always
     environment:
@@ -16,13 +16,13 @@ services:
       # workflow.
       - PGDATA=/var/lib/platformics/data
   cerbos:
-    profiles: ["dev"]
+    profiles: ["dev", "test"]
     image: ghcr.io/cerbos/cerbos:0.29.0
     ports:
       - "3592:3592"
       - "3593:3593"
     volumes:
-      - ./app/cerbos:/platformics
+      - ./test_app/cerbos:/platformics
     command:
       ["server", "--config", "/platformics/config.yaml"]
   platformics:
@@ -35,9 +35,9 @@ services:
     volumes:
       - ./test_app:/app
       - ./platformics:/app/platformics
-  platformics-app:
-    profiles: ["dev"]
-    image: "platformics-app"
+  test-app:
+    profiles: ["test"]
+    image: "platformics-test-app"
     build:
       context: "./test_app"
       dockerfile: "Dockerfile"
@@ -47,8 +47,8 @@ services:
     stdin_open: true # Helps with pdb
     tty: true # Helps with pdb
     ports:
-      - "9008:8008"
-      - "9009:8009"
+      - "9008:9008"
+      - "9009:9009"
     environment:
       - CERBOS_URL=http://cerbos:3592
       - PLATFORMICS_DATABASE_HOST=platformics-db.platformics
@@ -67,7 +67,42 @@ services:
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
     volumes:
       - ./test_app:/app
+    command: ["python3", "main.py"]
+  dev-app:
+    profiles: ["dev"]
+    image: "platformics-dev-app"
+    build:
+      context: "."
+      dockerfile: "Dockerfile.dev"
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    restart: always
+    stdin_open: true # Helps with pdb
+    tty: true # Helps with pdb
+    ports:
+      - "9008:9008"
+      - "9009:9009"
+    environment:
+      - PYTHONPATH=.
+      - CERBOS_URL=http://cerbos:3592
+      - PLATFORMICS_DATABASE_HOST=platformics-db.platformics
+      - PLATFORMICS_DATABASE_PORT=5432
+      - PLATFORMICS_DATABASE_USER=postgres
+      - PLATFORMICS_DATABASE_PASSWORD=password_postgres
+      - PLATFORMICS_DATABASE_NAME=platformics
+      - DEFAULT_UPLOAD_BUCKET=local-bucket
+      - DEFAULT_UPLOAD_PROTOCOL=s3
+      - BOTO_ENDPOINT_URL=http://motoserver.platformics:4000
+      - AWS_REGION=us-west-2
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      # TODO - these are keypairs for testing only! Do not use in prod!!
+      - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
+      - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
+    volumes:
+      - ./test_app:/app
       - .:/platformics
+      - ./platformics:/app/platformics
     command: ["/usr/local/bin/supervisord", "-c", "/app/etc/supervisord.conf"]
 networks:
   default:

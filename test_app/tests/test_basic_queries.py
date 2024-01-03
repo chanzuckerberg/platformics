@@ -4,8 +4,8 @@ Test basic queries and mutations
 
 import pytest
 from platformics.database.connect import SyncDB
-from platformics.codegen.conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
+from conftest import GQLTestClient, SessionStorage
+from test_infra.factories.sample import SampleFactory
 
 
 @pytest.mark.asyncio

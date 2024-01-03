@@ -6,12 +6,12 @@ import os
 
 import pytest
 import sqlalchemy as sa
+from conftest import FileFactory, GQLTestClient, SessionStorage
+from database.models import SequencingRead
 from mypy_boto3_s3.client import S3Client
-from platformics.codegen.conftest import FileFactory, GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.database.models import SequencingRead
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
 from platformics.database.connect import SyncDB
 from platformics.database.models import File, FileStatus
+from test_infra.factories.sequencing_read import SequencingReadFactory
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_file_validation(
         files = session.execute(sa.select(File)).scalars().all()
         file = list(filter(lambda file: file.entity_field_name == "r1_file", files))[0]
 
-    valid_fastq_file = "test_infra/fixtures/test1.fastq"
+    valid_fastq_file = "tests/fixtures/test1.fastq"
     file_size = os.stat(valid_fastq_file).st_size
     moto_client.put_object(Bucket=file.namespace, Key=file.path, Body=open(valid_fastq_file, "rb"))
 

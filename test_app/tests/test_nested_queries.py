@@ -6,9 +6,9 @@ import base64
 import pytest
 from collections import defaultdict
 from platformics.database.connect import SyncDB
-from platformics.codegen.conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from conftest import GQLTestClient, SessionStorage
+from test_infra.factories.sample import SampleFactory
+from test_infra.factories.sequencing_read import SequencingReadFactory
 from api.types.entities import Entity
 
 

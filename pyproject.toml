@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "platformics"}]
 
 [tool.poetry.scripts]
-platformics = 'platformics.cli.platformics:cli'
+platformics = 'platformics.cli.main:cli'
 
 [tool.poetry.dev-dependencies]
 black = "^23.7.0"

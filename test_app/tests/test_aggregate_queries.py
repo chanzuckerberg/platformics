@@ -3,10 +3,10 @@ Test aggregate queries
 """
 
 import pytest
+from conftest import GQLTestClient, SessionStorage
 from platformics.database.connect import SyncDB
-from platformics.codegen.conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from test_infra.factories.sample import SampleFactory
+from test_infra.factories.sequencing_read import SequencingReadFactory
 
 
 @pytest.mark.asyncio

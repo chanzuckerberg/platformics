@@ -10,7 +10,14 @@ from jinja2 import Environment, FileSystemLoader
 from linkml_runtime.utils.schemaview import SchemaView
 from platformics.codegen.lib.linkml_wrappers import ViewWrapper
 
-DIR_CODEGEN = ["support", "api/types", "database/models", "cerbos/policies", "test_infra/factories"]
+DIR_CODEGEN = [
+    "support",
+    "api/types",
+    "database/models",
+    "cerbos/policies",
+    "cerbos/policies/_schemas",
+    "test_infra/factories",
+]
 
 
 def generate_enums(output_prefix: str, environment: Environment, view: ViewWrapper) -> None:
@@ -55,7 +62,16 @@ def generate_entity_import_files(
     """
     Code generation for database model imports, and GraphQL queries/mutations
     """
-    import_templates = ["database/models/__init__.py", "api/queries.py", "api/mutations.py"]
+    import_templates = [
+        "cerbos/config.yaml",
+        "cerbos/policies/file.yaml",
+        "cerbos/policies/file.yaml",
+        "cerbos/policies/derived_roles_common.yaml",
+        "cerbos/policies/_schemas/principal.json",
+        "database/models/__init__.py",
+        "api/queries.py",
+        "api/mutations.py",
+    ]
     classes = view.entities
     for filename in import_templates:
         import_template = environment.get_template(f"{filename}.j2")

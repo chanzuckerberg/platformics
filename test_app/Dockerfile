@@ -1,7 +1,7 @@
 FROM platformics
 
 RUN apt update && \
-    apt install -y vim wget nginx nginx-extras procps ripgrep make gcc && \
+    apt install -y nginx nginx-extras && \
     apt clean
 
 # Some base python dependencies to kickstart our container build.

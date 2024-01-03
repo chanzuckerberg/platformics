@@ -210,7 +210,7 @@ Define {{ cls.name }} type
 """
 @strawberry.type
 class {{ cls.name }}(EntityInterface):
-    id: strawberry.ID
+    id: relay.NodeID[str]
     producing_run_id: Optional[int]
     owner_user_id: int
     collection_id: int

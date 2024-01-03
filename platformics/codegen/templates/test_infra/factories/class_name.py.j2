@@ -9,7 +9,7 @@ Make changes to the template codegen/templates/test_infra/factories/class_name.p
 
 import factory
 from database.models import {{ cls.name }}
-from test_infra.factories.main import CommonFactory, FileFactory
+from platformics.test_infra.factories.base import CommonFactory, FileFactory
 {%- for field in cls.related_fields %}
     {%- if field.inverse and field.related_class.name != "Entity" and not field.multivalued%}
 from test_infra.factories.{{ field.related_class.snake_name }} import {{ field.related_class.name }}Factory

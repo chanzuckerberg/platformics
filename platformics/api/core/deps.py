@@ -1,22 +1,22 @@
-import boto3
 import typing
 
+import boto3
 from botocore.client import Config
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
-from platformics.settings import APISettings
 from platformics.database.connect import AsyncDB, init_async_db
 from platformics.security.token_auth import get_token_claims
+from platformics.settings import APISettings
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 
 def get_settings(request: Request) -> APISettings:
     """Get the settings object from the app state"""
-    return request.app.state.entities_settings
+    return request.app.state.settings
 
 
 async def get_engine(
