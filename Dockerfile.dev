@@ -11,6 +11,8 @@ RUN python3 -m pip install --no-cache-dir poetry==$POETRY_VERSION supervisor
 RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 RUN poetry install
+COPY test_app/pyproject.toml test_app/poetry.lock ./
+RUN poetry install
 
 # Create an empty dir to mount our test app to.
 RUN mkdir -p /app

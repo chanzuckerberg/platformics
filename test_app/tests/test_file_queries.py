@@ -4,7 +4,7 @@ Test file queries
 
 import pytest
 from platformics.database.connect import SyncDB
-from conftest import (FileFactory, GQLTestClient, SessionStorage)
+from conftest import FileFactory, GQLTestClient, SessionStorage
 from test_infra.factories.sequencing_read import SequencingReadFactory
 
 

@@ -197,7 +197,7 @@ async def test_create_file(
     # Upload a fastq file to a mock bucket so we can create a file object from it
     file_namespace = "local-bucket"
     file_path = "test1.fastq"
-    file_path_local = "test_infra/fixtures/test1.fastq"
+    file_path_local = "tests/fixtures/test1.fastq"
     file_size = os.stat(file_path_local).st_size
     with open(file_path_local, "rb") as fp:
         moto_client.put_object(Bucket=file_namespace, Key=file_path, Body=fp)

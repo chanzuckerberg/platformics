@@ -44,8 +44,6 @@ services:
       args:
         - BUILDKIT_INLINE_CACHE=1
     restart: always
-    stdin_open: true # Helps with pdb
-    tty: true # Helps with pdb
     ports:
       - "9008:9008"
       - "9009:9009"
@@ -77,8 +75,6 @@ services:
       args:
         - BUILDKIT_INLINE_CACHE=1
     restart: always
-    stdin_open: true # Helps with pdb
-    tty: true # Helps with pdb
     ports:
       - "9008:9008"
       - "9009:9009"
