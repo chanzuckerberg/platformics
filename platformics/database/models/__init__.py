@@ -7,9 +7,5 @@ Make changes to the template codegen/templates/database/models/__init__.py.j2 in
 
 # isort: skip_file
 
-from sqlalchemy.orm import configure_mappers
-
 from platformics.database.models.base import Base, meta, Entity  # noqa: F401
 from platformics.database.models.file import File, FileStatus  # noqa: F401
-
-configure_mappers()
