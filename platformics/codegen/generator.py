@@ -14,6 +14,8 @@ DIR_CODEGEN = [
     "support",
     "api/types",
     "database/models",
+    "database/migrations",
+    "database/migrations/versions",
     "cerbos/policies",
     "cerbos/policies/_schemas",
     "test_infra/factories",
@@ -69,6 +71,8 @@ def generate_entity_import_files(
         "cerbos/policies/derived_roles_common.yaml",
         "cerbos/policies/_schemas/principal.json",
         "database/models/__init__.py",
+        "database/migrations/env.py",
+        "database/migrations/script.py.mako",
         "api/queries.py",
         "api/mutations.py",
     ]

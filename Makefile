@@ -99,18 +99,21 @@ build:
 	poetry build
 	docker compose build
 
-.PHONY: codegen
-codegen:
+.PHONY: init
+init:
 	#rm -rf dist/*.whl
 	#poetry build
 	#docker compose --profile dev build
-	$(docker_compose_run) $(BUILD_CONTAINER) api generate --schemafile /app/schema/test_app.yaml --output-prefix /app/
+
+	docker compose --profile dev up -d
+	$(docker_compose_run) $(CONTAINER) python3 platformics/cli/main.py api generate --schemafile /app/schema/test_app.yaml --output-prefix /app/
 	$(MAKE) alembic-autogenerate
 	$(MAKE) alembic-upgrade-head
 	$(docker_compose_run) $(CONTAINER) black .
 	# $(docker_compose_run) $(CONTAINER) ruff check --fix .
 	$(docker_compose_run) $(CONTAINER) sh -c 'strawberry export-schema main:schema > /app/api/schema.graphql'
 	sleep 5 # wait for the app to reload after having files updated.
+	docker compose --profile dev up -d
 	docker compose exec $(CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
 
 .PHONY: clean
@@ -120,7 +123,6 @@ clean:
 	rm -rf test_app/cerbos
 	rm -rf test_app/support
 	rm -rf test_app/database
-	rm -rf test_app/database_migrations
 	docker compose --profile '*' down
 
 .PHONY: test
