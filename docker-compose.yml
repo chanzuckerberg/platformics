@@ -19,8 +19,8 @@ services:
     profiles: ["dev", "test"]
     image: ghcr.io/cerbos/cerbos:0.29.0
     ports:
-      - "3592:3592"
-      - "3593:3593"
+      - "3692:3692"
+      - "3693:3693"
     volumes:
       - ./test_app/cerbos:/platformics
     command:

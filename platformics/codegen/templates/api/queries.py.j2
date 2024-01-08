@@ -6,7 +6,8 @@ Make changes to the template codegen/templates/api/queries.py.j2 instead.
 """
 
 import strawberry
-from strawberry import relay
+from platformics.api import relay
+#from strawberry import relay
 from typing import Sequence, List
 {%- if render_files %}
 from platformics.api.files import File, resolve_files
@@ -19,7 +20,7 @@ from api.types.{{ class.snake_name }} import {{ class.name }}, resolve_{{ class.
 @strawberry.type
 class Query:
     # Allow relay-style queries by node ID
-    node: relay.Node = relay.node()
+    # node: relay.Node = relay.node()
     nodes: List[relay.Node] = relay.node()
 
     {%- if render_files %}

@@ -33,7 +33,8 @@ from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
-from strawberry import relay
+from platformics.api import relay
+# from strawberry import relay
 from strawberry.field import StrawberryField
 from strawberry.types import Info
 from typing_extensions import TypedDict
@@ -210,7 +211,7 @@ Define {{ cls.name }} type
 """
 @strawberry.type
 class {{ cls.name }}(EntityInterface):
-    id: relay.NodeID[str]
+    id: strawberry.ID
     producing_run_id: Optional[int]
     owner_user_id: int
     collection_id: int

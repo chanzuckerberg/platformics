@@ -1,9 +1,8 @@
 {
-    "name": "Platformics devcontainer",
-    "dockerComposeFile": [
-        "../docker-compose.yml"
-    ],
-    "service": "testapp",
+    "name": "Platformics dev container",
+    "dockerComposeFile": "../../docker-compose.yml",
+    "service": "dev-app",
+    "initializeCommand": "sleep 3",
     "workspaceFolder": "/app",
     "shutdownAction": "echo shutting down",
     "customizations": {
