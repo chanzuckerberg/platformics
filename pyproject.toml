@@ -28,7 +28,7 @@ httpx = "^0.24.1"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.100.0"
+fastapi = "^0.109.1"
 asyncpg = "^0.28.0"
 alembic = "^1.11.1"
 sgqlc = "^16.3"
