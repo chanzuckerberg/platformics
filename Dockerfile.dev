@@ -3,7 +3,7 @@ RUN apt-get update && \
     apt-get install -y vim wget nginx nginx-extras procps ripgrep make gcc && \
     apt-get clean
 
-ENV POETRY_VERSION=1.7
+ENV POETRY_VERSION=1.8
 # Some base python dependencies to kickstart our container build.
 RUN python3 -m pip install --no-cache-dir poetry==$POETRY_VERSION supervisor
 

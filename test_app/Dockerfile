@@ -5,7 +5,7 @@ RUN apt update && \
     apt clean
 
 # Some base python dependencies to kickstart our container build.
-ENV POETRY_VERSION=1.7
+ENV POETRY_VERSION=1.8
 RUN python3 -m pip install --no-cache-dir poetry==$POETRY_VERSION supervisor
 
 # Install dev deps
