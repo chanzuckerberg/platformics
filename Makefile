@@ -12,7 +12,7 @@ LOCAL_DB_USERNAME=postgres
 LOCAL_DB_PASSWORD=password_postgres
 LOCAL_DB_CONN_STRING = postgresql://$(LOCAL_DB_USERNAME):$(LOCAL_DB_PASSWORD)@$(LOCAL_DB_SERVER)/$(LOCAL_DB_NAME)
 
-### DOCKER ENVIRONMENTAL VARS #################################################
+### DOCKER ENV VARS #################################################
 export DOCKER_BUILDKIT:=1
 export COMPOSE_DOCKER_CLI_BUILD:=1
 export docker_compose:=docker compose
@@ -61,7 +61,7 @@ local-update-deps: ## Update poetry.lock to reflect pyproject.toml file changes.
 
 .PHONY: local-token
 local-token: ## Copy an auth token for this local dev env to the system clipboard
-	TOKEN=$$($(docker_compose_run) $(CONTAINER) platformics auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
+	TOKEN=$$($(docker_compose_run) -w /platformics $(CONTAINER) python3 platformics/cli/main.py auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
 
 .PHONY: check-lint
 check-lint: ## Check for bad linting
