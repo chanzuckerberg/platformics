@@ -14,6 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 
+def get_db_module(request: Request) -> typing.Any:
+    """Get the DB module from our app state"""
+    return request.app.state.db_module
+
+
 def get_settings(request: Request) -> APISettings:
     """Get the settings object from the app state"""
     return request.app.state.settings

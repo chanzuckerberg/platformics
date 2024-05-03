@@ -8,7 +8,7 @@ import strawberry
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
 from fastapi import Depends, FastAPI
-from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_engine
+from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_engine, get_db_module
 from platformics.api.core.gql_loaders import EntityLoader
 from platformics.database.connect import AsyncDB
 from platformics.settings import APISettings
@@ -23,6 +23,7 @@ from strawberry.schema.name_converter import HasGraphQLName, NameConverter
 
 def get_context(
     engine: AsyncDB = Depends(get_engine),
+    db_module: AsyncDB = Depends(get_db_module),
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(get_auth_principal),
 ) -> dict[str, typing.Any]:
@@ -31,6 +32,8 @@ def get_context(
     """
     return {
         "sqlalchemy_loader": EntityLoader(engine=engine, cerbos_client=cerbos_client, principal=principal),
+        # TODO FIXME this is ridiculous.
+        "db_module": db_module,
     }
 
 
@@ -45,7 +48,7 @@ class CustomNameConverter(NameConverter):
         return super().get_graphql_name(obj)
 
 
-def get_app(settings: APISettings, schema: strawberry.Schema) -> FastAPI:
+def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any) -> FastAPI:
     """
     Make sure tests can get their own instances of the app.
     """
@@ -57,6 +60,7 @@ def get_app(settings: APISettings, schema: strawberry.Schema) -> FastAPI:
     _app.include_router(graphql_app, prefix="/graphql")
     # Add a global settings object to the app that we can use as a dependency
     _app.state.settings = settings
+    _app.state.db_module = db_module
 
     return _app
 

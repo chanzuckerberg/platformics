@@ -6,6 +6,7 @@ import strawberry
 import uvicorn
 from platformics.api.setup import get_app, get_strawberry_config
 from platformics.settings import APISettings
+from database import models
 
 from api.mutations import Mutation
 from api.queries import Query
@@ -16,7 +17,7 @@ schema = strawberry.Schema(query=Query, mutation=Mutation, config=strawberry_con
 
 
 # Create and run app
-app = get_app(settings, schema)
+app = get_app(settings, schema, models)
 
 if __name__ == "__main__":
     config = uvicorn.Config("main:app", host="0.0.0.0", port=8009, log_level="info")

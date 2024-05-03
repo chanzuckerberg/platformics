@@ -1,6 +1,5 @@
 from typing import Iterable
 
-import platformics.database.models as db
 import strawberry
 from platformics.api import relay
 
@@ -33,6 +32,8 @@ class EntityInterface(relay.Node):
     @classmethod
     async def resolve_nodes(cls, *, info: Info, node_ids: Iterable[str], required: bool = False) -> list:
         dataloader = info.context["sqlalchemy_loader"]
+        # TODO FIXME this db_module thing is silly.
+        db_module = info.context["db_module"]
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
-        sql_model = getattr(db, gql_type)
+        sql_model = getattr(db_module, gql_type)
         return await dataloader.resolve_nodes(sql_model, node_ids)
