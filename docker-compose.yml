@@ -48,7 +48,7 @@ services:
       - "9008:9008"
       - "9009:9009"
     environment:
-      - CERBOS_URL=http://cerbos:3592
+      - CERBOS_URL=http://cerbos:3692
       - PLATFORMICS_DATABASE_HOST=platformics-db.platformics
       - PLATFORMICS_DATABASE_PORT=5432
       - PLATFORMICS_DATABASE_USER=postgres
@@ -80,7 +80,7 @@ services:
       - "9009:9009"
     environment:
       - PYTHONPATH=.
-      - CERBOS_URL=http://cerbos:3592
+      - CERBOS_URL=http://cerbos:3692
       - PLATFORMICS_DATABASE_HOST=platformics-db.platformics
       - PLATFORMICS_DATABASE_PORT=5432
       - PLATFORMICS_DATABASE_USER=postgres
