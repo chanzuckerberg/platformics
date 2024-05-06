@@ -147,9 +147,9 @@ class File:
     id: strawberry.ID
     entity_id: strawberry.ID
     entity_field_name: str
-    entity: typing.Optional[
-        typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]
-    ] = load_entities
+    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]] = (
+        load_entities
+    )
     status: FileStatus
     protocol: str
     namespace: str

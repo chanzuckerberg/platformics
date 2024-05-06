@@ -32,7 +32,7 @@ def get_context(
     """
     return {
         "sqlalchemy_loader": EntityLoader(engine=engine, cerbos_client=cerbos_client, principal=principal),
-        # TODO FIXME this is ridiculous.
+        # This is entirely to support automatically resolving Relay Nodes in the EntityInterface
         "db_module": db_module,
     }
 
