@@ -5,7 +5,7 @@ Helper functions for working with the database.
 import typing
 from typing import Any, Optional
 
-import database.models as db
+import platformics.database.models as db
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
 from platformics.security.authorization import CerbosAction, get_resource_query

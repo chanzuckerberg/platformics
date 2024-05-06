@@ -1,6 +1,6 @@
 from platformics.thirdparty.cerbos_sqlalchemy.query import get_query
 from cerbos.sdk.client import CerbosClient
-import database.models as db
+import platformics.database.models as db
 from cerbos.sdk.model import Principal, ResourceDesc
 from enum import Enum
 import typing

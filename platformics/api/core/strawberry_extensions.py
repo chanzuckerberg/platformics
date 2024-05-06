@@ -6,6 +6,7 @@ from fastapi.dependencies.models import Dependant
 from strawberry.extensions import FieldExtension
 from strawberry.field import StrawberryField
 from strawberry.types import Info
+from contextlib import AsyncExitStack
 
 import types
 import functools
@@ -27,6 +28,7 @@ def get_func_with_only_deps(func: typing.Callable[..., typing.Any]) -> typing.Ca
         if isinstance(param.default, DependsClass):
             continue
         newfunc.__annotations__[param.name] = str
+
     return newfunc
 
 
@@ -56,12 +58,16 @@ class DependencyExtension(FieldExtension):
         except AttributeError:
             request.context = {"dependency_cache": {}}
 
+        if not request.scope.get("sberrystack"):
+            request.scope["sberrystack"] = AsyncExitStack()
+
         solved_result = await deputils.solve_dependencies(
             request=request,
             dependant=self.dependant,
             body={},
             dependency_overrides_provider=request.app,
             dependency_cache=request.context["dependency_cache"],
+            async_exit_stack=request.scope["sberrystack"],
         )
         (
             solved_values,

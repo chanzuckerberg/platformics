@@ -94,7 +94,7 @@ class NodeExtension(FieldExtension):
     def nodes_by_gid(self, node_lists):
         result: Dict[strawberry.ID, Type[Node]] = {}
         for node_list in node_lists:
-            result.update({item.id: item for item in node_list})
+            result.update({str(item.id): item for item in node_list})
         return result
 
     def get_node_list_resolver(self, field: StrawberryField):  # noqa: ANN201

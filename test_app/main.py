@@ -20,6 +20,6 @@ schema = strawberry.Schema(query=Query, mutation=Mutation, config=strawberry_con
 app = get_app(settings, schema, models)
 
 if __name__ == "__main__":
-    config = uvicorn.Config("main:app", host="0.0.0.0", port=8009, log_level="info")
+    config = uvicorn.Config("main:app", host="0.0.0.0", port=9008, log_level="info")
     server = uvicorn.Server(config)
     server.run()
