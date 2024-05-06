@@ -32,7 +32,6 @@ class EntityInterface(relay.Node):
     @classmethod
     async def resolve_nodes(cls, *, info: Info, node_ids: Iterable[str], required: bool = False) -> list:
         dataloader = info.context["sqlalchemy_loader"]
-        # TODO FIXME this db_module thing is silly.
         db_module = info.context["db_module"]
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
         sql_model = getattr(db_module, gql_type)
