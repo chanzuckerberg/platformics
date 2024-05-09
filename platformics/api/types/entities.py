@@ -3,7 +3,6 @@ from typing import Iterable
 import strawberry
 from platformics.api import relay
 
-# from strawberry import relay
 from strawberry.types import Info
 
 
@@ -14,12 +13,6 @@ class Entity:
     producing_run_id: strawberry.ID
     owner_user_id: int
     collection_id: int
-
-
-@strawberry.interface
-class EntityInterface3:
-    id: strawberry.ID
-    pass
 
 
 @strawberry.interface

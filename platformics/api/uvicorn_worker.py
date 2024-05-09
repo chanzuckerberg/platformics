@@ -38,5 +38,4 @@ class ReloadingWorker(UvicornWorker):
         if self.cfg.reload:
             self._reloader_thread.start()
 
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self._serve())
+        return asyncio.run(self._serve())

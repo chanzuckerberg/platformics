@@ -13,6 +13,7 @@ class FileStatus(enum.Enum):
 @strawberry.enum
 class FileAccessProtocol(enum.Enum):
     s3 = "s3"
+    https = "https"
 
 
 @strawberry.enum

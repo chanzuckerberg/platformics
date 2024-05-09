@@ -2,12 +2,7 @@ import json
 from jwcrypto.jwk import JWK
 from jwcrypto import jwe, jwt
 import time
-from typing import TypedDict
-
-
-class ProjectRole(TypedDict):
-    project_id: int
-    roles: list[str]
+from typing import TypedDict, Optional
 
 
 def get_token_claims(private_key: JWK, token: str) -> dict:
@@ -24,18 +19,20 @@ def get_token_claims(private_key: JWK, token: str) -> dict:
 # it's just in our app for now to help us test the auth flow.
 def create_token(
     private_key: JWK,
-    userid: int,
-    project_claims: list[ProjectRole],
+    userid: Optional[int] = None,
+    project_claims: Optional[dict[str, list[int]]] = None,
     expiration: int = 3600,
+    service_identity: Optional[str] = None,
 ) -> str:
     # Create a JWT that's signed by our private key. This proves *who wrote the message*
     jwt_payload = {
-        "sub": str(userid),
+        "sub": userid and str(userid),
         "iat": int(time.time()),
         "nbf": int(time.time()),
         "exp": int(time.time()) + expiration,
         "iss": "https://api.example.com",
-        "projects": project_claims,
+        "project_roles": project_claims,
+        "service_identity": service_identity,
     }
     jwt_headers = {
         "alg": "ES384",

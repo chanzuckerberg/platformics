@@ -50,8 +50,9 @@ def get_cerbos_client(settings: APISettings = Depends(get_settings)) -> CerbosCl
     return CerbosClient(host=settings.CERBOS_URL)
 
 
-def get_auth_principal(request: Request, settings: APISettings = Depends(get_settings)) -> typing.Optional[Principal]:
+def get_user_token(request: Request) -> typing.Optional[str]:
     auth_header = request.headers.get("authorization")
+    parts = []
     if auth_header:
         parts = auth_header.split()
     if not auth_header or len(parts) != 2:
@@ -59,26 +60,44 @@ def get_auth_principal(request: Request, settings: APISettings = Depends(get_set
     if parts[0].lower() != "bearer":
         return None
 
+    return parts[1]
+
+
+def get_auth_principal(
+    request: Request,
+    settings: APISettings = Depends(get_settings),
+    user_token: typing.Optional[str] = Depends(get_user_token),
+) -> typing.Optional[Principal]:
+    if not user_token:
+        return None
     try:
-        claims = get_token_claims(settings.JWK_PRIVATE_KEY, parts[1])
+        claims = get_token_claims(settings.JWK_PRIVATE_KEY, user_token)
     except:  # noqa
         return None
 
-    # role_map is a bit brute-force to make cerbos-sqlalchemy happy, but it's fine
-    # for now.
-    role_map: dict[str, list[int]] = {}
-    for project in claims["projects"]:
-        for role in project["roles"]:
-            if role not in role_map:
-                role_map[role] = []
-            role_map[role].append(project["project_id"])
+    if "project_roles" not in claims:
+        raise PlatformicsException("Unauthorized")
+
+    project_claims = claims["project_roles"]
+
+    try:
+        for role, project_ids in project_claims.items():
+            assert role in ["member", "owner", "viewer"]
+            assert isinstance(project_ids, list)
+            for item in project_ids:
+                assert int(item)
+    except Exception:
+        raise PlatformicsException("Unauthorized")
+
     return Principal(
         claims["sub"],
         roles=["user"],
         attr={
             "user_id": int(claims["sub"]),
-            "admin_projects": role_map.get("admin", []),
-            "member_projects": role_map.get("member", []),
+            "owner_projects": project_claims.get("owner", []),
+            "member_projects": project_claims.get("member", []),
+            "viewer_projects": project_claims.get("viewer", []),
+            "service_identity": claims["service_identity"],
         },
     )
 
@@ -87,8 +106,20 @@ def require_auth_principal(
     principal: typing.Optional[Principal] = Depends(get_auth_principal),
 ) -> Principal:
     if not principal:
-        raise Exception("Unauthorized")
+        raise PlatformicsException("Unauthorized")
     return principal
+
+
+def is_system_user(principal: Principal = Depends(require_auth_principal)) -> bool:
+    if principal.attr.get("service_identity"):
+        return True
+    return False
+
+
+def require_system_user(principal: Principal = Depends(require_auth_principal)) -> None:
+    if principal.attr.get("service_identity"):
+        return None
+    raise PlatformicsException("Unauthorized")
 
 
 def get_s3_client(

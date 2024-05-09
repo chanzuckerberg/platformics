@@ -2,6 +2,7 @@
 GraphQL types, queries, and mutations for files.
 """
 
+import datetime
 import json
 import tempfile
 import typing
@@ -22,23 +23,31 @@ from platformics.api.core.deps import (
     get_settings,
     get_sts_client,
     require_auth_principal,
+    require_system_user,
 )
 from platformics.api.core.gql_to_sql import EnumComparators, IntComparators, StrComparators, UUIDComparators
 from platformics.api.core.helpers import get_db_rows
 from platformics.api.core.strawberry_extensions import DependencyExtension
 from platformics.security.authorization import CerbosAction, get_resource_query
 from platformics.settings import APISettings
-from platformics.support.file_enums import FileStatus
+from platformics.support.file_enums import FileStatus, FileAccessProtocol
 from platformics.support.format_handlers import get_validator
-from sqlalchemy import inspect
+from sqlalchemy.sql import inspect
+from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
-from strawberry.scalars import JSON
-from strawberry.types import Info
 from typing_extensions import TypedDict
 
-FILE_CONCATENATION_MAX = 100
-FILE_CONCATENATION_MAX_SIZE = 1e6
-FILE_CONCATENATION_PREFIX = "tmp/concatenated-files"
+import strawberry
+from platformics.api.types.entities import Entity
+from strawberry.scalars import JSON
+from strawberry.types import Info
+
+FILE_TEMPORARY_PREFIX = "tmp"
+FILE_CONCATENATION_MAX = 200
+FILE_CONCATENATION_MAX_SIZE = 50e3  # SARS-CoV-2 genome is ~30kbp
+FILE_CONCATENATION_PREFIX = f"{FILE_TEMPORARY_PREFIX}/concatenated-files"
+FILE_CONTENTS_MAX_SIZE = 1e6  # 1MB
+UPLOADS_PREFIX = "uploads"
 
 # ------------------------------------------------------------------------------
 # Utility types/inputs
@@ -95,7 +104,7 @@ class FileCreate:
     name: str
     file_format: str
     compression_type: typing.Optional[str] = None
-    protocol: str
+    protocol: FileAccessProtocol
     namespace: str
     path: str
 
@@ -151,12 +160,15 @@ class File:
         load_entities
     )
     status: FileStatus
-    protocol: str
+    protocol: FileAccessProtocol
     namespace: str
     path: str
     file_format: str
     compression_type: typing.Optional[int] = None
     size: typing.Optional[int] = None
+    upload_error: typing.Optional[str] = None
+    created_at: datetime.datetime
+    updated_at: typing.Optional[datetime.datetime] = None
 
     @strawberry.field(extensions=[DependencyExtension()])
     def download_link(
@@ -169,12 +181,24 @@ class File:
         """
         if not self.path:  # type: ignore
             return None
-        key = self.path  # type: ignore
-        bucket_name = self.namespace  # type: ignore
-        url = s3_client.generate_presigned_url(
-            ClientMethod="get_object", Params={"Bucket": bucket_name, "Key": key}, ExpiresIn=expiration
-        )
+        params = {"Bucket": self.namespace, "Key": self.path}
+        url = s3_client.generate_presigned_url(ClientMethod="get_object", Params=params, ExpiresIn=expiration)
         return SignedURL(url=url, protocol="https", method="get", expiration=expiration)
+
+    @strawberry.field(extensions=[DependencyExtension()])
+    def contents(
+        self,
+        s3_client: S3Client = Depends(get_s3_client),
+    ) -> str | None:
+        """
+        Utility function to get file contents of small files.
+        """
+        if not self.path or not self.size:
+            return None
+        if self.size > FILE_CONTENTS_MAX_SIZE:
+            raise Exception(f"Cannot download files larger than {FILE_CONTENTS_MAX_SIZE} bytes")
+        contents = s3_client.get_object(Bucket=self.namespace, Key=self.path)["Body"].read().decode("utf-8")
+        return contents
 
 
 @strawberry.type
@@ -232,15 +256,19 @@ async def validate_file(
     """
     Utility function to validate a file against its file format.
     """
-    validator = get_validator(file.file_format, file.compression_type)
+    validator = get_validator(file.file_format)
+
+    # Validate data
     try:
-        validator.validate(s3_client, file.namespace, file.path)
+        validator(s3_client, file.namespace, file.path).validate()
         file_size = s3_client.head_object(Bucket=file.namespace, Key=file.path)["ContentLength"]
     except:  # noqa
         file.status = db.FileStatus.FAILED
     else:
         file.status = db.FileStatus.SUCCESS
         file.size = file_size
+
+    file.updated_at = func.now()
     await session.commit()
 
 
@@ -329,6 +357,8 @@ async def create_file(
     """
     Create a file object based on an existing S3 file (no upload).
     """
+    # Since user can specify an arbitrary path, make sure only a system user can do this.
+    require_system_user(principal)
     new_file = await create_or_upload_file(
         entity_id, entity_field_name, file, -1, session, cerbos_client, principal, s3_client, sts_client, settings
     )
@@ -412,9 +442,9 @@ async def create_or_upload_file(
     if isinstance(file, FileUpload):
         file_protocol = settings.DEFAULT_UPLOAD_PROTOCOL
         file_namespace = settings.DEFAULT_UPLOAD_BUCKET
-        file_path = f"uploads/{file_id}/{file.name}"
+        file_path = f"{settings.OUTPUT_S3_PREFIX}/{UPLOADS_PREFIX}/{file_id}/{file.name}"
     else:
-        file_protocol = file.protocol
+        file_protocol = file.protocol  # type: ignore
         file_namespace = file.namespace
         file_path = file.path
 
@@ -451,6 +481,27 @@ async def create_or_upload_file(
 
 
 @strawberry.mutation(extensions=[DependencyExtension()])
+async def upload_temporary_file(
+    expiration: int = 3600,
+    principal: Principal = Depends(require_auth_principal),
+    sts_client: STSClient = Depends(get_sts_client),
+    settings: APISettings = Depends(get_settings),
+) -> MultipartUploadResponse:
+    """
+    Generate upload tokens to upload files to S3 for temporary use (e.g. when export CGs to Nextclade, user can upload a
+    tree file that is sent to Nextclade and then not used in the app later). Only system users can do this.
+    """
+    require_system_user(principal)
+    # Create a File object in memory because that's what `generate_multipart_upload_token` expects
+    # but this doesn't create a row in the File table.
+    new_file = db.File(namespace=settings.DEFAULT_UPLOAD_BUCKET, path=f"{FILE_TEMPORARY_PREFIX}/{uuid6.uuid7()}")
+    return MultipartUploadResponse(
+        file=new_file,  # type: ignore
+        credentials=generate_multipart_upload_token(new_file, expiration, sts_client),
+    )
+
+
+@strawberry.mutation(extensions=[DependencyExtension()])
 async def concatenate_files(
     ids: typing.Sequence[uuid.UUID],
     session: AsyncSession = Depends(get_db_session, use_cache=False),
@@ -460,11 +511,13 @@ async def concatenate_files(
     settings: APISettings = Depends(get_settings),
 ) -> SignedURL:
     """
-    Concatenate file contents synchronously. Only use for small files e.g. for exporting small CG FASTAs to Nextclade.
+    Concatenate file contents synchronously (as opposed to the asynchronous bulk-download concatenate pipeline).
+    Only use for small files e.g. for exporting small CG FASTAs to Nextclade, where input file IDs is an array of
+    ConsensusGenome.sequence.id. We only support doing so on SARS-CoV-2 FASTAs (~30kbp genome)
+    so it's ok to do synchronously.
     """
-    # TODO: Check with Product on a reasonable max
     if len(ids) > FILE_CONCATENATION_MAX:
-        raise Exception("Cannot concatenate more than 100 files")
+        raise Exception(f"Cannot concatenate more than {FILE_CONCATENATION_MAX} files")
 
     # Get files in question if have access to them
     where = {"id": {"_in": ids}, "status": {"_eq": db.FileStatus.SUCCESS}}

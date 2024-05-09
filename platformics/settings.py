@@ -1,3 +1,4 @@
+import typing
 from functools import cached_property
 
 from jwcrypto import jwk
@@ -31,11 +32,12 @@ class Settings(BaseSettings):
     PLATFORMICS_DATABASE_USER: str
     PLATFORMICS_DATABASE_PASSWORD: str
     PLATFORMICS_DATABASE_NAME: str
+    OUTPUT_S3_PREFIX: typing.Optional[str] = None
     JWK_PUBLIC_KEY_FILE: str
     JWK_PRIVATE_KEY_FILE: str
     DEFAULT_UPLOAD_BUCKET: str
     DEFAULT_UPLOAD_PROTOCOL: str
-    BOTO_ENDPOINT_URL: str
+    BOTO_ENDPOINT_URL: typing.Optional[str] = None
     AWS_REGION: str
 
     ############################################################################
