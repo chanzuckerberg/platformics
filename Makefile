@@ -31,8 +31,9 @@ rm-pycache: ## remove all __pycache__ files (run if encountering issues with pyc
 ### DOCKER LOCAL DEV #########################################
 .PHONY: start
 start: ## Start the local dev environment.
+	$(MAKE_TEST_APP) start || true
+	cd test_app; docker compose stop graphql-api
 	$(docker_compose) start
-	$(MAKE_TEST_APP) start
 
 .PHONY: stop
 stop: ## Stop the local dev environment.

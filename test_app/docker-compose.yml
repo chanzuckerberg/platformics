@@ -56,5 +56,4 @@ networks:
   default:
     name: platformics
     driver: overlay
-    external: true
     attachable: true
