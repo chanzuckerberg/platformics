@@ -66,7 +66,7 @@ codegen: ## Run codegen to convert the LinkML schema to a GQL API
 
 .PHONY: test
 test: init ## Run tests
-	$(docker_compose) exec $(TEST_CONTAINER) pytest -vvv
+	$(docker_compose) exec $(APP_CONTAINER) pytest -vvv
 
 .PHONY: restart
 restart: ## Restart the GQL service
