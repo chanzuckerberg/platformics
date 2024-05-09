@@ -36,7 +36,7 @@ start: ## Start the local dev environment.
 
 .PHONY: stop
 stop: ## Stop the local dev environment.
-	$(docker_compose) --profile '*' stop
+	$(docker_compose) stop
 	$(MAKE_TEST_APP) stop
 
 .PHONY: fix-poetry-lock
@@ -57,7 +57,7 @@ check-lint: ## Check for bad linting
 .PHONY: codegen-tests
 codegen-tests: codegen  ## Run tests
 	$(docker_compose) up -d
-	$(docker_compose) run -v platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app
+	$(docker_compose_run) -v platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app
 	$(docker_compose_run) $(CONTAINER) black .
 	$(docker_compose_run) $(CONTAINER) ruff check --fix  .
 	$(docker_compose_run) $(CONTAINER) pytest
@@ -73,25 +73,19 @@ build:
 	rm -rf dist/*.whl
 	poetry build
 	$(docker_compose) build
-	$(MAKE) -C test_app build
 
-.PHONY: init
-init:
-	docker compose up -d
+.PHONY: dev
+dev:
 	$(MAKE_TEST_APP) init
+	cd test_app; docker compose stop graphql-api
+	docker compose up -d
 
 .PHONY: clean
 clean:
 	rm -rf dist
-	$(docker_compose) --profile '*' down
+	$(docker_compose) down
 	$(MAKE_TEST_APP) clean
-
-.PHONY: dev
-dev: build
-	$(docker_compose) --profile '*' build
-	$(docker_compose) --profile dev up -d
-	$(docker_compose) exec $(CONTAINER) pytest -vvv
 
 .PHONY: %
 %: ## Forward all other targets to the test app
-	$(MAKE_TEST_APP) -c test_app $@
+	$(MAKE_TEST_APP) -C test_app $@

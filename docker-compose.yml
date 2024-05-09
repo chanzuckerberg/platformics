@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   platformics:
     image: "platformics"
@@ -13,7 +11,6 @@ services:
       - ./platformics:/app/platformics
   dev-app:
     image: "platformics-dev-app"
-    profiles: ["dev"]
     build:
       context: "."
       dockerfile: "Dockerfile.dev"
@@ -41,7 +38,7 @@ services:
       - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
     volumes:
-      - .:/app
+      - ./test_app:/app
       - .:/platformics
       - ./platformics:/app/platformics
     command: ["/usr/local/bin/supervisord", "-c", "/app/etc/supervisord.conf"]
