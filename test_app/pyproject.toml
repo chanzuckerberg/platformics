@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "test_app"
+name = "graphql_api"
 version = "0.1.0"
 description = "Platformics bio entities test app"
 authors = ["CZI Infectious Disease Team <help@czid.org>"]

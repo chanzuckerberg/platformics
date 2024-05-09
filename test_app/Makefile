@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 FOLDER = /app
-APP_CONTAINER=test-app
+APP_CONTAINER=graphql-api
 BUILD_CONTAINER=platformics
 
 ### DATABASE VARIABLES #################################################
@@ -38,7 +38,7 @@ build: ## Build docker containers
 .PHONY: init
 init:
 	docker compose up -d
-	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app
+	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile /app/schema/schema.yaml --output-prefix /app
 	$(MAKE) alembic-autogenerate
 	$(MAKE) alembic-upgrade-head
 	$(docker_compose_run) $(APP_CONTAINER) black .
@@ -62,7 +62,7 @@ start: ## Start the local dev environment.
 
 .PHONY: codegen
 codegen: ## Run codegen to convert the LinkML schema to a GQL API
-	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile ./schema/test_app.yaml --output-prefix .
+	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile ./schema/schema.yaml --output-prefix .
 
 .PHONY: test
 test: init ## Run tests
@@ -70,7 +70,7 @@ test: init ## Run tests
 
 .PHONY: restart
 restart: ## Restart the GQL service
-	$(docker_compose_run) $(APP_CONTAINER) supervisorctl restart test_app
+	$(docker_compose_run) $(APP_CONTAINER) supervisorctl restart graphql_api
 
 .PHONY: stop
 stop: ## Stop the local dev environment.
@@ -85,7 +85,7 @@ pgconsole: ## Connect to the local postgres database.
 	$(docker_compose) exec platformics-db psql "$(LOCAL_DB_CONN_STRING)"
 
 .PHONY: logs
-logs: ## Tail the logs of the dev env containers. ex: make logs CONTAINER=test-app
+logs: ## Tail the logs of the dev env containers. ex: make logs CONTAINER=graphql-api
 	$(docker_compose) logs -f $(CONTAINER)
 
 .PHONY: token

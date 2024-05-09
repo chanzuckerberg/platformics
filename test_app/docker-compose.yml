@@ -21,7 +21,7 @@ services:
       - ./cerbos:/platformics
     command:
       ["server", "--config", "/platformics/config.yaml"]
-  test-app:
+  graphql-api:
     image: "platformics-test-app"
     build:
       context: "."

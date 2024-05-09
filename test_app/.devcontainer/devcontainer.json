@@ -1,7 +1,7 @@
 {
     "name": "Test App",
     "dockerComposeFile": ["../docker-compose.yml"],
-    "service": "test-app",
+    "service": "graphql-api",
     "workspaceFolder": "/app",
     "customizations": {
         "vscode": {
