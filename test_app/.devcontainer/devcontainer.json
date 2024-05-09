@@ -1,10 +1,8 @@
 {
-    "name": "Platformics dev container",
-    "dockerComposeFile": "../../docker-compose.yml",
-    "service": "dev-app",
-    "initializeCommand": "sleep 3",
+    "name": "Test App",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "test-app",
     "workspaceFolder": "/app",
-    "shutdownAction": "echo shutting down",
     "customizations": {
         "vscode": {
             "settings": {

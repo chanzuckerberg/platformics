@@ -1,22 +1,31 @@
-version: "3.8"
-
 services:
-  platformics:
-    image: "platformics"
+  platformics-db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password_postgres
+      - POSTGRES_DB=platformics
+      # The postgres image declares a mounted volume at /var/lib/postgresql/data
+      # by default, which means that the data in that directory is difficult to
+      # snapshot and export. Here, we're telling Postgres to use this (non-mounted)
+      # directory as its storage location instead so it works with our db snapshot
+      # workflow.
+      - PGDATA=/var/lib/platformics/data
+  cerbos:
+    image: ghcr.io/cerbos/cerbos:0.29.0
+    ports:
+      - "3692:3692"
+      - "3693:3693"
+    volumes:
+      - ./cerbos:/platformics
+    command:
+      ["server", "--config", "/platformics/config.yaml"]
+  test-app:
+    image: "platformics-test-app"
     build:
       context: "."
       dockerfile: "Dockerfile"
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    volumes:
-      - ./test_app:/app
-      - ./platformics:/app/platformics
-  dev-app:
-    image: "platformics-dev-app"
-    profiles: ["dev"]
-    build:
-      context: "."
-      dockerfile: "Dockerfile.dev"
       args:
         - BUILDKIT_INLINE_CACHE=1
     restart: always
@@ -42,12 +51,10 @@ services:
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
     volumes:
       - .:/app
-      - .:/platformics
-      - ./platformics:/app/platformics
     command: ["/usr/local/bin/supervisord", "-c", "/app/etc/supervisord.conf"]
 networks:
   default:
     name: platformics
     driver: overlay
-    attachable: true
     external: true
+    attachable: true

@@ -1,6 +1,7 @@
 """
 Test concatenating small files, both plain text and gzipped
 """
+
 import pytest
 import requests
 from conftest import GQLTestClient, SessionStorage
