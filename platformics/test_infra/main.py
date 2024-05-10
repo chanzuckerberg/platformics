@@ -5,7 +5,7 @@ File factory
 import factory
 import faker
 import sqlalchemy as sa
-from database.models import File, FileStatus, Entity
+from platformics.database.models import File, FileStatus, Entity
 from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ

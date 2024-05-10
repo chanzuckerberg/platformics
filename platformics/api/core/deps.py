@@ -12,6 +12,7 @@ from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
+from platformics.api.core.error_handler import PlatformicsException
 
 
 def get_db_module(request: Request) -> typing.Any:

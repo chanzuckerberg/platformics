@@ -32,12 +32,11 @@ from platformics.security.authorization import CerbosAction, get_resource_query
 from platformics.settings import APISettings
 from platformics.support.file_enums import FileStatus, FileAccessProtocol
 from platformics.support.format_handlers import get_validator
-from sqlalchemy.sql import inspect
+from sqlalchemy import inspect
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import TypedDict
 
-import strawberry
 from platformics.api.types.entities import Entity
 from strawberry.scalars import JSON
 from strawberry.types import Info

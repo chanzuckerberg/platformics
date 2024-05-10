@@ -90,7 +90,7 @@ logs: ## Tail the logs of the dev env containers. ex: make logs CONTAINER=graphq
 
 .PHONY: token
 token: ## Copy an auth token for this local dev env to the system clipboard
-	TOKEN=$$($(docker_compose_run) -w /platformics $(APP_CONTAINER) platformics auth generate-token 111 --project 444:admin --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
+	TOKEN=$$($(docker_compose_run) -w /platformics $(APP_CONTAINER) platformics auth generate-token 111 --project 444:owner --expiration 99999); echo '{"Authorization":"Bearer '$$TOKEN'"}' | tee >(pbcopy)
 
 .PHONY: update-cli
 update-cli:  ## Update the GQL types used by the CLI

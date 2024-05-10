@@ -13,11 +13,11 @@ Make changes to the template codegen/templates/api/types/class_name.py.j2 instea
 import typing
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
 
-import platformics.database.models as db
+import platformics.database.models as base_db
+import database.models as db
 import strawberry
 import datetime
 from platformics.api.core.helpers import get_db_rows, get_aggregate_db_rows
-from platformics.api.core.input_validation import validate_input
 from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator, {{cls.name}}UpdateInputValidator
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause
@@ -57,7 +57,7 @@ from support.enums import
 {%- endfor %}
 
 
-E = typing.TypeVar("E", db.File, db.Entity)
+E = typing.TypeVar("E", base_db.File, base_db.Entity)
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
@@ -154,8 +154,8 @@ def load_files_from(attr_name: str) -> Callable:
     async def load_files(
         root: "{{ cls.name }}",
         info: Info,
-        where: Annotated["FileWhereClause", strawberry.lazy("api.files")] | None = None,
-    ) -> Optional[Annotated["File", strawberry.lazy("api.files")]]:
+        where: Annotated["FileWhereClause", strawberry.lazy("platformics.api.files")] | None = None,
+    ) -> Optional[Annotated["File", strawberry.lazy("platformics.api.files")]]:
         """
         Given a list of {{ cls.name }} IDs for a certain file type, return related Files
         """
@@ -255,7 +255,7 @@ class {{ cls.name }}(EntityInterface):
     {{ attr.name }}: {{ getType("datetime.datetime", attr.required) }}
         {%- elif attr.type == "File" %}
     {{ attr.name }}_id: Optional[strawberry.ID]
-    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
+    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("platformics.api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
         {%- elif attr.type == cls.name %}
     {{ attr.name }}_id: Optional[strawberry.ID]
         {%- elif attr.inverse %}

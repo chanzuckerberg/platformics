@@ -6,7 +6,6 @@ Cerbos policies, and Factoryboy factories from a LinkML schema.
 import logging
 import os
 
-import click
 from jinja2 import Environment, FileSystemLoader
 from linkml_runtime.utils.schemaview import SchemaView
 from platformics.codegen.lib.linkml_wrappers import ViewWrapper
@@ -17,28 +16,12 @@ DIR_CODEGEN = [
     "api/validators",
     "api/helpers",
     "database/models",
+    "database/migrations",
+    "database/migrations/versions",
     "cerbos/policies",
+    "cerbos/policies/_schemas",
     "test_infra/factories",
 ]
-
-
-@click.group()
-@click.option("--debug", is_flag=True, default=False, help="Enable debug output")
-@click.pass_context
-def cli(ctx: click.Context, debug: bool) -> None:
-    """
-    Set logger settings
-    """
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    if debug:
-        logger.setLevel(logging.DEBUG)
-    ctx.ensure_object(dict)
-
-
-@cli.group()
-def api() -> None:
-    pass
 
 
 def generate_enums(output_prefix: str, environment: Environment, view: ViewWrapper) -> None:
@@ -106,7 +89,18 @@ def generate_entity_import_files(
     """
     Code generation for database model imports, and GraphQL queries/mutations
     """
-    import_templates = ["database/models/__init__.py", "api/queries.py", "api/mutations.py"]
+    import_templates = [
+        "cerbos/config.yaml",
+        "cerbos/policies/file.yaml",
+        "cerbos/policies/entity.yaml",
+        "cerbos/policies/derived_roles_common.yaml",
+        "cerbos/policies/_schemas/principal.json",
+        "database/models/__init__.py",
+        "database/migrations/env.py",
+        "database/migrations/script.py.mako",
+        "api/queries.py",
+        "api/mutations.py",
+    ]
     classes = view.entities
     for filename in import_templates:
         import_template = environment.get_template(f"{filename}.j2")
@@ -120,20 +114,14 @@ def generate_entity_import_files(
             print(f"... wrote {filename}")
 
 
-@api.command("generate")
-@click.option("--schemafile", type=str, required=True)
-@click.option("--output-prefix", type=str, required=True)
-@click.option("--render-files/--skip-render-files", type=bool, default=True, show_default=True)
-@click.option("--template-override-paths", type=str, multiple=True)
-@click.pass_context
-def api_generate(
-    ctx: click.Context, schemafile: str, output_prefix: str, render_files: bool, template_override_paths: tuple[str]
-) -> None:
+def generate(schemafile: str, output_prefix: str, render_files: bool, template_override_paths: tuple[str]) -> None:
     """
     Launch code generation
     """
     template_paths = list(template_override_paths)
-    template_paths.append("platformics/codegen/templates/")  # default template path
+    template_paths.append(
+        os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates/")
+    )  # default template path
     environment = Environment(loader=FileSystemLoader(template_paths))
     view = SchemaView(schemafile)
     view.imports_closure()
@@ -169,7 +157,3 @@ def api_generate(
     generate_entity_subclass_files(
         output_prefix, "api/helpers/class_name.py", environment, wrapped_view, render_files=render_files
     )
-
-
-if __name__ == "__main__":
-    cli()  # type: ignore

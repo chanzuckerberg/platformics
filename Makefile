@@ -24,6 +24,10 @@ help: ## display help for this makefile
 codegen:
 	$(MAKE_TEST_APP) codegen
 
+.PHONY: codegen
+codegen: ## Run codegen to convert the LinkML schema to a GQL API
+	$(docker_compose_run) $(CONTAINER) python3 -m platformics.cli.main api generate --schemafile ./schema/schema.yaml --output-prefix .
+
 .PHONY: rm-pycache
 rm-pycache: ## remove all __pycache__ files (run if encountering issues with pycharm debugger (containers exiting prematurely))
 	find . -name '__pycache__' | xargs rm -rf
@@ -65,28 +69,28 @@ codegen-tests: codegen  ## Run tests
 
 ### GitHub Actions ###################################################
 .PHONY: gha-setup
-gha-setup:
+gha-setup: ## Set up the environment in CI
 	docker swarm init
 
 
-.PHONY: build
+.PHONY: build ## Build python packages and docker images
 build:
 	rm -rf dist/*.whl
 	poetry build
 	$(docker_compose) build
 
-.PHONY: dev
+.PHONY: dev ## Launch a container suitable for developing the platformics library
 dev:
 	$(MAKE_TEST_APP) init
 	cd test_app; docker compose stop graphql-api
 	docker compose up -d
 
 .PHONY: clean
-clean:
+clean: ## Remove all build artifacts
 	rm -rf dist
 	$(docker_compose) down
 	$(MAKE_TEST_APP) clean
 
 .PHONY: %
 %: ## Forward all other targets to the test app
-	$(MAKE_TEST_APP) -C test_app $@
+	$(MAKE_TEST_APP) $@

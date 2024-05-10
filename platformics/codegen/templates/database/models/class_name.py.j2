@@ -12,7 +12,7 @@ import uuid
 import datetime
 from typing import TYPE_CHECKING
 
-from database.models.base import Entity
+from platformics.database.models.base import Entity
 from sqlalchemy import ForeignKey, String, Float, Integer, Enum, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship

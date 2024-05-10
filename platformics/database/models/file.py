@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import mapped_column, Mapped, Mapper, relationship
 from sqlalchemy.engine import Connection
-from support.enums import FileStatus, FileAccessProtocol, FileUploadClient
+from platformics.support.file_enums import FileStatus, FileAccessProtocol, FileUploadClient
 from mypy_boto3_s3.client import S3Client
 
 

@@ -49,15 +49,33 @@ classes:
       id:
         identifier: true
         range: uuid
+        readonly: true # The API handles generating the values for these fields
+        required: true
+      type:
+        range: string
+        designates_type: true
+        annotations:
+          hidden: true
       producing_run_id:
-        range: int
-        minimum_value: 0
+        range: uuid
+        annotations:
+          system_writable_only: True
       owner_user_id:
-        range: int
+        range: integer
         minimum_value: 0
+        required: true
+        readonly: true
       collection_id:
-        range: int
+        range: integer
         minimum_value: 0
+        required: True
+      created_at:
+        range: date
+        required: true
+        readonly: true
+      updated_at:
+        range: date
+        readonly: true
     annotations:
       plural: Entities
  
@@ -66,9 +84,12 @@ classes:
       id:
         identifier: true
         range: uuid
+        required: true
+      # This file's ID is stored in the entity column <entity_field_name>_id
       entity_field_name:
         range: string
         required: true
+      # Which entity this file is connected to
       entity:
         range: Entity
         required: true
@@ -78,9 +99,11 @@ classes:
       protocol:
         range: FileAccessProtocol
         required: true
+      # Bucket name
       namespace:
         range: string
         required: true
+      # Prefix (does not start with /)
       path:
         range: string
         required: true
@@ -88,10 +111,22 @@ classes:
         range: string
         required: true
       compression_type:
-       range: string
+        range: string
       size:
-        range: int
+        range: integer
         minimum_value: 0
+      # Information about file upload (optional)
+      upload_client:
+        range: FileUploadClient
+      upload_error:
+        range: string
+      created_at:
+        range: date
+        required: true
+        readonly: true
+      updated_at:
+        range: date
+        readonly: true
 
   Sample:
     is_a: Entity
@@ -101,6 +136,9 @@ classes:
       name:
         range: string
         required: true
+        annotations:
+          minimum_length: 4
+          maximum_length: 128
       sample_type:
         range: string
         required: true
@@ -191,3 +229,5 @@ classes:
         range: uuid
         identifier: true
         inverse: entity.id
+        annotations:
+          hidden: true
