@@ -7,36 +7,43 @@ Make changes to the template codegen/templates/api/types/class_name.py.j2 instea
 
 # ruff: noqa: E501 Line too long
 
-import typing
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable
+{% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
+{% set ignored_fields = ["File", "Entity", cls.name] %}
 
-import database.models as db
+import typing
+from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
+
+import platformics.database.models as db
 import strawberry
 import datetime
 from platformics.api.core.helpers import get_db_rows, get_aggregate_db_rows
+from platformics.api.core.input_validation import validate_input
+from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator, {{cls.name}}UpdateInputValidator
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause
 {%- endif %}
+from api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
 from platformics.api.types.entities import EntityInterface
-{%- for related_field in cls.related_fields %}
-    {%- if related_field.related_class.name not in ["File", "Entity"] and related_field.multivalued %}
+{%- for related_field in related_fields %}
+    {%- if related_field.related_class.name not in ignored_fields and related_field.multivalued %}
 from api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}Aggregate, format_{{related_field.related_class.snake_name}}_aggregate_output)
     {%- endif %}
 {%- endfor %}
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal, Resource
 from fastapi import Depends
-from platformics.api.core.deps import get_cerbos_client, get_db_session, require_auth_principal
-from platformics.api.core.gql_to_sql import aggregator_map, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
+from platformics.api.core.errors import PlatformicsException
+from platformics.api.core.deps import get_cerbos_client, get_db_session, require_auth_principal, is_system_user
+from platformics.api.core.gql_to_sql import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
 from platformics.api.core.strawberry_extensions import DependencyExtension
 from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from platformics.api import relay
-# from strawberry import relay
 from strawberry.field import StrawberryField
 from strawberry.types import Info
+from support.limit_offset import LimitOffsetClause
 from typing_extensions import TypedDict
 import enum
 
@@ -49,21 +56,23 @@ from support.enums import
     {{- "," if not loop.last else "" }}
 {%- endfor %}
 
+
 E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
-    {%- for related_field in cls.related_fields %}
-        {%- if related_field.related_class.name not in ["File", "Entity"] %}
-    from api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}WhereClause, {{related_field.related_class.name}})
+    {%- for related_field in related_fields %}
+        {%- if related_field.related_class.name not in ignored_fields %}
+    from api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}OrderByClause, {{related_field.related_class.name}}WhereClause, {{related_field.related_class.name}})
         {%- endif %}
     {%- endfor %}
     pass
 else:
-    {%- for related_field in cls.related_fields %}
-        {%- if related_field.related_class.name not in ["File", "Entity"] %}
+    {%- for related_field in related_fields %}
+        {%- if related_field.related_class.name not in ignored_fields %}
     {{related_field.related_class.name}}WhereClause = "{{related_field.related_class.name}}WhereClause"
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
+    {{related_field.related_class.name}}OrderByClause = "{{related_field.related_class.name}}OrderByClause"
         {%- endif %}
     {%- endfor %}
     pass
@@ -76,8 +85,8 @@ Dataloaders
 These are batching functions for loading related objects to avoid N+1 queries.
 """
 
-{%- for related_field in cls.related_fields %}
-    {%- if related_field.inverse and related_field.related_class.name not in ["File", "Entity"] %}
+{%- for related_field in related_fields %}
+    {%- if related_field.inverse and related_field.related_class.name not in ignored_fields %}
         {%- if related_field.multivalued %}
 @relay.connection(
         relay.ListConnection[Annotated["{{ related_field.type }}", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")]]  # type:ignore
@@ -86,6 +95,7 @@ async def load_{{ related_field.related_class.snake_name }}_rows(
     root: "{{ cls.name }}",
     info: Info,
     where: Annotated["{{ related_field.type }}WhereClause", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")] | None = None,
+    order_by: Optional[list[Annotated["{{ related_field.type }}OrderByClause", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")]]] = [],
 ) -> Sequence[Annotated["{{ related_field.type }}", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")]]:
         {%- else %}
 @strawberry.field
@@ -93,16 +103,22 @@ async def load_{{ related_field.related_class.snake_name }}_rows(
     root: "{{ cls.name }}",
     info: Info,
     where: Annotated["{{ related_field.type }}WhereClause", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")] | None = None,
+    order_by: Optional[list[Annotated["{{ related_field.type }}OrderByClause", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")]]] = [],
 ) -> Optional[Annotated["{{ related_field.type }}", strawberry.lazy("api.types.{{ related_field.related_class.snake_name }}")]]:
         {%- endif %}
     dataloader = info.context["sqlalchemy_loader"]
     mapper = inspect(db.{{ cls.name }})
         {%- if related_field.multivalued %}
     relationship = mapper.relationships["{{ related_field.name }}"]
-    return await dataloader.loader_for(relationship, where).load(root.id)  # type:ignore
+    return await dataloader.loader_for(relationship, where, order_by).load(root.id)  # type:ignore
         {%- else %}
+            {%- if related_field.is_virtual_relationship %}
     relationship = mapper.relationships["{{ related_field.name }}"]
-    return await dataloader.loader_for(relationship, where).load(root.{{ related_field.name }}_id) # type:ignore
+    return await dataloader.loader_for(relationship, where).load(root.id) # type:ignore
+            {%- else %}
+    relationship = mapper.relationships["{{ related_field.name }}"]
+    return await dataloader.loader_for(relationship, where, order_by).load(root.{{ related_field.name }}_id) # type:ignore
+            {%- endif %}
         {%- endif %}
 
 
@@ -118,10 +134,8 @@ async def load_{{ related_field.related_class.snake_name }}_aggregate_rows(
     mapper = inspect(db.{{ cls.name }})
     relationship = mapper.relationships["{{ related_field.name }}"]
     rows = await dataloader.aggregate_loader_for(relationship, where, selections).load(root.id)  # type:ignore
-    # Aggregate queries always return a single row, so just grab the first one
-    result = rows[0] if rows else None
-    aggregate_output = format_{{ related_field.related_class.snake_name }}_aggregate_output(result)
-    return {{ related_field.related_class.name }}Aggregate(aggregate=aggregate_output)
+    aggregate_output = format_{{ related_field.related_class.snake_name }}_aggregate_output(rows)
+    return aggregate_output
         {%- endif %}
 
     {%- endif %}
@@ -140,8 +154,8 @@ def load_files_from(attr_name: str) -> Callable:
     async def load_files(
         root: "{{ cls.name }}",
         info: Info,
-        where: Annotated["FileWhereClause", strawberry.lazy("platformics.api.files")] | None = None,
-    ) -> Optional[Annotated["File", strawberry.lazy("platformics.api.files")]]:
+        where: Annotated["FileWhereClause", strawberry.lazy("api.files")] | None = None,
+    ) -> Optional[Annotated["File", strawberry.lazy("api.files")]]:
         """
         Given a list of {{ cls.name }} IDs for a certain file type, return related Files
         """
@@ -173,20 +187,14 @@ Supported WHERE clause attributes
 """
 @strawberry.input
 class {{ cls.name }}WhereClause(TypedDict):
-    id: UUIDComparators | None
-    producing_run_id: IntComparators | None
-    owner_user_id: IntComparators | None
-    collection_id: IntComparators | None
-    {%- for attr in cls.owned_fields %}
+    {%- for attr in cls.visible_fields %}
         {%- if attr.type == "uuid" %}
-            {%- if attr.name != "entity_id" %}
     {{ attr.name }}: Optional[UUIDComparators] | None
-            {%- endif %}
         {%- elif attr.type == "string" %}
     {{ attr.name }}: Optional[StrComparators] | None
         {%- elif attr.is_enum %}
     {{ attr.name }}: Optional[EnumComparators[{{ attr.type }}]] | None
-        {%- elif attr.type == "int" %}
+        {%- elif attr.type == "integer" %}
     {{ attr.name }}: Optional[IntComparators] | None
         {%- elif attr.type == "float" %}
     {{ attr.name }}: Optional[FloatComparators] | None
@@ -196,6 +204,23 @@ class {{ cls.name }}WhereClause(TypedDict):
     {{ attr.name }}: Optional[DatetimeComparators] | None
         {%- elif attr.inverse %}
     {{ attr.name }}: Optional[Annotated["{{ attr.type }}WhereClause", strawberry.lazy("api.types.{{ attr.related_class.snake_name }}")]] | None
+        {%- elif attr.type == cls.name %}
+    {{ attr.name }}_id: Optional[UUIDComparators] | None
+        {%- endif %}
+    {%- endfor %}
+
+"""
+Supported ORDER BY clause attributes
+"""
+@strawberry.input
+class {{ cls.name }}OrderByClause(TypedDict):
+    {%- for attr in cls.visible_fields %}
+        {%- if attr.type != "File" and not attr.multivalued %}
+            {%- if attr.inverse %}
+    {{ attr.name }}: Optional[Annotated["{{ attr.type }}OrderByClause", strawberry.lazy("api.types.{{ attr.related_class.snake_name }}")]] | None
+            {%- else %}
+    {{ attr.name }}: Optional[orderBy] | None
+            {%- endif %}
         {%- endif %}
     {%- endfor %}
 
@@ -211,20 +236,16 @@ Define {{ cls.name }} type
 """
 @strawberry.type
 class {{ cls.name }}(EntityInterface):
-    id: strawberry.ID
-    producing_run_id: Optional[int]
-    owner_user_id: int
-    collection_id: int
-    {%- for attr in cls.owned_fields %}
+    {%- for attr in cls.visible_fields %}
         {%- if attr.type == "uuid" %}
-           {%- if attr.name != "entity_id" %}
     {{ attr.name }}: {{ getType("strawberry.ID", attr.required) }}
-           {%- endif %}
         {%- elif attr.type == "string" %}
     {{ attr.name }}: {{ getType("str", attr.required) }}
+        {%- elif attr.type == "Array2dFloat" %}
+    {{ attr.name }}: {{ getType("List[List[float]]", attr.required) }}
         {%- elif attr.is_enum %}
     {{ attr.name }}: {{ getType(attr.type, attr.required) }}
-        {%- elif attr.type == "int" %}
+        {%- elif attr.type == "integer" %}
     {{ attr.name }}: {{ getType("int", attr.required) }}
         {%- elif attr.type == "float" %}
     {{ attr.name }}: {{ getType("float", attr.required) }}
@@ -234,7 +255,9 @@ class {{ cls.name }}(EntityInterface):
     {{ attr.name }}: {{ getType("datetime.datetime", attr.required) }}
         {%- elif attr.type == "File" %}
     {{ attr.name }}_id: Optional[strawberry.ID]
-    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("platformics.api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
+    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
+        {%- elif attr.type == cls.name %}
+    {{ attr.name }}_id: Optional[strawberry.ID]
         {%- elif attr.inverse %}
     {{ attr.name }}: {{ "Sequence" if attr.multivalued else "Optional" }}[Annotated["{{ attr.type }}", strawberry.lazy("api.types.{{ attr.related_class.snake_name }}")]] = load_{{ attr.related_class.snake_name }}_rows  # type:ignore
             {%- if attr.multivalued %}
@@ -257,32 +280,28 @@ Aggregation types
 ------------------------------------------------------------------------------
 """
 
+{%- if cls.numeric_fields %}
 """
 Define columns that support numerical aggregations
 """
 @strawberry.type
 class {{ cls.name }}NumericalColumns:
-    producing_run_id: Optional[int] = None
-    owner_user_id: Optional[int] = None
-    collection_id: Optional[int] = None
-    {%- for attr in cls.owned_fields %}
-        {%- if attr.type == "int" %}
+    {%- for attr in cls.numeric_fields %}
+        {%- if attr.type == "integer" %}
     {{ attr.name }}: {{ getType("int", False) }}
         {%- elif attr.type == "float" %}
     {{ attr.name }}: {{ getType("float", False) }}
         {%- endif %}
     {%- endfor %}
+{%- endif %}
 
 """
 Define columns that support min/max aggregations
 """
 @strawberry.type
 class {{ cls.name }}MinMaxColumns:
-    producing_run_id: Optional[int] = None
-    owner_user_id: Optional[int] = None
-    collection_id: Optional[int] = None
-    {%- for attr in cls.owned_fields %}
-        {%- if attr.type == "int" %}
+    {%- for attr in cls.visible_fields %}
+        {%- if attr.type == "integer" %}
     {{ attr.name }}: {{ getType("int", False) }}
         {%- elif attr.type == "float" %}
     {{ attr.name }}: {{ getType("float", False) }}
@@ -298,8 +317,8 @@ Define enum of all columns to support count and count(distinct) aggregations
 """
 @strawberry.enum
 class {{ cls.name }}CountColumns(enum.Enum):
-    {%- for attr in cls.all_fields %}
-    {{ attr.name }} = "{{ attr.name }}"
+    {%- for attr in cls.visible_fields %}
+    {{ attr.camel_name }} = "{{ attr.name }}"
     {%- endfor %}
 
 """
@@ -312,19 +331,22 @@ class {{ cls.name }}AggregateFunctions:
     def count(self, distinct: Optional[bool] = False, columns: Optional[{{ cls.name }}CountColumns] = None) -> Optional[int]:
         # Count gets set with the proper value in the resolver, so we just return it here
         return self.count # type: ignore
+    {%- if cls.numeric_fields %}
     sum: Optional[{{ cls.name }}NumericalColumns] = None
     avg: Optional[{{ cls.name }}NumericalColumns] = None
-    min: Optional[{{ cls.name }}MinMaxColumns] = None
-    max: Optional[{{ cls.name }}MinMaxColumns] = None
     stddev: Optional[{{ cls.name }}NumericalColumns] = None
     variance: Optional[{{ cls.name }}NumericalColumns] = None
+    {%- endif %}
+    min: Optional[{{ cls.name }}MinMaxColumns] = None
+    max: Optional[{{ cls.name }}MinMaxColumns] = None
+    groupBy: Optional[{{ cls.name }}GroupByOptions] = None
 
 """
 Wrapper around {{ cls.name }}AggregateFunctions
 """
 @strawberry.type
 class {{ cls.name }}Aggregate:
-    aggregate: Optional[{{ cls.name }}AggregateFunctions] = None
+    aggregate: Optional[list[{{ cls.name }}AggregateFunctions]] = None
 
 """
 ------------------------------------------------------------------------------
@@ -338,18 +360,17 @@ Mutation types
     {%- endif %}
 {%- endmacro %}
 
-{# Generate Create and Update Strawberry input types #}
-{%- for action in ["Create", "Update"] %}
-@strawberry.input()
-class {{ cls.name }}{{ action }}Input:
-    collection_id: {{ getTypeMutation(action, "int", true) }}
-    {%- for attr in cls.owned_fields %}
-        {%- if attr.type == "uuid" %} {# Don't allow setting UUID fields #}
-        {%- elif attr.type == "string" %}
+{% macro getInputFields(action, fields) -%}
+    {%- for attr in fields %}
+        {%- if attr.type == "string" %}
     {{ attr.name }}: {{ getTypeMutation(action, "str", attr.required) }}
+        {%- elif attr.type == "uuid" %}
+    {{ attr.name }}: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
+        {%- elif attr.type == "Array2dFloat" %}
+    {{ attr.name }}: {{ getTypeMutation(action, "List[List[float]]", attr.required) }}
         {%- elif attr.is_enum %}
     {{ attr.name }}: {{ getTypeMutation(action, attr.type, attr.required) }}
-        {%- elif attr.type == "int" %}
+        {%- elif attr.type == "integer" %}
     {{ attr.name }}: {{ getTypeMutation(action, "int", attr.required) }}
         {%- elif attr.type == "float" %}
     {{ attr.name }}: {{ getTypeMutation(action, "float", attr.required) }}
@@ -359,12 +380,24 @@ class {{ cls.name }}{{ action }}Input:
     {{ attr.name }}: {{ getTypeMutation(action, "datetime.datetime", attr.required) }}
         {%- elif attr.type == "File" %}
     {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
-        {%- elif attr.inverse and not attr.multivalued %} {# Don't include multivalued fields, only fields where can update an ID #}
+        {%- elif attr.is_entity and not attr.is_virtual_relationship %} {# Don't include multivalued fields, only fields where we can update an ID #}
     {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
         {%- endif %}
     {%- endfor %}
-{%- endfor %}
+{%- endmacro %}
 
+{# Generate Create and Update Strawberry input types #}
+{%- if cls.create_fields %}
+@strawberry.input()
+class {{ cls.name }}CreateInput:
+    {{- getInputFields("Create", cls.create_fields) }}
+{%- endif %}
+
+{%- if cls.mutable_fields %}
+@strawberry.input()
+class {{ cls.name }}UpdateInput:
+    {{- getInputFields("Update", cls.mutable_fields) }}
+{%- endif %}
 
 """
 ------------------------------------------------------------------------------
@@ -378,31 +411,60 @@ async def resolve_{{ cls.plural_snake_name }}(
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
     where: Optional[{{ cls.name }}WhereClause] = None,
+    order_by: Optional[list[{{ cls.name }}OrderByClause]] = [],
+    limit_offset: Optional[LimitOffsetClause] = None,
 ) -> typing.Sequence[{{ cls.name }}]:
     """
     Resolve {{ cls.name }} objects. Used for queries (see api/queries.py).
     """
-    return await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [])  # type: ignore
+    limit = limit_offset["limit"] if limit_offset and "limit" in limit_offset else None
+    offset = limit_offset["offset"] if limit_offset and "offset" in limit_offset else None
+    if offset and not limit:
+        raise PlatformicsException("Cannot use offset without limit")
+    return await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, order_by, CerbosAction.VIEW, limit, offset)  # type: ignore
 
 
-def format_{{ cls.snake_name }}_aggregate_output(query_results: RowMapping) -> {{ cls.name }}AggregateFunctions:
+def format_{{ cls.snake_name }}_aggregate_output(query_results: Sequence[RowMapping] | RowMapping) -> {{ cls.name }}Aggregate:
     """
     Given a row from the DB containing the results of an aggregate query,
     format the results using the proper GraphQL types.
     """
+    aggregate = []
+    if not type(query_results) is list:
+        query_results = [query_results] # type: ignore
+    for row in query_results:
+        aggregate.append(format_{{ cls.snake_name }}_aggregate_row(row))
+    return {{ cls.name }}Aggregate(aggregate=aggregate)
+
+def format_{{ cls.snake_name }}_aggregate_row(row: RowMapping) -> {{ cls.name }}AggregateFunctions:
+    """
+    Given a single row from the DB containing the results of an aggregate query,
+    format the results using the proper GraphQL types.
+    """
     output = {{ cls.name }}AggregateFunctions()
-    for aggregate_name, value in query_results.items():
-        if aggregate_name == "count":
-            output.count = value
+    for key, value in row.items():
+        # Key is either an aggregate function or a groupby key
+        group_keys = key.split(".")
+        aggregate = key.split("_", 1)
+        if aggregate[0] not in aggregator_map.keys():
+            # Turn list of groupby keys into nested objects
+            if not getattr(output, "groupBy"):
+                setattr(output, "groupBy", {{ cls.name }}GroupByOptions())
+            group = build_{{ cls.snake_name }}_groupby_output(getattr(output, "groupBy"), group_keys, value)
+            setattr(output, "groupBy", group)
         else:
-            aggregator_fn, col_name = aggregate_name.split("_", 1)
-            # Filter out the group_by key from the results if one was provided.
-            if aggregator_fn in aggregator_map.keys():
+            aggregate_name = aggregate[0]
+            if aggregate_name == "count":
+                output.count = value
+            else:
+                aggregator_fn, col_name = aggregate[0], aggregate[1]
                 if not getattr(output, aggregator_fn):
                     if aggregate_name in ["min", "max"]:
                         setattr(output, aggregator_fn, {{ cls.name }}MinMaxColumns())
+                   {%- if cls.numeric_fields %}
                     else:
                         setattr(output, aggregator_fn, {{ cls.name }}NumericalColumns())
+                   {%- endif %}
                 setattr(getattr(output, aggregator_fn), col_name, value)
     return output
 
@@ -413,35 +475,74 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
     where: Optional[{{ cls.name }}WhereClause] = None,
+    # TODO: add support for groupby, limit/offset
 ) -> {{ cls.name }}Aggregate:
     """
     Aggregate values for {{ cls.name }} objects. Used for queries (see api/queries.py).
     """
-    # Get the selected aggregate functions and columns to operate on
+    # Get the selected aggregate functions and columns to operate on, and groupby options if any were provided.
     # TODO: not sure why selected_fields is a list
-    # The first list of selections will always be ["aggregate"], so just grab the first item
     selections = info.selected_fields[0].selections[0].selections
-    rows = await get_aggregate_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, selections, [])  # type: ignore
-    aggregate_output = format_{{ cls.snake_name }}_aggregate_output(rows)
-    return {{ cls.name }}Aggregate(aggregate=aggregate_output)
+    aggregate_selections = [selection for selection in selections if getattr(selection, "name") != "groupBy"]
+    groupby_selections = [selection for selection in selections if getattr(selection, "name") == "groupBy"]
+    groupby_selections = groupby_selections[0].selections if groupby_selections else []
 
+    if not aggregate_selections:
+        raise PlatformicsException("No aggregate functions selected")
+
+    rows = await get_aggregate_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, aggregate_selections, [], groupby_selections)  # type: ignore
+    aggregate_output = format_{{ cls.snake_name }}_aggregate_output(rows)
+    return aggregate_output
+
+{%- if cls.create_fields %}
 @strawberry.mutation(extensions=[DependencyExtension()])
 async def create_{{ cls.snake_name }}(
     input: {{ cls.name }}CreateInput,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
+    is_system_user: bool = Depends(is_system_user),
 ) -> db.Entity:
     """
     Create a new {{ cls.name }} object. Used for mutations (see api/mutations.py).
     """
-    params = input.__dict__
+    validated = {{cls.name}}CreateInputValidator(**input.__dict__)
+    params = validated.model_dump()
 
-    # Validate that user can create entity in this collection
-    attr = {"collection_id": input.collection_id}
+    # Validate that the user can read all of the entities they're linking to.
+    {%- if cls.system_only_create_fields %}
+    # If we have any system_writable fields present, make sure that our auth'd user *is* a system user
+    if not is_system_user:
+        {%- if not cls.user_create_fields %}
+        raise PlatformicsException("Unauthorized: {{cls.name}} is not creatable")
+        {%- else %}
+            {%- for field in cls.system_only_create_fields %}
+	    del(params["{{field.name}}"])
+            {%- endfor %}
+        {%- endif %}
+    {%- endif %}
+
+
+    {%- for field in cls.create_fields %}
+        {%- if field.name == "collection_id" %}
+    # Validate that the user can create entities in this collection
+    attr = {"collection_id": validated.collection_id, "owner_user_id": int(principal.id)}
     resource = Resource(id="NEW_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
     if not cerbos_client.is_allowed("create", principal, resource):
-        raise Exception("Unauthorized: Cannot create entity in this collection")
+        raise PlatformicsException("Unauthorized: Cannot create entity in this collection")
+        {%- endif %}
+    {%- endfor %}
+
+    # Validate that the user can read all of the entities they're linking to.
+    {%- for field in cls.create_fields %}
+        {%- if field.is_entity and not field.is_virtual_relationship %}
+    # Check that {{field.name}} relationship is accessible.
+    if validated.{{field.name}}_id:
+        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
+        if not {{field.name}}:
+            raise PlatformicsException("Unauthorized: {{field.name}} does not exist")
+        {%- endif %}
+    {%- endfor %}
 
     # Save to DB
     params["owner_user_id"] = int(principal.id)
@@ -449,8 +550,10 @@ async def create_{{ cls.snake_name }}(
     session.add(new_entity)
     await session.commit()
     return new_entity
+{%- endif %}
 
 
+{%- if cls.mutable_fields %}
 @strawberry.mutation(extensions=[DependencyExtension()])
 async def update_{{ cls.snake_name }}(
     input: {{ cls.name }}UpdateInput,
@@ -458,36 +561,72 @@ async def update_{{ cls.snake_name }}(
     session: AsyncSession = Depends(get_db_session, use_cache=False),
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
+    is_system_user: bool = Depends(is_system_user),
 ) -> Sequence[db.Entity]:
     """
     Update {{ cls.name }} objects. Used for mutations (see api/mutations.py).
     """
-    params = input.__dict__
+    validated = {{cls.name}}UpdateInputValidator(**input.__dict__)
+    params = validated.model_dump()
     
     # Need at least one thing to update
     num_params = len([x for x in params if params[x] is not None])
     if num_params == 0:
-        raise Exception("No fields to update")
+        raise PlatformicsException("No fields to update")
+
+    # Validate that the user can read all of the entities they're linking to.
+    {%- for field in cls.mutable_fields %}
+        {%- if field.is_entity and not field.is_virtual_relationship %}
+    # Check that {{field.name}} relationship is accessible.
+    if validated.{{field.name}}_id:
+        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
+        if not {{field.name}}:
+            raise PlatformicsException("Unauthorized: {{field.name}} does not exist")
+            {%- if field.type != cls.name %}
+        params["{{field.name}}"] = {{field.name}}[0]
+        del params["{{field.name}}_id"]
+            {%- endif %}
+        {%- endif %}
+    {%- endfor %}
+
+    {%- if cls.system_only_mutable_fields %}
+    # If we have any system_writable fields present, make sure that our auth'd user *is* a system user
+    if not is_system_user:
+        {%- if not cls.user_mutable_fields %}
+        raise PlatformicsException("Unauthorized: {{cls.name}} is not mutable")
+        {%- else %}
+            {%- for field in cls.system_only_mutable_fields %}
+        del params["{{field.name}}"]
+            {%- endfor %}
+        {%- endif %}
+    {%- endif %}
 
     # Fetch entities for update, if we have access to them
     entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.UPDATE)
     if len(entities) == 0:
-        raise Exception("Unauthorized: Cannot update entities")
+        raise PlatformicsException("Unauthorized: Cannot update entities")
 
+    {%- for field in self.mutable_fields %}
+        {%- if field.name == "collection_id" %}
     # Validate that the user has access to the new collection ID
-    if input.collection_id:
-        attr = {"collection_id": input.collection_id}
+    if validated.collection_id:
+        attr = {"collection_id": validated.collection_id}
         resource = Resource(id="SOME_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
         if not cerbos_client.is_allowed(CerbosAction.UPDATE, principal, resource):
-            raise Exception("Unauthorized: Cannot access new collection")
+            raise PlatformicsException("Unauthorized: Cannot access new collection")
+        {%- endif %}
+    {%- endfor %}
 
     # Update DB
+    updated_at = datetime.datetime.now()
     for entity in entities:
+        entity.updated_at = updated_at
         for key in params:
-            if params[key]:
+            if params[key] is not None:
                 setattr(entity, key, params[key])
     await session.commit()
     return entities
+{%- endif %}
 
 
 @strawberry.mutation(extensions=[DependencyExtension()])
@@ -503,7 +642,7 @@ async def delete_{{ cls.snake_name }}(
     # Fetch entities for deletion, if we have access to them
     entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.DELETE)
     if len(entities) == 0:
-        raise Exception("Unauthorized: Cannot delete entities")
+        raise PlatformicsException("Unauthorized: Cannot delete entities")
 
     # Update DB
     for entity in entities:

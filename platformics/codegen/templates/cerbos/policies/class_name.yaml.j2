@@ -8,6 +8,11 @@ resourcePolicy:
     - common_roles
   resource: "{{cls.snake_name}}"
   rules:
+    - actions: ['view']
+      effect: EFFECT_ALLOW
+      derivedRoles:
+        - project_viewer
+
     - actions: ['view', 'create', 'update']
       effect: EFFECT_ALLOW
       derivedRoles:
