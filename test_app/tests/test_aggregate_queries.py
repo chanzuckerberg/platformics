@@ -129,22 +129,22 @@ async def test_count_distinct_query(
         query MyQuery {
             samplesAggregate {
                 aggregate {
-                    count(columns: water_control)
+                    count(columns: waterControl)
                 }
             }
         }
     """
     results = await gql_client.query(query, user_id=111, member_projects=[888])
-    assert results["data"]["samplesAggregate"]["aggregate"]["count"] == 4
+    assert results["data"]["samplesAggregate"]["aggregate"][0]["count"] == 4
 
     query = """
         query MyQuery {
             samplesAggregate {
                 aggregate {
-                    count(columns: water_control, distinct: true)
+                    count(columns: waterControl, distinct: true)
                 }
             }
         }
     """
     results = await gql_client.query(query, user_id=111, member_projects=[888])
-    assert results["data"]["samplesAggregate"]["aggregate"]["count"] == 2
+    assert results["data"]["samplesAggregate"]["aggregate"][0]["count"] == 2
