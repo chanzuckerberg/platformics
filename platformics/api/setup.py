@@ -66,4 +66,4 @@ def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.
 
 
 def get_strawberry_config():
-    StrawberryConfig(auto_camel_case=True, name_converter=CustomNameConverter())
+    return StrawberryConfig(auto_camel_case=True, name_converter=CustomNameConverter())

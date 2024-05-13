@@ -26,9 +26,12 @@ enums:
       SUCCESS:
       FAILED:
       PENDING:
-  FileAcessProtocol:
+  FileAccessProtocol:
     permissible_values:
       s3:
+        description: This file is accessible via the (AWS) S3 protocol
+      https:
+        description: This file is accessible via the HTTPS protocol
   NucleicAcid:
     permissible_values:
       RNA:
