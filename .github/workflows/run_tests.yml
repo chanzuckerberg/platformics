@@ -16,7 +16,7 @@ jobs:
     - name: "Set up Python"
       uses: actions/setup-python@v2
       with:
-        python-version: '3.8'
+        python-version: '3.11'
     - name: "Install poetry"
       run: |
         python -m pip install --no-cache-dir poetry==1.8 supervisor

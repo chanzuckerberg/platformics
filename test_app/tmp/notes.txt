@@ -1,0 +1,31 @@
+# tail docker container logs
+docker compose logs -f dev-app
+
+libraries:
+- pydantic -- object validation
+- alembic
+- cerbos -- multilanguage general purpose authorization enforcement framework
+- strawberry -- most popular GraphQL framework
+- sqlalchemy -- most popular ORM in python
+- mypy
+- FastAPI
+- pytest -- dependency injected test framework
+
+normally mounts to 9009
+debug session mounts to 9008 -- only one at a time
+
+
+schema changes:
+- update YAML
+- make codegen --> generate types
+- make alembic-autogenerate --> generate migration
+- make alembic-upgrade-head --> run migration
+
+
+cerbos
+derived_roles_common: aware of different roles 
+policies/sample.yaml: rules of what different roles can do for each action
+
+pytest
+can generate fixtures
+conftest.py will automatically load from each directory, tests in any lower directory have access to fixtures
