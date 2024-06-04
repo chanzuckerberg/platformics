@@ -95,7 +95,7 @@ There are a few properities on attributes that are used in Platformics:
 * [identifier](https://linkml.io/linkml/schemas/slots.html#identifiers): Indicates that the field is a unique key for members of the class.
 * `readonly`: Indicates whether field can only be written by the API internals.
 * `minimum_length` / `maximum_length`: Used to set lower/upper bounds on the length for values in a `string` column.
-* `minimum_value` / `maximum_value`: Used to set lower/upper bounds on the length for values in a numerical column.
+* `minimum_value` / `maximum_value`: Used to set lower/upper bounds on the values in a numerical column.
 
 ```yaml
 classes:
@@ -241,7 +241,7 @@ classes:
 
 > See also LinkML's [documentation on type designators](https://linkml.io/linkml/schemas/type-designators.html).
 
-To enforce that object instances have the `type` of its `class`, you can set the `designates_type` slot on the `class` to `true.
+To enforce that object instances have the `type` of its `class`, you can set the `designates_type` slot on the `class` to `true`.
 
 In this example, any instance of "Organization" (or any instance of a subclass that inherits from "Organization") must have the `type` "Organization."
 
