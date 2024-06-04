@@ -111,7 +111,7 @@ classes:
                 multivalued: true
                 inverse: Book.author
             id:
-            identifier: true
+                identifier: true
                 range: integer
                 readonly: true
                 minimum_value: 0
