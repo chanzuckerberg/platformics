@@ -1,4 +1,4 @@
-FROM platformics
+FROM ghcr.io/chanzuckerberg/platformics:latest
 
 RUN apt update && \
     apt install -y nginx nginx-extras && \

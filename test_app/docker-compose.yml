@@ -22,7 +22,7 @@ services:
     command:
       ["server", "--config", "/platformics/config.yaml"]
   graphql-api:
-    image: ghcr.io/chanzuckerberg/platformics:latest
+    image: graphql-api
     build:
       context: "."
       dockerfile: "Dockerfile"
