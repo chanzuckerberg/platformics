@@ -227,7 +227,7 @@ async def test_deeply_nested_query(
     # Fetch all contigs, in descending order of the related sequencing read's taxon's upstream database's name
     query = """
         query MyQuery {
-            sequencingReads(orderBy: {taxon: {upstreamDatabase: {name: desc}}}) {
+            sequencingReads(orderBy: {contig: {upstreamDatabase: {name: desc}}}) {
                 id
                 contig {
                     upstreamDatabase {
