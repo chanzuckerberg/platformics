@@ -1,6 +1,6 @@
 services:
   platformics:
-    image: platformics
+    image: ghcr.io/chanzuckerberg/platformics:latest
     build:
       context: "."
       dockerfile: "Dockerfile"
