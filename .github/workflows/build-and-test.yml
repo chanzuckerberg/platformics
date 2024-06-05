@@ -1,4 +1,4 @@
-name: Platformics CI
+name: Build and test
 
 on:
   push
@@ -11,7 +11,7 @@ jobs:
         with:
           access_token: ${{ github.token }}
   build-and-test:
-    name: build and test
+    name: pytest
     runs-on: ubuntu-latest
 
     steps:
