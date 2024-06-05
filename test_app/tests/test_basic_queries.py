@@ -6,7 +6,7 @@ import datetime
 import pytest
 from platformics.database.connect import SyncDB
 from conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
+from test_infra.factories.sample import SampleFactory
 
 date_now = datetime.datetime.now()
 

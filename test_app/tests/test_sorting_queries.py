@@ -5,10 +5,10 @@ Test queries with an ORDER BY clause
 import pytest
 from platformics.database.connect import SyncDB
 from conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
-from platformics.codegen.tests.output.test_infra.factories.taxon import TaxonFactory
-from platformics.codegen.tests.output.test_infra.factories.upstream_database import UpstreamDatabaseFactory
+from test_infra.factories.sample import SampleFactory
+from test_infra.factories.sequencing_read import SequencingReadFactory
+from test_infra.factories.contig import ContigFactory
+from test_infra.factories.upstream_database import UpstreamDatabaseFactory
 
 
 @pytest.mark.asyncio
@@ -217,19 +217,19 @@ async def test_deeply_nested_query(
         SessionStorage.set_session(session)
         upstream_db_1 = UpstreamDatabaseFactory(owner_user_id=user_id, collection_id=project_id, name="NCBI")
         upstream_db_2 = UpstreamDatabaseFactory(owner_user_id=user_id, collection_id=project_id, name="GTDB")
-        taxon_1 = TaxonFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_1)
-        taxon_2 = TaxonFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_2)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, taxon=taxon_1)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, taxon=taxon_1)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, taxon=taxon_2)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, taxon=taxon_2)
+        contig_1 = ContigFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_1)
+        contig_2 = ContigFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_2)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_1)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_1)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_2)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_2)
 
     # Fetch all contigs, in descending order of the related sequencing read's taxon's upstream database's name
     query = """
         query MyQuery {
             sequencingReads(orderBy: {taxon: {upstreamDatabase: {name: desc}}}) {
                 id
-                taxon {
+                contig {
                     upstreamDatabase {
                         name
                     }
@@ -239,5 +239,5 @@ async def test_deeply_nested_query(
     """
 
     output = await gql_client.query(query, user_id=user_id, member_projects=[project_id])
-    upstream_database_names = [d["taxon"]["upstreamDatabase"]["name"] for d in output["data"]["sequencingReads"]]
+    upstream_database_names = [d["contig"]["upstreamDatabase"]["name"] for d in output["data"]["sequencingReads"]]
     assert upstream_database_names == ["NCBI", "NCBI", "GTDB", "GTDB"]

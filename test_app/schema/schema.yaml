@@ -260,3 +260,43 @@ classes:
       # This is where NCBI indexes would live
     annotations:
       plural: UpstreamDatabases
+
+  ConstraintCheckedType:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      length_3_to_8:
+        range: string
+        annotations:
+          minimum_length: 3
+          maximum_length: 8
+      regex_format_check:
+        range: string
+        pattern: '\d{3}-\d{2}-\d{4}'
+      min_value_0:
+        range: integer
+        minimum_value: 0
+      enum_field:
+        range: NucleicAcid
+      bool_field:
+        range: boolean
+      max_value_9:
+        range: integer
+        maximum_value: 9
+      min_value_0_max_value_9:
+        range: integer
+        minimum_value: 0
+        maximum_value: 9
+      float_1dot1_to_2dot2:
+        range: float
+        minimum_value: 1.1
+        maximum_value: 2.2
+      no_string_checks:
+        range: string
+      no_int_checks:
+        range: integer
+      no_float_checks:
+        range: float
+    annotations:
+      plural: ConstraintCheckedTypes

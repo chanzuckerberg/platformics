@@ -9,8 +9,8 @@ from typing import Any
 import pytest
 from database.models import Sample
 from conftest import GQLTestClient, SessionStorage
-from platformics.codegen.tests.output.test_infra.factories.constraint_checked_type import ConstraintCheckedTypeFactory
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from test_infra.factories.constraint_checked_type import ConstraintCheckedTypeFactory
+from test_infra.factories.sequencing_read import SequencingReadFactory
 from platformics.database.connect import SyncDB
 
 

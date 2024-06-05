@@ -5,8 +5,8 @@ Test "where" clause capabilities on GQL queries
 import pytest
 from platformics.database.connect import SyncDB
 from conftest import GQLTestClient, SessionStorage, FileFactory
-from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from test_infra.factories.sample import SampleFactory
+from test_infra.factories.sequencing_read import SequencingReadFactory
 from support.enums import SequencingTechnology
 
 user_id = 12345

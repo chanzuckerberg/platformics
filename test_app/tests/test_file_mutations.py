@@ -10,8 +10,8 @@ from mypy_boto3_s3.client import S3Client
 from platformics.database.connect import SyncDB
 from database.models import File, FileStatus
 from conftest import SessionStorage, FileFactory, GQLTestClient
-from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
-from platformics.codegen.tests.output.database.models import SequencingRead
+from test_infra.factories.sequencing_read import SequencingReadFactory
+from database.models import SequencingRead
 
 
 @pytest.mark.asyncio
