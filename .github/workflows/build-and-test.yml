@@ -1,18 +1,18 @@
 name: Build and test
 
 on:
-  push
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
-  cancel-previous:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
   build-and-test:
     name: pytest
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: platformics-build-and-test-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
     - name: checkout code
