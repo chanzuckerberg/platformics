@@ -3,14 +3,13 @@ Tests for nested queries + authorization
 """
 
 import base64
-from collections import defaultdict
-
 import pytest
-from conftest import GQLTestClient, SessionStorage
-from platformics.api.types.entities import Entity
+from collections import defaultdict
 from platformics.database.connect import SyncDB
-from test_infra.factories.sample import SampleFactory
-from test_infra.factories.sequencing_read import SequencingReadFactory
+from conftest import GQLTestClient, SessionStorage
+from platformics.codegen.tests.output.test_infra.factories.sample import SampleFactory
+from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
+from api.types.entities import Entity
 
 
 def get_id(entity: Entity) -> str:

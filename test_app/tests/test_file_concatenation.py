@@ -4,10 +4,10 @@ Test concatenating small files, both plain text and gzipped
 
 import pytest
 import requests
-from conftest import GQLTestClient, SessionStorage
 from mypy_boto3_s3.client import S3Client
 from platformics.database.connect import SyncDB
-from test_infra.factories.sequencing_read import SequencingReadFactory
+from conftest import SessionStorage, GQLTestClient
+from platformics.codegen.tests.output.test_infra.factories.sequencing_read import SequencingReadFactory
 
 
 @pytest.mark.parametrize(
@@ -27,8 +27,8 @@ async def test_concatenation(
     user_id = 12345
     project_id = 111
     member_projects = [project_id]
-    fasta_file_1 = f"tests/fixtures/{file_name_1}"
-    fasta_file_2 = f"tests/fixtures/{file_name_2}"
+    fasta_file_1 = f"test_infra/fixtures/{file_name_1}"
+    fasta_file_2 = f"test_infra/fixtures/{file_name_2}"
 
     # Create mock data
     with sync_db.session() as session:

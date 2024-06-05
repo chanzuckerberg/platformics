@@ -218,8 +218,15 @@ classes:
       sequencing_read:
         range: SequencingRead
         inverse: Sample.contigs
+        multivalued: true
       sequence:
         required: true
+      upstream_database:
+        range: UpstreamDatabase
+        inverse: UpstreamDatabase.contigs
+        required: true
+        annotations:
+          mutable: false
     annotations:
       plural: Contigs
 
@@ -234,3 +241,21 @@ classes:
         inverse: entity.id
         annotations:
           hidden: true
+
+  UpstreamDatabase:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+        annotations:
+          indexed: true
+      contigs:
+        range: Contig
+        inverse: Contig.upstream_database
+        multivalued: true
+      # This is where NCBI indexes would live
+    annotations:
+      plural: UpstreamDatabases
