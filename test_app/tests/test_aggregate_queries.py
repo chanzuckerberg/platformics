@@ -329,10 +329,10 @@ async def test_deeply_nested_groupby_query(
         upstream_db_2 = UpstreamDatabaseFactory(owner_user_id=user_id, collection_id=project_id, name="GTDB")
         contig_1 = ContigFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_1)
         contig_2 = ContigFactory(owner_user_id=user_id, collection_id=project_id, upstream_database=upstream_db_2)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contigs=contig_1)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contigs=contig_1)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contigs=contig_2)
-        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contigs=contig_2)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_1)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_1)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_2)
+        SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, contig=contig_2)
 
     query = """
         query MyQuery {
@@ -340,7 +340,7 @@ async def test_deeply_nested_groupby_query(
                 aggregate {
                     count
                     groupBy {
-                        contigs {
+                        contig {
                             upstreamDatabase {
                                 name
                             }
@@ -353,9 +353,9 @@ async def test_deeply_nested_groupby_query(
     results = await gql_client.query(query, user_id=user_id, member_projects=[project_id])
     aggregate = results["data"]["sequencingReadsAggregate"]["aggregate"]
     for group in aggregate:
-        if group["groupBy"]["contigs"]["upstreamDatabase"]["name"] == "NCBI":
+        if group["groupBy"]["contig"]["upstreamDatabase"]["name"] == "NCBI":
             assert group["count"] == 2
-        elif group["groupBy"]["contigs"]["upstreamDatabase"]["name"] == "GTDB":
+        elif group["groupBy"]["contig"]["upstreamDatabase"]["name"] == "GTDB":
             assert group["count"] == 2
 
 

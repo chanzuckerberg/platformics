@@ -189,10 +189,11 @@ classes:
       primer_file:
         range: GenomicRange
         inverse: GenomicRange.sequencing_reads
-      contigs:
+      contig:
         range: Contig
-        inverse: Contig.sequencing_read
-        multivalued: true
+        inverse: Contig.sequencing_reads
+        annotations:
+          mutable: false
     annotations:
       plural: SequencingReads
 
@@ -215,15 +216,15 @@ classes:
     mixins:
       - EntityMixin
     attributes:
-      sequencing_read:
+      sequencing_reads:
         range: SequencingRead
-        inverse: Sample.contigs
+        inverse: SequencingRead.contig
         multivalued: true
       sequence:
         required: true
       upstream_database:
         range: UpstreamDatabase
-        inverse: UpstreamDatabase.contigs
+        inverse: UpstreamDatabase.contig
         required: true
         annotations:
           mutable: false
@@ -252,7 +253,7 @@ classes:
         required: true
         annotations:
           indexed: true
-      contigs:
+      contig:
         range: Contig
         inverse: Contig.upstream_database
         multivalued: true
