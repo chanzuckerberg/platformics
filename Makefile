@@ -21,10 +21,6 @@ help: ## display help for this makefile
 	@echo "### SHARED FUNCTIONS END ###"
 
 .PHONY: codegen
-codegen:
-	$(MAKE_TEST_APP) codegen
-
-.PHONY: codegen
 codegen: ## Run codegen to convert the LinkML schema to a GQL API
 	$(docker_compose_run) $(CONTAINER) python3 -m platformics.cli.main api generate --schemafile ./schema/schema.yaml --output-prefix .
 
