@@ -16,6 +16,13 @@ from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
+from sqlalchemy import inspect
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func
+from strawberry.scalars import JSON
+from strawberry.types import Info
+from typing_extensions import TypedDict
+
 from platformics.api.core.deps import (
     get_cerbos_client,
     get_db_session,
@@ -28,18 +35,11 @@ from platformics.api.core.deps import (
 from platformics.api.core.gql_to_sql import EnumComparators, IntComparators, StrComparators, UUIDComparators
 from platformics.api.core.helpers import get_db_rows
 from platformics.api.core.strawberry_extensions import DependencyExtension
+from platformics.api.types.entities import Entity
 from platformics.security.authorization import CerbosAction, get_resource_query
 from platformics.settings import APISettings
-from platformics.support.file_enums import FileStatus, FileAccessProtocol
+from platformics.support.file_enums import FileAccessProtocol, FileStatus
 from platformics.support.format_handlers import get_validator
-from sqlalchemy import inspect
-from sqlalchemy.sql import func
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing_extensions import TypedDict
-
-from platformics.api.types.entities import Entity
-from strawberry.scalars import JSON
-from strawberry.types import Info
 
 FILE_TEMPORARY_PREFIX = "tmp"
 FILE_CONCATENATION_MAX = 200
@@ -155,9 +155,9 @@ class File:
     id: strawberry.ID
     entity_id: strawberry.ID
     entity_field_name: str
-    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]] = (
-        load_entities
-    )
+    entity: typing.Optional[
+        typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]
+    ] = load_entities
     status: FileStatus
     protocol: FileAccessProtocol
     namespace: str
@@ -293,7 +293,7 @@ def generate_multipart_upload_token(
                     "s3:ListMultipartUploadParts",
                 ],
                 "Resource": f"arn:aws:s3:::{new_file.namespace}/{new_file.path}",
-            }
+            },
         ],
     }
 
@@ -359,7 +359,16 @@ async def create_file(
     # Since user can specify an arbitrary path, make sure only a system user can do this.
     require_system_user(principal)
     new_file = await create_or_upload_file(
-        entity_id, entity_field_name, file, -1, session, cerbos_client, principal, s3_client, sts_client, settings
+        entity_id,
+        entity_field_name,
+        file,
+        -1,
+        session,
+        cerbos_client,
+        principal,
+        s3_client,
+        sts_client,
+        settings,
     )
     assert isinstance(new_file, db.File)  # reassure mypy that we're returning the right type
     return new_file
@@ -543,6 +552,8 @@ async def concatenate_files(
     # Return signed URL
     expiration = 36000
     url = s3_client.generate_presigned_url(
-        ClientMethod="get_object", Params={"Bucket": settings.DEFAULT_UPLOAD_BUCKET, "Key": path}, ExpiresIn=expiration
+        ClientMethod="get_object",
+        Params={"Bucket": settings.DEFAULT_UPLOAD_BUCKET, "Key": path},
+        ExpiresIn=expiration,
     )
     return SignedURL(url=url, protocol="https", method="get", expiration=expiration)

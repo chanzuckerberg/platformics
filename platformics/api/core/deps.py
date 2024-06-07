@@ -7,12 +7,13 @@ from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+
+from platformics.api.core.error_handler import PlatformicsException
 from platformics.database.connect import AsyncDB, init_async_db
 from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
-from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.requests import Request
-from platformics.api.core.error_handler import PlatformicsException
 
 
 def get_db_module(request: Request) -> typing.Any:

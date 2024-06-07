@@ -8,13 +8,14 @@ import strawberry
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
 from fastapi import Depends, FastAPI
-from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_engine, get_db_module
-from platformics.api.core.gql_loaders import EntityLoader
-from platformics.database.connect import AsyncDB
-from platformics.settings import APISettings
 from strawberry.fastapi import GraphQLRouter
 from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
+
+from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_db_module, get_engine
+from platformics.api.core.gql_loaders import EntityLoader
+from platformics.database.connect import AsyncDB
+from platformics.settings import APISettings
 
 # ------------------------------------------------------------------------------
 # Utilities for setting up the app

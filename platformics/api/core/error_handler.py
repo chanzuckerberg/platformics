@@ -1,11 +1,11 @@
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from abc import ABC
+from typing import Any, Iterator, List
 
-import strawberry
 from graphql.error import GraphQLError
-from platformics.api.core.errors import PlatformicsException
 from pydantic import ValidationError
 from strawberry.extensions.base_extension import SchemaExtension
-from abc import ABC
+
+from platformics.api.core.errors import PlatformicsException
 
 
 class ExceptionHandler(ABC):
@@ -35,7 +35,7 @@ class ValidationExceptionHandler(ExceptionHandler):
                     positions=err.positions,
                     path=err.path,
                     original_error=None,
-                )
+                ),
             )
         return errors
 
@@ -52,7 +52,7 @@ class DefaultExceptionHandler(ExceptionHandler):
                 positions=err.positions,
                 path=err.path,
                 original_error=None,
-            )
+            ),
         ]
 
 

@@ -49,7 +49,7 @@ import enum
 
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}
-from support.enums import 
+from support.enums import
     {%- endif %}
     {{- " " }}
     {{- field.type}}
@@ -568,7 +568,7 @@ async def update_{{ cls.snake_name }}(
     """
     validated = {{cls.name}}UpdateInputValidator(**input.__dict__)
     params = validated.model_dump()
-    
+
     # Need at least one thing to update
     num_params = len([x for x in params if params[x] is not None])
     if num_params == 0:

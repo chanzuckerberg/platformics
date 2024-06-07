@@ -1,15 +1,17 @@
 import datetime
 import uuid
+
 import uuid6
-from platformics.settings import APISettings
-from platformics.database.models.base import Base, Entity
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Enum, event
-from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import mapped_column, Mapped, Mapper, relationship
-from sqlalchemy.engine import Connection
-from platformics.support.file_enums import FileStatus, FileAccessProtocol, FileUploadClient
 from mypy_boto3_s3.client import S3Client
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, event
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.engine import Connection
+from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
+from sqlalchemy.sql import func
+
+from platformics.database.models.base import Base, Entity
+from platformics.settings import APISettings
+from platformics.support.file_enums import FileAccessProtocol, FileStatus, FileUploadClient
 
 
 class File(Base):
@@ -60,7 +62,9 @@ class File(Base):
     upload_client: Mapped[FileUploadClient] = mapped_column(Enum(FileUploadClient, native_enum=False), nullable=True)
     upload_error: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -84,7 +88,7 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
             .where(table_files.c.id != target.id)
             .where(table_files.c.protocol == target.protocol)
             .where(table_files.c.namespace == target.namespace)
-            .where(table_files.c.path == target.path)
+            .where(table_files.c.path == target.path),
         )
 
         # If so, delete it from S3
@@ -97,5 +101,5 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
     values = {f"{target.entity_field_name}_id": None}
     # Modifying the target.entity directly does not save changes, we need to use `connection`
     connection.execute(
-        table_entity.update().where(table_entity.c.entity_id == target.entity_id).values(**values)  # type: ignore
+        table_entity.update().where(table_entity.c.entity_id == target.entity_id).values(**values),  # type: ignore
     )

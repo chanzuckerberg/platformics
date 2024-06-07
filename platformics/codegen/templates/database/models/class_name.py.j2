@@ -18,7 +18,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}
-from support.enums import 
+from support.enums import
     {%- endif %}
     {{- " " }}
     {{- field.type}}
@@ -106,4 +106,3 @@ class {{cls.name}}(Entity):
             {%- endif %}
         {%- endif %}
     {%- endfor %}
-

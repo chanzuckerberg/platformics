@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import inspect
-import strawberry
 from collections.abc import AsyncIterable
 from typing import (
     TYPE_CHECKING,
@@ -23,9 +22,8 @@ from typing import (
     cast,
     overload,
 )
-from typing_extensions import Annotated, get_origin
 
-from strawberry.lazy_type import LazyType
+import strawberry
 from strawberry.annotation import StrawberryAnnotation
 from strawberry.arguments import StrawberryArgument, argument
 from strawberry.extensions.field_extension import (
@@ -34,22 +32,24 @@ from strawberry.extensions.field_extension import (
     SyncExtensionResolver,
 )
 from strawberry.field import _RESOLVER_TYPE, StrawberryField, field
-from platformics.api.relay.exceptions import (
-    RelayWrongAnnotationError,
-    RelayWrongResolverAnnotationError,
-)
+from strawberry.lazy_type import LazyType
 from strawberry.type import StrawberryList, StrawberryOptional
 from strawberry.types.fields.resolver import StrawberryResolver
 from strawberry.utils.aio import asyncgen_to_list
 from strawberry.utils.typing import eval_type
+from typing_extensions import Annotated, get_origin
+
+from platformics.api.relay.exceptions import (
+    RelayWrongAnnotationError,
+    RelayWrongResolverAnnotationError,
+)
 
 from .types import Connection, Node, NodeIterableType, NodeType
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal
-
     from strawberry.permission import BasePermission
     from strawberry.types.info import Info
+    from typing_extensions import Literal
 
 
 class NodeExtension(FieldExtension):
@@ -161,14 +161,14 @@ class ConnectionExtension(FieldExtension):
                 python_name="before",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come before the " "specified cursor."),
+                description=("Returns the items in the list that come before the specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
                 python_name="after",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come after the " "specified cursor."),
+                description=("Returns the items in the list that come after the specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
@@ -182,7 +182,7 @@ class ConnectionExtension(FieldExtension):
                 python_name="last",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[int]),
-                description=("Returns the items in the list that come after the " "specified cursor."),
+                description=("Returns the items in the list that come after the specified cursor."),
                 default=None,
             ),
         ]
@@ -295,7 +295,8 @@ def connection(
     metadata: Optional[Mapping[Any, Any]] = None,
     directives: Optional[Sequence[object]] = (),
     extensions: List[FieldExtension] = (),  # type: ignore
-) -> Any: ...
+) -> Any:
+    ...
 
 
 @overload
@@ -312,7 +313,8 @@ def connection(
     metadata: Optional[Mapping[Any, Any]] = None,
     directives: Optional[Sequence[object]] = (),
     extensions: List[FieldExtension] = (),  # type: ignore
-) -> StrawberryField: ...
+) -> StrawberryField:
+    ...
 
 
 def connection(

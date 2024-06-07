@@ -81,7 +81,7 @@ classes:
         readonly: true
     annotations:
       plural: Entities
- 
+
   File:
     attributes:
       id:

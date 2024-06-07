@@ -2,15 +2,16 @@ import typing
 from collections import defaultdict
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
-import platformics.database.models as db
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
-from platformics.database.connect import AsyncDB
-from platformics.security.authorization import CerbosAction
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
-from platformics.api.core.helpers import get_db_query, get_db_rows, get_aggregate_db_query
+
+import platformics.database.models as db
 from platformics.api.core.errors import PlatformicsException
+from platformics.api.core.helpers import get_aggregate_db_query, get_db_query, get_db_rows
+from platformics.database.connect import AsyncDB
+from platformics.security.authorization import CerbosAction
 
 E = typing.TypeVar("E", db.File, db.Entity)  # type: ignore
 T = typing.TypeVar("T")
@@ -55,7 +56,10 @@ class EntityLoader:
         return rows
 
     def loader_for(
-        self, relationship: RelationshipProperty, where: Optional[Any] = None, order_by: Optional[Any] = None
+        self,
+        relationship: RelationshipProperty,
+        where: Optional[Any] = None,
+        order_by: Optional[Any] = None,
     ) -> DataLoader:
         """
         Retrieve or create a DataLoader for the given relationship
@@ -114,7 +118,10 @@ class EntityLoader:
             return self._loaders[(relationship, input_hash)]  # type: ignore
 
     def aggregate_loader_for(
-        self, relationship: RelationshipProperty, where: Optional[Any] = None, selections: Optional[Any] = None
+        self,
+        relationship: RelationshipProperty,
+        where: Optional[Any] = None,
+        selections: Optional[Any] = None,
     ) -> DataLoader:
         """
         Retrieve or create a DataLoader that aggregates data for the given relationship
@@ -143,12 +150,8 @@ class EntityLoader:
                     order_by = [relationship.order_by]
 
                 if selections:
-                    aggregate_selections = [
-                        selection for selection in selections if getattr(selection, "name") != "groupBy"
-                    ]
-                    groupby_selections = [
-                        selection for selection in selections if getattr(selection, "name") == "groupBy"
-                    ]
+                    aggregate_selections = [selection for selection in selections if selection.name != "groupBy"]
+                    groupby_selections = [selection for selection in selections if selection.name == "groupBy"]
                     groupby_selections = groupby_selections[0].selections if groupby_selections else []
                 else:
                     aggregate_selections = []

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import inspect
 import itertools
 import sys
@@ -9,7 +8,6 @@ from typing import (
     Any,
     AsyncIterable,
     AsyncIterator,
-    Awaitable,
     ClassVar,
     ForwardRef,
     Generic,
@@ -26,9 +24,7 @@ from typing import (
 )
 
 import strawberry
-from platformics.api.relay.exceptions import NodeIDAnnotationError
 from strawberry.field import field
-from strawberry.lazy_type import LazyType
 from strawberry.object_type import interface, type
 from strawberry.private import StrawberryPrivate
 
@@ -42,8 +38,9 @@ from strawberry.utils.inspect import in_async_context
 from strawberry.utils.typing import eval_type, is_classvar
 from typing_extensions import Annotated, Literal, Self, TypeAlias, get_args, get_origin
 
+from platformics.api.relay.exceptions import NodeIDAnnotationError
+
 if TYPE_CHECKING:
-    from strawberry.scalars import ID
     from strawberry.utils.await_maybe import AwaitableOrValue
 
 _T = TypeVar("_T")
@@ -218,7 +215,8 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: Literal[True],
-    ) -> AwaitableOrValue[Iterable[Self]]: ...
+    ) -> AwaitableOrValue[Iterable[Self]]:
+        ...
 
     @overload
     @classmethod
@@ -228,7 +226,8 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: Literal[False] = ...,
-    ) -> AwaitableOrValue[Iterable[Optional[Self]]]: ...
+    ) -> AwaitableOrValue[Iterable[Optional[Self]]]:
+        ...
 
     @overload
     @classmethod
@@ -238,10 +237,8 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: bool,
-    ) -> Union[
-        AwaitableOrValue[Iterable[Self]],
-        AwaitableOrValue[Iterable[Optional[Self]]],
-    ]: ...
+    ) -> Union[AwaitableOrValue[Iterable[Self]], AwaitableOrValue[Iterable[Optional[Self]]]]:
+        ...
 
     @classmethod
     def resolve_nodes(
@@ -285,7 +282,8 @@ class Node:
         *,
         info: Info,
         required: Literal[True],
-    ) -> AwaitableOrValue[Self]: ...
+    ) -> AwaitableOrValue[Self]:
+        ...
 
     @overload
     @classmethod
@@ -295,7 +293,8 @@ class Node:
         *,
         info: Info,
         required: Literal[False] = ...,
-    ) -> AwaitableOrValue[Optional[Self]]: ...
+    ) -> AwaitableOrValue[Optional[Self]]:
+        ...
 
     @overload
     @classmethod
@@ -305,7 +304,8 @@ class Node:
         *,
         info: Info,
         required: bool,
-    ) -> AwaitableOrValue[Optional[Self]]: ...
+    ) -> AwaitableOrValue[Optional[Self]]:
+        ...
 
     @classmethod
     def resolve_node(

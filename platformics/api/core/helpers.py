@@ -4,22 +4,23 @@ Helper functions for working with the database.
 
 import typing
 from collections import defaultdict
-from typing import Any, Optional, Tuple, Sequence
+from typing import Any, Optional, Sequence, Tuple
 
-from platformics.api.core.errors import PlatformicsException
-import platformics.database.models as db
 import strcase
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
-from platformics.api.core.gql_to_sql import aggregator_map, operator_map, orderBy
-from platformics.database.models.base import Base
-from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import ColumnElement, and_, distinct, inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
+
+import platformics.database.models as db
+from platformics.api.core.errors import PlatformicsException
+from platformics.api.core.gql_to_sql import aggregator_map, operator_map, orderBy
+from platformics.database.models.base import Base
+from platformics.security.authorization import CerbosAction, get_resource_query
 
 E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
@@ -101,12 +102,12 @@ def convert_where_clauses_to_sql(
     # Unless deleted_at is explicitly set in the where clause OR we are performing a DELETE action,
     # we should only return rows where deleted_at is null. This is to ensure that we don't return soft-deleted rows.
     # Don't do this for files, since they don't have a deleted_at field.
-    if "deleted_at" not in local_where_clauses.keys() and action != CerbosAction.DELETE and sa_model.__name__ != "File":
+    if "deleted_at" not in local_where_clauses and action != CerbosAction.DELETE and sa_model.__name__ != "File":
         local_where_clauses["deleted_at"] = {"_is_null": True}
     for group in group_by:  # type: ignore
         col = strcase.to_snake(group.name)
         if col in mapper.relationships:  # type: ignore
-            all_joins[col]["group_by"] = getattr(group, "selections")
+            all_joins[col]["group_by"] = group.selections
         else:
             local_group_by.append(getattr(sa_model, col))
 
@@ -149,10 +150,7 @@ def convert_where_clauses_to_sql(
 
         # Add the subquery columns and subquery_group_by fields to the current query
         for item in subquery_group_by:
-            if isinstance(item, str):
-                field_name = item
-            else:
-                field_name = getattr(item, "key")
+            field_name = item if isinstance(item, str) else item.key
             aliased_field_name = f"{join_field}.{field_name}"
             field_to_match = getattr(subquery.c, field_name)  # type: ignore
             query = query.add_columns(field_to_match.label(aliased_field_name))
@@ -171,11 +169,11 @@ def convert_where_clauses_to_sql(
             elif isinstance(sa_comparator, dict):
                 if sa_comparator["should_negate"]:
                     query = query.filter(
-                        ~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]))
+                        ~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])),
                     )
                 else:
                     query = query.filter(
-                        getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])
+                        getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]),
                     )
             else:
                 query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))  # type: ignore
@@ -289,7 +287,7 @@ def get_aggregate_db_query(
             for col in aggregator.selections:
                 col_name = strcase.to_snake(col.name)
                 aggregate_query_fields.append(
-                    agg_fn(getattr(model_cls, col_name)).label(f"{aggregator.name}_{col_name}")  # type: ignore
+                    agg_fn(getattr(model_cls, col_name)).label(f"{aggregator.name}_{col_name}"),  # type: ignore
                 )
     query = query.with_only_columns(*aggregate_query_fields)
     query, _order_by, group_by = convert_where_clauses_to_sql(

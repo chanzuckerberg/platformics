@@ -7,9 +7,9 @@ import logging
 
 import click
 
-from platformics.settings import Settings
-from platformics.security.token_auth import create_token
 from platformics.codegen.generator import generate
+from platformics.security.token_auth import create_token
+from platformics.settings import Settings
 
 
 @click.group()
@@ -47,7 +47,11 @@ def api() -> None:
 @click.option("--template-override-paths", type=str, multiple=True)
 @click.pass_context
 def api_generate(
-    ctx: click.Context, schemafile: str, output_prefix: str, render_files: bool, template_override_paths: tuple[str]
+    ctx: click.Context,
+    schemafile: str,
+    output_prefix: str,
+    render_files: bool,
+    template_override_paths: tuple[str],
 ) -> None:
     """
     Launch code generation

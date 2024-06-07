@@ -43,7 +43,9 @@ class Entity(Base):
     owner_user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     collection_id: Mapped[int] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=True)

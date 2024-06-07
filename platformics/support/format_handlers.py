@@ -6,9 +6,10 @@ import gzip
 import tempfile
 import typing
 from abc import abstractmethod
-from mypy_boto3_s3.client import S3Client
-from Bio import SeqIO
 from typing import Protocol
+
+from Bio import SeqIO
+from mypy_boto3_s3.client import S3Client
 
 
 class FileFormatHandler(Protocol):
@@ -30,7 +31,7 @@ class FastqHandler(FileFormatHandler):
     @classmethod
     def validate(cls, client: S3Client, bucket: str, file_path: str) -> None:
         fp = get_file_preview(client, bucket, file_path)
-        assert len([read for read in SeqIO.parse(fp, "fastq")]) > 0
+        assert len(list(SeqIO.parse(fp, "fastq"))) > 0
 
 
 class FastaHandler(FileFormatHandler):
@@ -41,7 +42,7 @@ class FastaHandler(FileFormatHandler):
     @classmethod
     def validate(cls, client: S3Client, bucket: str, file_path: str) -> None:
         fp = get_file_preview(client, bucket, file_path)
-        assert len([read for read in SeqIO.parse(fp, "fasta")]) > 0
+        assert len(list(SeqIO.parse(fp, "fasta"))) > 0
 
 
 def get_file_preview(client: S3Client, bucket: str, file_path: str) -> typing.TextIO:
