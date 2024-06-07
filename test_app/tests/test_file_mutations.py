@@ -35,7 +35,7 @@ async def test_file_validation(
         files = session.execute(sa.select(File)).scalars().all()
         file = list(filter(lambda file: file.entity_field_name == "r1_file", files))[0]
 
-    valid_fastq_file = "test_infra/fixtures/test1.fastq"
+    valid_fastq_file = "tests/fixtures/test1.fastq"
     file_size = os.stat(valid_fastq_file).st_size
     moto_client.put_object(Bucket=file.namespace, Key=file.path, Body=open(valid_fastq_file, "rb"))
 
@@ -189,7 +189,7 @@ async def test_create_file(
     # Upload a fastq file to a mock bucket so we can create a file object from it
     file_namespace = "local-bucket"
     file_path = "test1.fastq"
-    file_path_local = "test_infra/fixtures/test1.fastq"
+    file_path_local = "tests/fixtures/test1.fasta"
     file_size = os.stat(file_path_local).st_size
     with open(file_path_local, "rb") as fp:
         moto_client.put_object(Bucket=file_namespace, Key=file_path, Body=fp)
@@ -211,7 +211,7 @@ async def test_create_file(
                 path
                 size
             }}
-        }}
+        
     """
     output = await gql_client.query(mutation, member_projects=[123], service_identity="workflows")
     assert output["data"]["createFile"]["size"] == file_size
@@ -270,7 +270,7 @@ async def test_delete_from_s3(
             sequencing_read.r1_file.namespace = bucket
             session.commit()
 
-    valid_fastq_file = "test_infra/fixtures/test1.fastq"
+    valid_fastq_file = "tests/fixtures/test1.fastq"
     moto_client.put_object(Bucket=file.namespace, Key=file.path, Body=open(valid_fastq_file, "rb"))
 
     # Delete SequencingRead and cascade to File objects
