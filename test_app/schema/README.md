@@ -88,12 +88,13 @@ An attribute equates to a field on the model (i.e. a column on the database tabl
 
 There are a few properities on attributes that are used in Platformics:
 
-* [range](https://linkml.io/linkml/schemas/slots.html#ranges): Defines the type of a field. This can be a type, enum, or another class.
-* [multivalued](https://linkml.io/linkml/schemas/slots.html#multivalued): Boolean indicating if the attribute is a list.
-* [required](https://linkml.io/linkml/schemas/slots.html#required): Boolean indicating if the attribute is required for this class.
+* [range](https://linkml.io/linkml/schemas/slots.html#ranges) (required): Defines the type of a field. This can be a type, enum, or another class.
+* [multivalued](https://linkml.io/linkml/schemas/slots.html#multivalued): Boolean indicating if the attribute is a list; `false` by default.
+* [required](https://linkml.io/linkml/schemas/slots.html#required): Boolean indicating if the attribute is required for this class; `false` by default.
 * [inverse](https://linkml.io/linkml/schemas/slots.html#inverse): String indicating the inverse relationship. This typically should only be used if `range` is another class, which has a corresponding attribute.
-* [identifier](https://linkml.io/linkml/schemas/slots.html#identifiers): Indicates that the field is a unique key for members of the class.
-* `readonly`: Indicates whether field can only be written by the API internals.
+  * In base LinkML, this is typically just used as documentation. However, in Platformics, this field is used to establish relationships between classes, and additional code will be generated appropriately.
+* [identifier](https://linkml.io/linkml/schemas/slots.html#identifiers): Boolean indicating that the field is a unique key for members of the class; `false` by default.
+* `readonly`: Boolean indicating whether field can only be written by the API internals; `false` by default. This is implemented by Platformics and is not a part of base LinkML functionality.
 * `minimum_length` / `maximum_length`: Used to set lower/upper bounds on the length for values in a `string` column.
 * `minimum_value` / `maximum_value`: Used to set lower/upper bounds on the values in a numerical column.
 
@@ -135,7 +136,7 @@ Annotations are used to provide additional information on a class or its attribu
 
 ##### Class Annotations
 
-* `plural`: Plural form of the class's name. This is used for human-readability, and parts of codegen.
+* `plural` (required): String indicating the plural form of the class's name; used for human-readability and parts of codegen. This is implemented by Platformics and is not a part of base LinkML functionality.
 
 ```yaml
 classes:
@@ -154,10 +155,10 @@ classes:
 
 ##### Attribute Annotations
 
-The follow annotations are related to setting permissions:
-* `hidden`: Indicates whether field will be exposed in the GQL API.
-* `system_writable_only`: Indicates whether field can only be modified by a system user.
-* `mutable`: Indicates whether field is available to be modified via an `Update` mutation. If the field is not marked as `readonly`, `mutable` is `true` by default.
+The follow annotations are related to setting permissions; they are implemented by Platformics and are not a part of base LinkML functionality:
+* `hidden`: Boolean indicating whether field will be exposed in the GQL API; `false` by default.
+* `system_writable_only`: Boolean indicating whether field can only be modified by a system user; `false` by default.
+* `mutable`: Boolean indicating whether field is available to be modified via an `Update` mutation. If the field is **not** marked as `readonly`, `mutable` is `true` by default.
 
 ```yaml
 classes:
@@ -196,9 +197,9 @@ classes:
 
 ```
 
-Other annotations:
-* `indexed`: Indicates whether to create an index for this column.
-* `cascade_delete`: Indicates if the child object should be deleted along with the parent object.
+Other annotations; these are implemented by Platformics and are not a part of base LinkML functionality:
+* `indexed`: Boolean indicating whether to create an index for this column; `false` by default.
+* `cascade_delete`: Boolean indicating if the child object should be deleted along with the parent object; `false` by default.
 * `factory_type`: Used in testing and for generating default seed data. We use [Faker](https://factoryboy.readthedocs.io/en/stable/reference.html#faker) from `factory` to generate data, so `factory_type` must be a type supported by `Faker`.
 
 ```yaml
