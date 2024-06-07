@@ -148,7 +148,8 @@ def convert_where_clauses_to_sql(
 
         # Add the subquery columns and subquery_group_by fields to the current query
         for item in subquery_group_by:
-            field_name = item if isinstance(item, str) else item.key
+            # mypy is currently inferring the wrong type for `item` so we can silence it until we can fix it.
+            field_name = item if isinstance(item, str) else item.key  # type: ignore[attr-defined]
             aliased_field_name = f"{join_field}.{field_name}"
             field_to_match = getattr(subquery.c, field_name)  # type: ignore
             query = query.add_columns(field_to_match.label(aliased_field_name))
