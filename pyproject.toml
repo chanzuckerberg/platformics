@@ -57,18 +57,40 @@ build-backend = "poetry.core.masonry.api"
 line-length = 120
 
 [tool.mypy]
+show_error_codes = true
+warn_unreachable = true
 explicit_package_bases = true
 ignore_missing_imports = true
-disallow_untyped_defs = true
 exclude = [
     'gql_schema\.py$',
     '^platformics/thirdparty',
 ]
+# We'd like to turn this on soon but we're not there yet.
+# disallow_untyped_defs = true
 
 [tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
-ignore = []
+select = [
+    "E", "W",  # pycodestyle
+    "F",  # pyflakes
+    "B",  # bugbear
+    "I",  # isort
+    "N",  # pep8-naming
+    "ASYNC",  # async
+    "COM",  # commas
+    "C4",  # comprehensions
+    "DTZ",  # datetimez
+    "ISC",  # implicit-str-concat
+    "G",  # logging-format
+    "T20",  # print
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",  # line too long
+    "C408",  # rewrite empty built-ins as literals
+    "T201",  # print statements.
+    "DTZ007", # Datetime objects without timezones.
+    "DTZ005", # More datetimes without timezones.
+]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
@@ -111,6 +133,12 @@ target-version = "py311"
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[tool.ruff.isort]
+known-first-party =["platformics"]
+
+[tool.ruff.flake8-quotes]
+docstring-quotes = "double"
 
 [tool.pytest.ini_options]
 markers = [
