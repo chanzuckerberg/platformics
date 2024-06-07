@@ -46,6 +46,7 @@ init:
 	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/api/schema.graphql'
 	sleep 5 # wait for the app to reload after having files updated.
 	docker compose up -d
+	sleep 5
 	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
 
 .PHONY: clean

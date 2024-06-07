@@ -1,0 +1,35 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: platformics-build-and-test-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v4
+    - name: set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+    - name: install poetry
+      run: |
+        python -m pip install --no-cache-dir poetry==1.8 supervisor
+    
+    - name: set up docker
+      run: make gha-setup
+
+    - name: Build docker image
+      run: make build
+
+    - name: run tests
+      run: make test
