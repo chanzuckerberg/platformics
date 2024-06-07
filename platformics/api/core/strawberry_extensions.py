@@ -18,14 +18,14 @@ def get_func_with_only_deps(func: typing.Callable[..., typing.Any]) -> typing.Ca
     parameter annotationss that rely on the strawberry.lazy() functionality that Strawberry requires t
     handle forward-refs properly. Basically Strawberry and pydantic use different and incompatible tricks
     for handling forward refs and we decided that it was better to workaround Pydantic than Strawberry."""
-    newfunc = types.FunctionType(
+    tmp_func = types.FunctionType(
         func.__code__,
         func.__globals__,
         name=func.__name__,
         argdefs=func.__defaults__,
         closure=func.__closure__,
     )
-    newfunc = functools.update_wrapper(newfunc, func)
+    newfunc = functools.update_wrapper(tmp_func, func)
     signature = inspect.signature(func)
     for param in signature.parameters.values():
         if isinstance(param.default, DependsClass):

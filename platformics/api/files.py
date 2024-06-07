@@ -7,6 +7,7 @@ import json
 import tempfile
 import typing
 import uuid
+from dataclasses import dataclass
 
 import database.models as db
 import strawberry
@@ -54,6 +55,7 @@ UPLOADS_PREFIX = "uploads"
 
 
 @strawberry.type
+@dataclass
 class SignedURL:
     """
     Signed URLs for downloading a file from S3.
@@ -67,6 +69,7 @@ class SignedURL:
 
 
 @strawberry.type
+@dataclass
 class MultipartUploadCredentials:
     """
     STS token for uploading a file to S3.
@@ -155,9 +158,9 @@ class File:
     id: strawberry.ID
     entity_id: strawberry.ID
     entity_field_name: str
-    entity: typing.Optional[
-        typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]
-    ] = load_entities
+    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]] = (
+        load_entities
+    )
     status: FileStatus
     protocol: FileAccessProtocol
     namespace: str
@@ -255,11 +258,11 @@ async def validate_file(
     """
     Utility function to validate a file against its file format.
     """
-    validator = get_validator(file.file_format)
+    validator = get_validator(format=file.file_format)
 
     # Validate data
     try:
-        validator(s3_client, file.namespace, file.path).validate()
+        validator.validate(client=s3_client, bucket=file.namespace, file_path=file.path)
         file_size = s3_client.head_object(Bucket=file.namespace, Key=file.path)["ContentLength"]
     except:  # noqa
         file.status = db.FileStatus.FAILED
@@ -538,12 +541,12 @@ async def concatenate_files(
 
     # Concatenate files (tmp files are automatically deleted when closed)
     with tempfile.NamedTemporaryFile() as file_concatenated:
-        with open(file_concatenated.name, "ab") as fp_concat:
+        with open(file_concatenated.name, "ab") as fp_concat:  # noqa: ASYNC101
             for file in files:
                 # Download file locally and append it
                 with tempfile.NamedTemporaryFile() as file_temp:
                     s3_client.download_file(file.namespace, file.path, file_temp.name)
-                    with open(file_temp.name, "rb") as fp_temp:
+                    with open(file_temp.name, "rb") as fp_temp:  # noqa: ASYNC101
                         fp_concat.write(fp_temp.read())
         # Upload to S3
         path = f"{FILE_CONCATENATION_PREFIX}/{uuid6.uuid7()}"

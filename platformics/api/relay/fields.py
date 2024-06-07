@@ -295,8 +295,7 @@ def connection(
     metadata: Optional[Mapping[Any, Any]] = None,
     directives: Optional[Sequence[object]] = (),
     extensions: List[FieldExtension] = (),  # type: ignore
-) -> Any:
-    ...
+) -> Any: ...
 
 
 @overload
@@ -313,8 +312,7 @@ def connection(
     metadata: Optional[Mapping[Any, Any]] = None,
     directives: Optional[Sequence[object]] = (),
     extensions: List[FieldExtension] = (),  # type: ignore
-) -> StrawberryField:
-    ...
+) -> StrawberryField: ...
 
 
 def connection(

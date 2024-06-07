@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from typing import ClassVar
 
 import uuid6
 from mypy_boto3_s3.client import S3Client
@@ -16,8 +17,8 @@ from platformics.support.file_enums import FileAccessProtocol, FileStatus, FileU
 
 class File(Base):
     __tablename__ = "file"
-    _settings = None
-    _s3_client = None
+    _settings: ClassVar[APISettings | None] = None
+    _s3_client: ClassVar[S3Client | None] = None
 
     @staticmethod
     def get_settings() -> APISettings:

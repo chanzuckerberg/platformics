@@ -112,7 +112,7 @@ class Node:
 
     @field(name="id", description="The Globally Unique ID of this object")
     @classmethod
-    def _id(cls, root: Node, info: Info) -> strawberry.ID:
+    def _id(cls, root: Node | Any, info: Info) -> strawberry.ID:
         # NOTE: root might not be a Node instance when using integrations which
         # return an object that is compatible with the type (e.g. the django one).
         # In that case, we can retrieve the type itself from info
@@ -168,7 +168,7 @@ class Node:
             raise NodeIDAnnotationError(f'No field annotated with `NodeID` found in "{cls.__name__}"', cls)
         if len(candidates) > 1:
             raise NodeIDAnnotationError(
-                ("More than one field annotated with `NodeID` " f'found in "{cls.__name__}"'),
+                f'More than one field annotated with `NodeID` found in "{cls.__name__}"',
                 cls,
             )
 
@@ -215,8 +215,7 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: Literal[True],
-    ) -> AwaitableOrValue[Iterable[Self]]:
-        ...
+    ) -> AwaitableOrValue[Iterable[Self]]: ...
 
     @overload
     @classmethod
@@ -226,8 +225,7 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: Literal[False] = ...,
-    ) -> AwaitableOrValue[Iterable[Optional[Self]]]:
-        ...
+    ) -> AwaitableOrValue[Iterable[Optional[Self]]]: ...
 
     @overload
     @classmethod
@@ -237,8 +235,7 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: bool,
-    ) -> Union[AwaitableOrValue[Iterable[Self]], AwaitableOrValue[Iterable[Optional[Self]]]]:
-        ...
+    ) -> Union[AwaitableOrValue[Iterable[Self]], AwaitableOrValue[Iterable[Optional[Self]]]]: ...
 
     @classmethod
     def resolve_nodes(
@@ -282,8 +279,7 @@ class Node:
         *,
         info: Info,
         required: Literal[True],
-    ) -> AwaitableOrValue[Self]:
-        ...
+    ) -> AwaitableOrValue[Self]: ...
 
     @overload
     @classmethod
@@ -293,8 +289,7 @@ class Node:
         *,
         info: Info,
         required: Literal[False] = ...,
-    ) -> AwaitableOrValue[Optional[Self]]:
-        ...
+    ) -> AwaitableOrValue[Optional[Self]]: ...
 
     @overload
     @classmethod
@@ -304,8 +299,7 @@ class Node:
         *,
         info: Info,
         required: bool,
-    ) -> AwaitableOrValue[Optional[Self]]:
-        ...
+    ) -> AwaitableOrValue[Optional[Self]]: ...
 
     @classmethod
     def resolve_node(

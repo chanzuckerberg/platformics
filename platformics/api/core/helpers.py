@@ -17,8 +17,8 @@ from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
 
 import platformics.database.models as db
-from platformics.api.core.errors import PlatformicsException
-from platformics.api.core.gql_to_sql import aggregator_map, operator_map, orderBy
+from platformics.api.core.errors import PlatformicsError
+from platformics.api.core.gql_to_sql import OrderBy, aggregator_map, operator_map
 from platformics.database.models.base import Base
 from platformics.security.authorization import CerbosAction, get_resource_query
 
@@ -26,7 +26,7 @@ E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
 
 
-def apply_order_by(field: str, direction: orderBy, query: Select) -> Select:
+def apply_order_by(field: str, direction: OrderBy, query: Select) -> Select:
     match direction.value:
         case "asc":
             query = query.order_by(getattr(query.selected_columns, field).asc())
@@ -43,10 +43,10 @@ def apply_order_by(field: str, direction: orderBy, query: Select) -> Select:
     return query
 
 
-class indexedOrderByClause(TypedDict):
-    field: dict[str, orderBy] | dict[str, dict[str, Any]]
+class IndexedOrderByClause(TypedDict):
+    field: dict[str, OrderBy] | dict[str, dict[str, Any]]
     index: int
-    sort: orderBy
+    sort: OrderBy
 
 
 def convert_where_clauses_to_sql(
@@ -55,8 +55,8 @@ def convert_where_clauses_to_sql(
     action: CerbosAction,
     query: Select,
     sa_model: Base,
-    whereClause: dict[str, Any],
-    order_by: Optional[list[indexedOrderByClause]],
+    where_clause: dict[str, Any],
+    order_by: Optional[list[IndexedOrderByClause]],
     group_by: Optional[ColumnElement[Any]] | Optional[list[Any]],
     depth: int,
 ) -> Tuple[Select, list[Any], list[Any]]:
@@ -67,13 +67,13 @@ def convert_where_clauses_to_sql(
 
     # TODO, this may need to be adjusted, 5 just seemed like a reasonable starting point
     if depth >= 5:
-        raise PlatformicsException("Max filter depth exceeded")
+        raise PlatformicsError("Max filter depth exceeded")
     depth += 1
 
     if not order_by:
         order_by = []
-    if not whereClause:
-        whereClause = {}
+    if not where_clause:
+        where_clause = {}
     if not group_by:
         group_by = []
 
@@ -94,7 +94,7 @@ def convert_where_clauses_to_sql(
                 all_joins[col]["order_by"].append({"field": v, "index": item["index"]})
             else:
                 local_order_by.append({"field": col, "sort": v, "index": item["index"]})
-    for col, v in whereClause.items():
+    for col, v in where_clause.items():
         if col in mapper.relationships:  # type: ignore
             all_joins[col]["where"] = v
         else:
@@ -140,11 +140,9 @@ def convert_where_clauses_to_sql(
         ]
         query = query.join(query_alias, and_(*joincondition_a))
         # Add the subquery columns and subquery_order_by fields to the current query
-        aliased_field_num = 0
-        for item in subquery_order_by:
+        for aliased_field_num, item in enumerate(subquery_order_by):
             aliased_field_name = f"{join_field}_order_field_{aliased_field_num}"
             field_to_match = getattr(subquery.c, item["field"])  # type: ignore
-            aliased_field_num += 1
             query = query.add_columns(field_to_match.label(aliased_field_name))
             local_order_by.append({"field": aliased_field_name, "sort": item["sort"], "index": item["index"]})
 
@@ -199,7 +197,7 @@ def get_db_query(
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []
-    order_by = [indexedOrderByClause({"field": x, "index": i}) for i, x in enumerate(order_by)]  # type: ignore
+    order_by = [IndexedOrderByClause({"field": x, "index": i}) for i, x in enumerate(order_by)]  # type: ignore
     query, order_by, _group_by = convert_where_clauses_to_sql(
         principal,
         cerbos_client,

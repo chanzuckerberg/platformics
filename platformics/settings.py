@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     # Computed properties
 
     @cached_property
-    def JWK_PRIVATE_KEY(self) -> jwk.JWK:
+    def JWK_PRIVATE_KEY(self) -> jwk.JWK:  # noqa: N802
         key = None
         if not self.JWK_PRIVATE_KEY_FILE:
             raise Exception("JWK_PRIVATE_KEY_FILE not set")
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         return private_key
 
     @cached_property
-    def JWK_PUBLIC_KEY(self) -> jwk.JWK:
+    def JWK_PUBLIC_KEY(self) -> jwk.JWK:  # noqa: N802
         key = None
         if not self.JWK_PUBLIC_KEY_FILE:
             raise Exception("JWK_PUBLIC_KEY_FILE not set")
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
         return public_key
 
     @cached_property
-    def DB_URI(self) -> str:
+    def DB_URI(self) -> str:  # noqa: N802
         db_uri = "{protocol}://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}".format(
             protocol=self.DB_DRIVER,
             db_host=self.PLATFORMICS_DATABASE_HOST,
@@ -76,7 +76,7 @@ class Settings(BaseSettings):
         return db_uri
 
     @cached_property
-    def SYNC_DB_URI(self) -> str:
+    def SYNC_DB_URI(self) -> str:  # noqa: N802
         db_uri = "postgresql+psycopg://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}".format(
             db_host=self.PLATFORMICS_DATABASE_HOST,
             db_port=self.PLATFORMICS_DATABASE_PORT,
@@ -87,9 +87,7 @@ class Settings(BaseSettings):
         return db_uri
 
 
-class APISettings(Settings):
-    ...
+class APISettings(Settings): ...
 
 
-class CLISettings(Settings):
-    ...
+class CLISettings(Settings): ...

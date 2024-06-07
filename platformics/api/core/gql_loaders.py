@@ -8,7 +8,7 @@ from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
 import platformics.database.models as db
-from platformics.api.core.errors import PlatformicsException
+from platformics.api.core.errors import PlatformicsError
 from platformics.api.core.helpers import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.database.connect import AsyncDB
 from platformics.security.authorization import CerbosAction
@@ -20,11 +20,11 @@ T = typing.TypeVar("T")
 def get_input_hash(input_dict: dict) -> int:
     hash_dict = {}
     for k, v in input_dict.items():
-        if type(v) == dict:
+        if isinstance(v, dict):
             v = get_input_hash(v)
         # NOTE - we're explicitly not supporting dicts inside lists since
         # our current where clause interface doesn't call for it.
-        if type(v) == list:
+        if isinstance(v, list):
             v = hash(frozenset(v))
         hash_dict[k] = v
     return hash(tuple(sorted(hash_dict.items())))
@@ -157,7 +157,7 @@ class EntityLoader:
                     aggregate_selections = []
                     groupby_selections = []
                 if not aggregate_selections:
-                    raise PlatformicsException("No aggregate functions selected")
+                    raise PlatformicsError("No aggregate functions selected")
 
                 query, group_by = get_aggregate_db_query(
                     related_model,

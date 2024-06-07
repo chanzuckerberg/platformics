@@ -3,7 +3,7 @@ import logging
 
 import click
 
-from platformics.security.token_auth import ProjectRole, create_token
+from platformics.security.token_auth import create_token
 from platformics.settings import Settings
 
 
@@ -50,14 +50,11 @@ def generate_token(ctx: click.Context, userid: int, project: list[str], expirati
     settings = Settings.model_validate({})
     private_key = settings.JWK_PRIVATE_KEY
 
-    project_dict: dict[int, list[str]] = {}
+    project_roles: dict[str, list[int]] = {"member": [], "owner": [], "viewer": []}
     for item in project:
         project_id, role = item.split(":")
-        if int(project_id) not in project_dict:
-            project_dict[int(project_id)] = []
-        project_dict[int(project_id)].append(role)
-    project_schema = [ProjectRole(project_id=k, roles=v) for k, v in project_dict.items()]
-    token = create_token(private_key, userid, project_schema, expiration)
+        project_roles[role].append(int(project_id))
+    token = create_token(private_key, userid, project_roles, expiration)
     print(token)
 
 
