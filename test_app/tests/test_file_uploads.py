@@ -60,7 +60,7 @@ async def test_upload_process(
     credentials = output["data"]["uploadFile"]["credentials"]
 
     # Upload the file
-    fastq_file = "test_infra/fixtures/test1.fastq"
+    fastq_file = "tests/fixtures/test1.fastq"
     fastq_file_size = os.stat(fastq_file).st_size
     moto_client.put_object(Bucket=credentials["namespace"], Key=credentials["path"], Body=open(fastq_file, "rb"))
 
@@ -93,7 +93,7 @@ async def test_upload_process_multiple_files_per_entity(
     user_id = 12345
     project_id = 111
     member_projects = [project_id]
-    fastq_file = "test_infra/fixtures/test1.fastq"
+    fastq_file = "tests/fixtures/test1.fastq"
 
     # Create mock data
     with sync_db.session() as session:

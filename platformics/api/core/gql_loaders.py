@@ -83,12 +83,7 @@ class EntityLoader:
                 for _, remote in relationship.local_remote_pairs:
                     filters.append(remote.in_(keys))
                 query = get_db_query(
-                    related_model,
-                    CerbosAction.VIEW,
-                    self.cerbos_client,
-                    self.principal,
-                    where,
-                    order_by,  # type: ignore
+                    related_model, CerbosAction.VIEW, self.cerbos_client, self.principal, where, order_by  # type: ignore
                 )
                 for item in filters:
                     query = query.where(item)
@@ -157,15 +152,7 @@ class EntityLoader:
                     raise PlatformicsException("No aggregate functions selected")
 
                 query, group_by = get_aggregate_db_query(
-                    related_model,
-                    CerbosAction.VIEW,
-                    self.cerbos_client,
-                    self.principal,
-                    where,
-                    aggregate_selections,
-                    groupby_selections,
-                    None,
-                    remote,  # type: ignore
+                    related_model, CerbosAction.VIEW, self.cerbos_client, self.principal, where, aggregate_selections, groupby_selections, None, remote  # type: ignore
                 )
                 for item in filters:
                     query = query.where(item)

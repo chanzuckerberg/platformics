@@ -27,8 +27,8 @@ async def test_concatenation(
     user_id = 12345
     project_id = 111
     member_projects = [project_id]
-    fasta_file_1 = f"test_infra/fixtures/{file_name_1}"
-    fasta_file_2 = f"test_infra/fixtures/{file_name_2}"
+    fasta_file_1 = f"tests/fixtures/{file_name_1}"
+    fasta_file_2 = f"tests/fixtures/{file_name_2}"
 
     # Create mock data
     with sync_db.session() as session:
