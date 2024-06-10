@@ -126,7 +126,7 @@ def convert_where_clauses_to_sql(
             action,
             cerbos_query,
             related_cls,
-            join_info.get("where"),  # type: ignore
+            join_info.get("where"), # type: ignore
             join_info.get("order_by"),
             join_info.get("group_by"),
             depth,
@@ -170,15 +170,11 @@ def convert_where_clauses_to_sql(
             # For the variants of regexp_match, we pass in a dict with the comparator, should_negate, and flag
             elif isinstance(sa_comparator, dict):
                 if sa_comparator["should_negate"]:
-                    query = query.filter(
-                        ~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]))
-                    )
+                    query = query.filter(~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])))
                 else:
-                    query = query.filter(
-                        getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])
-                    )
+                    query = query.filter(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]))
             else:
-                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))  # type: ignore
+                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value)) # type: ignore
 
     return query, local_order_by, local_group_by
 
@@ -207,9 +203,9 @@ def get_db_query(
         cerbos_client,
         action,
         query,
-        model_cls,  # type: ignore
+        model_cls, # type: ignore
         where,
-        order_by,  # type: ignore
+        order_by, # type: ignore
         [],
         0,
     )
@@ -297,7 +293,7 @@ def get_aggregate_db_query(
         cerbos_client,
         action,
         query,
-        model_cls,  # type: ignore
+        model_cls, # type: ignore
         where,
         [],
         group_by,

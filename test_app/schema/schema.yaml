@@ -79,6 +79,11 @@ classes:
       updated_at:
         range: date
         readonly: true
+      deleted_at:
+        range: date
+        annotations:
+          mutable: true
+          system_writable_only: True
     annotations:
       plural: Entities
  

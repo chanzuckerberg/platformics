@@ -12,7 +12,6 @@ from api.mutations import Mutation
 from api.queries import Query
 
 settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
-strawberry_config = get_strawberry_config()
 schema = strawberry.Schema(query=Query, mutation=Mutation, config=get_strawberry_config(), extensions=[HandleErrors()])
 
 

@@ -4,7 +4,6 @@ Launch the GraphQL server.
 
 import typing
 
-import uvicorn
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
 from fastapi import Depends, FastAPI
