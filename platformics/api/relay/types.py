@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import inspect
 import itertools
 import sys
@@ -9,7 +8,6 @@ from typing import (
     Any,
     AsyncIterable,
     AsyncIterator,
-    Awaitable,
     ClassVar,
     ForwardRef,
     Generic,
@@ -26,9 +24,7 @@ from typing import (
 )
 
 import strawberry
-from platformics.api.relay.exceptions import NodeIDAnnotationError
 from strawberry.field import field
-from strawberry.lazy_type import LazyType
 from strawberry.object_type import interface, type
 from strawberry.private import StrawberryPrivate
 
@@ -42,8 +38,9 @@ from strawberry.utils.inspect import in_async_context
 from strawberry.utils.typing import eval_type, is_classvar
 from typing_extensions import Annotated, Literal, Self, TypeAlias, get_args, get_origin
 
+from platformics.api.relay.exceptions import NodeIDAnnotationError
+
 if TYPE_CHECKING:
-    from strawberry.scalars import ID
     from strawberry.utils.await_maybe import AwaitableOrValue
 
 _T = TypeVar("_T")
@@ -115,7 +112,7 @@ class Node:
 
     @field(name="id", description="The Globally Unique ID of this object")
     @classmethod
-    def _id(cls, root: Node, info: Info) -> strawberry.ID:
+    def _id(cls, root: Node | Any, info: Info) -> strawberry.ID:
         # NOTE: root might not be a Node instance when using integrations which
         # return an object that is compatible with the type (e.g. the django one).
         # In that case, we can retrieve the type itself from info
@@ -171,7 +168,7 @@ class Node:
             raise NodeIDAnnotationError(f'No field annotated with `NodeID` found in "{cls.__name__}"', cls)
         if len(candidates) > 1:
             raise NodeIDAnnotationError(
-                ("More than one field annotated with `NodeID` " f'found in "{cls.__name__}"'),
+                f'More than one field annotated with `NodeID` found in "{cls.__name__}"',
                 cls,
             )
 
@@ -238,10 +235,7 @@ class Node:
         info: Info,
         node_ids: Iterable[str],
         required: bool,
-    ) -> Union[
-        AwaitableOrValue[Iterable[Self]],
-        AwaitableOrValue[Iterable[Optional[Self]]],
-    ]: ...
+    ) -> Union[AwaitableOrValue[Iterable[Self]], AwaitableOrValue[Iterable[Optional[Self]]]]: ...
 
     @classmethod
     def resolve_nodes(

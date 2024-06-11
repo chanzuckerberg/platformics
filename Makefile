@@ -54,10 +54,8 @@ update-python-deps: ## Update poetry.lock to reflect pyproject.toml file changes
 	$(docker_compose) exec $(CONTAINER) poetry update
 
 .PHONY: check-lint
-check-lint: ## Check for bad linting
-	$(docker_compose_run) $(CONTAINER) black --check .
-	$(docker_compose_run) $(CONTAINER) ruff check .
-	$(docker_compose_run) $(CONTAINER) mypy .
+lint: ## Check for / fix bad linting
+	pre-commit run --all-files
 
 .PHONY: codegen-tests
 codegen-tests: codegen  ## Run tests

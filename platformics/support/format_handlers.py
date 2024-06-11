@@ -6,9 +6,10 @@ import gzip
 import tempfile
 import typing
 from abc import abstractmethod
-from mypy_boto3_s3.client import S3Client
-from Bio import SeqIO
 from typing import Protocol
+
+from Bio import SeqIO
+from mypy_boto3_s3.client import S3Client
 
 
 class FileFormatHandler(Protocol):
@@ -29,8 +30,8 @@ class FastqHandler(FileFormatHandler):
 
     @classmethod
     def validate(cls, client: S3Client, bucket: str, file_path: str) -> None:
-        fp = get_file_preview(client, bucket, file_path)
-        assert len([read for read in SeqIO.parse(fp, "fastq")]) > 0
+        for fp in get_file_preview(client, bucket, file_path):
+            assert len(list(SeqIO.parse(fp, "fastq"))) > 0
 
 
 class FastaHandler(FileFormatHandler):
@@ -40,11 +41,15 @@ class FastaHandler(FileFormatHandler):
 
     @classmethod
     def validate(cls, client: S3Client, bucket: str, file_path: str) -> None:
-        fp = get_file_preview(client, bucket, file_path)
-        assert len([read for read in SeqIO.parse(fp, "fasta")]) > 0
+        for fp in get_file_preview(client, bucket, file_path):
+            assert len(list(SeqIO.parse(fp, "fasta"))) > 0
 
 
-def get_file_preview(client: S3Client, bucket: str, file_path: str) -> typing.TextIO:
+def get_file_preview(
+    client: S3Client,
+    bucket: str,
+    file_path: str,
+) -> typing.Generator[typing.TextIO, typing.Any, typing.Any]:
     """
     Get first 1MB of a file and save it in a temporary file
     """
@@ -55,12 +60,13 @@ def get_file_preview(client: S3Client, bucket: str, file_path: str) -> typing.Te
 
     try:
         data.decode("utf-8")
-        return open(fp.name, "r")
+        with open(fp.name, "r") as fh:
+            yield fh
     except UnicodeDecodeError:
         return gzip.open(fp.name, "rt")
 
 
-def get_validator(format: str, compression_type: str) -> type[FileFormatHandler]:
+def get_validator(format: str) -> type[FileFormatHandler]:
     """
     Returns the validator for a given file format
     """

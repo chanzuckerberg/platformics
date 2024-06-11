@@ -31,6 +31,12 @@ from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
+from platformics.settings import APISettings
+from database import models
+from platformics.api.setup import get_strawberry_config
+from api.mutations import Mutation
+from api.queries import Query
+import strawberry
 
 from main import app
 
@@ -234,6 +240,9 @@ async def api(async_db: AsyncDB) -> FastAPI:
     """
     Create an API instance using the real schema.
     """
-    api = get_app(use_test_schema=False)
+    settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
+    strawberry_config = get_strawberry_config()
+    schema = strawberry.Schema(query=Query, mutation=Mutation, config=strawberry_config)
+    api = get_app(settings, schema, models)
     overwrite_api(api, async_db)
     return api

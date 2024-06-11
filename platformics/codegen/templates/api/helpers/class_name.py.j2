@@ -14,7 +14,7 @@ import uuid
 
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}
-from support.enums import 
+from support.enums import
     {%- endif %}
     {{- " " }}
     {{- field.type}}

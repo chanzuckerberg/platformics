@@ -36,4 +36,3 @@ class Query:
     {%- for class in classes %}
     {{ class.plural_snake_name }}_aggregate: {{ class.name }}Aggregate = resolve_{{ class.plural_snake_name }}_aggregate
     {%- endfor %}
-

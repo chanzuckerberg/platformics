@@ -1,7 +1,6 @@
 import asyncio
 import os
 import signal
-import sys
 import threading
 import time
 from typing import Any

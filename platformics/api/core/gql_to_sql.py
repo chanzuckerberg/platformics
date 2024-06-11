@@ -42,7 +42,7 @@ aggregator_map = {
 
 
 @strawberry.enum
-class orderBy(enum.Enum):
+class OrderBy(enum.Enum):
     # defaults to nulls last
     asc = "asc"
     asc_nulls_first = "asc_nulls_first"

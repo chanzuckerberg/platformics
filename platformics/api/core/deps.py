@@ -7,12 +7,13 @@ from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+
+from platformics.api.core.error_handler import PlatformicsError
 from platformics.database.connect import AsyncDB, init_async_db
 from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
-from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.requests import Request
-from platformics.api.core.error_handler import PlatformicsException
 
 
 def get_db_module(request: Request) -> typing.Any:
@@ -77,7 +78,7 @@ def get_auth_principal(
         return None
 
     if "project_roles" not in claims:
-        raise PlatformicsException("Unauthorized")
+        raise PlatformicsError("Unauthorized")
 
     project_claims = claims["project_roles"]
 
@@ -88,7 +89,7 @@ def get_auth_principal(
             for item in project_ids:
                 assert int(item)
     except Exception:
-        raise PlatformicsException("Unauthorized")
+        raise PlatformicsError("Unauthorized") from None
 
     return Principal(
         claims["sub"],
@@ -107,7 +108,7 @@ def require_auth_principal(
     principal: typing.Optional[Principal] = Depends(get_auth_principal),
 ) -> Principal:
     if not principal:
-        raise PlatformicsException("Unauthorized")
+        raise PlatformicsError("Unauthorized")
     return principal
 
 
@@ -120,7 +121,7 @@ def is_system_user(principal: Principal = Depends(require_auth_principal)) -> bo
 def require_system_user(principal: Principal = Depends(require_auth_principal)) -> None:
     if principal.attr.get("service_identity"):
         return None
-    raise PlatformicsException("Unauthorized")
+    raise PlatformicsError("Unauthorized")
 
 
 def get_s3_client(

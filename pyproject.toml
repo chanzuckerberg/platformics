@@ -27,7 +27,7 @@ faker-biology = "^0.6.0"
 httpx = "^0.24.1"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 fastapi = "^0.110.0"
 asyncpg = "^0.28.0"
 alembic = "^1.11.1"
@@ -57,18 +57,58 @@ build-backend = "poetry.core.masonry.api"
 line-length = 120
 
 [tool.mypy]
+show_error_codes = true
+warn_unreachable = true
 explicit_package_bases = true
 ignore_missing_imports = true
-disallow_untyped_defs = true
 exclude = [
-    'gql_schema\.py$',
-    '^platformics/thirdparty',
+  "platformics/api/relay",
+  "platformics/thirdparty"
 ]
+# We'd like to turn this on soon but we're not there yet.
+# disallow_untyped_defs = true
+
+# do not look at shopify and turn anything originating from it into Any
+[[tool.mypy.overrides]]
+module = ["platformics.api.relay.*"]
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = ["platformics.thirdparty.*"]
+follow_imports = "skip"
 
 [tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
-ignore = []
+# Same as Black.
+line-length = 120
+
+# Assume Python 3.12.
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",  # pyflakes
+    "B",  # bugbear
+    "I",  # isort
+    "N",  # pep8-naming
+    "ASYNC",  # async
+    "COM",  # commas
+    "C4",  # comprehensions
+    "DTZ",  # datetimez
+    "ISC",  # implicit-str-concat
+    "G",  # logging-format
+    "T20",  # print
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",  # line too long
+    "C408",  # rewrite empty built-ins as literals
+    "T201",  # print statements.
+    "DTZ001", # Datetime objects without timezones.
+    "DTZ007", # Datetime objects without timezones.
+    "DTZ005", # More datetimes without timezones.
+    "B008",   # FastAPI's Dependency Injection tools make function calls in arg defaults.
+]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
@@ -99,18 +139,18 @@ exclude = [
     "venv",
 ]
 
-# Same as Black.
-line-length = 120
-
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Assume Python 3.11.
-target-version = "py311"
-
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party =["platformics"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
 
 [tool.pytest.ini_options]
 markers = [
