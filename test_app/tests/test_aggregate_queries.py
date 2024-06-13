@@ -405,7 +405,10 @@ async def test_soft_deleted_data_not_in_aggregate_query(
             }}
         }}
     """
-    output = await gql_client.query(soft_delete_query, user_id=user_id, member_projects=[project_id])
+    # Only service identities are allowed to soft delete entities
+    output = await gql_client.query(
+        soft_delete_query, user_id=user_id, member_projects=[project_id], service_identity="workflows"
+    )
     assert output["data"]["updateSample"][0]["id"] == str(sample_to_delete.id)
 
     # The soft-deleted sample should not be included in the aggregate query anymore
