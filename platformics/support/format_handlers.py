@@ -6,11 +6,10 @@ import gzip
 import io
 import json
 from abc import abstractmethod
-from Bio import SeqIO
 from typing import Protocol
 
-
-from mypy_boto3_s3 import S3Client
+from Bio import SeqIO
+from mypy_boto3_s3.client import S3Client
 
 
 class FileFormatHandler(Protocol):
@@ -102,13 +101,15 @@ class JsonHandler(FileFormatHandler):
     def validate(self) -> None:
         json.loads(self.contents())  # throws an exception for invalid JSON
 
+
 class ZipHandler(FileFormatHandler):
     """
     Validate ZIP files
     """
 
     def validate(self) -> None:
-        assert self.key.endswith(".zip") # throws an exception if the file is not a zip file
+        assert self.key.endswith(".zip")  # throws an exception if the file is not a zip file
+
 
 def get_validator(format: str) -> type[FileFormatHandler]:
     """

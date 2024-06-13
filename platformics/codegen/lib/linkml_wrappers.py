@@ -238,9 +238,8 @@ class EntityWrapper:
         # Prioritize sending back identifiers from the entity mixin instead of inherited fields.
         for field in self.all_fields:
             # FIXME, the entity.id / entity_id relationship is a little brittle right now :(
-            if field.identifier:
-                if "EntityMixin" in field.wrapped_field.domain_of:
-                    return field.name
+            if field.identifier and "EntityMixin" in field.wrapped_field.domain_of:
+                return field.name
         for field in self.all_fields:
             if field.identifier:
                 return field.name
@@ -293,7 +292,7 @@ class EntityWrapper:
     @cached_property
     def system_only_create_fields(self) -> list[FieldWrapper]:
         if self.is_system_only_mutable:
-            return [field for field in self.create_fields]
+            return list(self.create_fields)
         return [field for field in self.create_fields if field.system_writable_only]
 
     @cached_property
@@ -305,7 +304,7 @@ class EntityWrapper:
     @cached_property
     def system_only_mutable_fields(self) -> list[FieldWrapper]:
         if self.is_system_only_mutable:
-            return [field for field in self.mutable_fields]
+            return list(self.mutable_fields)
         return [field for field in self.mutable_fields if field.system_writable_only]
 
     @cached_property

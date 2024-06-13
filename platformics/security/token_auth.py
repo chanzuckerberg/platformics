@@ -1,8 +1,14 @@
 import json
-from jwcrypto.jwk import JWK
-from jwcrypto import jwe, jwt
 import time
-from typing import TypedDict, Optional
+from typing import Optional, TypedDict
+
+from jwcrypto import jwe, jwt
+from jwcrypto.jwk import JWK
+
+
+class ProjectRole(TypedDict):
+    project_id: int
+    roles: list[int]
 
 
 def get_token_claims(private_key: JWK, token: str) -> dict:

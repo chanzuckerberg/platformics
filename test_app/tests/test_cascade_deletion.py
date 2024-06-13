@@ -3,7 +3,6 @@ Test cascade deletion
 """
 
 import pytest
-from mypy_boto3_s3.client import S3Client
 from platformics.database.connect import SyncDB
 from conftest import SessionStorage, GQLTestClient, FileFactory
 from test_infra.factories.sequencing_read import SequencingReadFactory

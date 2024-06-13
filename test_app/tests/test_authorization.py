@@ -145,15 +145,15 @@ async def test_system_types_only_mutable_by_system(
         """
 
     # Fetch all samples
-    create_query = f"""
-        mutation MyMutation {{
+    create_query = """
+        mutation MyMutation {
           createSystemWritableOnlyType(
-            input: {{
+            input: {
               collectionId: 333,
               name: "row name here"
-            }}
-          ) {{ id, name }}
-        }}
+            }
+          ) { id, name }
+        }
     """
 
     # Our mutation should have been saved because we are a system user.
@@ -214,10 +214,10 @@ async def test_update_wont_associate_inaccessible_relationships(
                 input: {{
                   sampleId: "{test_sample.id}"
                 }}
-              ) {{ 
+              ) {{
                 id
-                sample {{ 
-                  id 
+                sample {{
+                  id
                 }}
               }}
             }}

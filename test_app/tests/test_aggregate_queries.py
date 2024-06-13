@@ -396,7 +396,11 @@ async def test_soft_deleted_data_not_in_aggregate_query(
     # Soft-delete a sample by updating its deleted_at field
     soft_delete_query = f"""
         mutation MyMutation {{
-            updateSample (where: {{ id: {{ _eq: "{sample_to_delete.id}" }} }}, input: {{ deletedAt: "2021-01-01T00:00:00Z" }}) {{
+            updateSample (
+              where: {{ id: {{ _eq: "{sample_to_delete.id}" }} }},
+              input: {{ deletedAt: "2021-01-01T00:00:00Z" }}
+            )
+            {{
                 id
             }}
         }}

@@ -46,7 +46,7 @@ class RelayWrongAnnotationError(StrawberryException):
         self.field_name = field_name
 
         self.message = (
-            f'Wrong annotation used on field "{field_name}". It should be ' 'annotated with a "Connection" subclass.'
+            f'Wrong annotation used on field "{field_name}". It should be annotated with a "Connection" subclass.'
         )
         self.rich_message = f"Wrong annotation for field `[underline]{self.field_name}[/]`"
         self.suggestion = (

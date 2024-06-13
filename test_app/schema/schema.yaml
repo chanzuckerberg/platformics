@@ -86,7 +86,7 @@ classes:
           system_writable_only: True
     annotations:
       plural: Entities
- 
+
   File:
     attributes:
       id:

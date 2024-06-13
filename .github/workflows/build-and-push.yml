@@ -1,0 +1,50 @@
+name: Build and push docker image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build and push docker image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v4
+    - name: set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+    - name: install poetry
+      run: |
+        python -m pip install --no-cache-dir poetry==1.8 supervisor
+
+    - name: set up docker
+      run: |
+        make gha-setup
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Clean previous builds
+      run: rm -rf dist/*.whl
+
+    - name: Build with Poetry
+      run: poetry build
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:latest

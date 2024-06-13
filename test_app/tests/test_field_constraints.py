@@ -7,10 +7,8 @@ import json
 from typing import Any
 
 import pytest
-from database.models import Sample
 from conftest import GQLTestClient, SessionStorage
 from test_infra.factories.constraint_checked_type import ConstraintCheckedTypeFactory
-from test_infra.factories.sequencing_read import SequencingReadFactory
 from platformics.database.connect import SyncDB
 
 
@@ -60,7 +58,7 @@ async def test_create_validation(
     for value in valid_values:
         query = get_query(field_name, value)
         output = await gql_client.query(query, user_id=user_id, member_projects=project_ids)
-        if type(value) == str:
+        if isinstance(value, str):
             assert output["data"]["createConstraintCheckedType"][field_name] == value.strip()
         else:
             assert output["data"]["createConstraintCheckedType"][field_name] == value
@@ -123,7 +121,7 @@ async def test_update_validation(
     for value in valid_values:
         query = get_query(instance.id, field_name, value)
         output = await gql_client.query(query, user_id=user_id, member_projects=project_ids)
-        if type(value) == str:
+        if isinstance(value, str):
             assert output["data"]["updateConstraintCheckedType"][0][field_name] == value.strip()
         else:
             assert output["data"]["updateConstraintCheckedType"][0][field_name] == value

@@ -82,7 +82,7 @@ async def test_order_multiple_fields_query(
     query = """
         query MyQuery {
             samples(orderBy: [{collectionId: desc}, {collectionLocation: asc}]) {
-                collectionLocation, 
+                collectionLocation,
                 collectionId
             }
         }
@@ -97,7 +97,7 @@ async def test_order_multiple_fields_query(
     query = """
         query MyQuery {
             samples(orderBy: [{collectionLocation: asc}, {collectionId: desc}]) {
-                collectionLocation, 
+                collectionLocation,
                 collectionId
             }
         }
@@ -133,7 +133,8 @@ async def test_sort_nested_objects_query(
         SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, sample=sample_2, nucleic_acid="DNA")
         SequencingReadFactory(owner_user_id=user_id, collection_id=project_id, sample=sample_2, nucleic_acid="RNA")
 
-    # Fetch all samples, in descending order of collection location, and then in ascending order of the related sequencing read's nucleic acid
+    # Fetch all samples, in descending order of collection location, and then in ascending order of
+    # the related sequencing read's nucleic acid
     query = """
         query MyQuery {
             samples(orderBy: {collectionLocation: desc}) {

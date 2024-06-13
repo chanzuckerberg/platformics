@@ -5,12 +5,13 @@ File factory
 import factory
 import faker
 import sqlalchemy as sa
-from platformics.database.models import File, FileStatus, Entity
+import uuid6
 from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
-import uuid6
+
+from platformics.database.models import Entity, File, FileStatus
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -100,6 +101,6 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
                         sa.text(
                             f"""UPDATE {entity_name} SET {entity_field_name}_id = file.id
                             FROM file WHERE {entity_name}.entity_id = file.entity_id""",
-                        )
+                        ),
                     )
         session.commit()

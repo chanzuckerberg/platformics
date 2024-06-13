@@ -1,10 +1,12 @@
-from platformics.thirdparty.cerbos_sqlalchemy.query import get_query
-from cerbos.sdk.client import CerbosClient
-import platformics.database.models as db
-from cerbos.sdk.model import Principal, ResourceDesc
-from enum import Enum
 import typing
+from enum import Enum
+
+from cerbos.sdk.client import CerbosClient
+from cerbos.sdk.model import Principal, ResourceDesc
 from sqlalchemy.sql import Select
+
+import platformics.database.models as db
+from platformics.thirdparty.cerbos_sqlalchemy.query import get_query
 
 
 class CerbosAction(str, Enum):

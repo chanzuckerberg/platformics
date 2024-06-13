@@ -3,8 +3,6 @@ Test file queries
 """
 
 import pytest
-import sqlalchemy as sa
-from database.models import File
 from conftest import FileFactory, GQLTestClient, SessionStorage
 from test_infra.factories.sequencing_read import SequencingReadFactory
 from platformics.database.connect import SyncDB

@@ -1,3 +1,3 @@
 # Base exception for platformics errors
-class PlatformicsException(Exception):
+class PlatformicsError(Exception):
     pass

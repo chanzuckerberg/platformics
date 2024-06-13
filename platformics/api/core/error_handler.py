@@ -1,20 +1,21 @@
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Any, Iterator, List
 
-import strawberry
 from graphql.error import GraphQLError
-from platformics.api.core.errors import PlatformicsException
 from pydantic import ValidationError
 from strawberry.extensions.base_extension import SchemaExtension
-from abc import ABC
+
+from platformics.api.core.errors import PlatformicsError
 
 
 class ExceptionHandler(ABC):
+    @abstractmethod
     def convert_exception(self, err: Any) -> list[Any]:
         raise NotImplementedError
 
 
 class NoOpHandler(ExceptionHandler):
-    def convert_exception(self, err: PlatformicsException) -> list[PlatformicsException]:
+    def convert_exception(self, err: PlatformicsError) -> list[PlatformicsError]:
         return [err]
 
 
@@ -35,7 +36,7 @@ class ValidationExceptionHandler(ExceptionHandler):
                     positions=err.positions,
                     path=err.path,
                     original_error=None,
-                )
+                ),
             )
         return errors
 
@@ -52,7 +53,7 @@ class DefaultExceptionHandler(ExceptionHandler):
                 positions=err.positions,
                 path=err.path,
                 original_error=None,
-            )
+            ),
         ]
 
 
@@ -60,7 +61,7 @@ class HandleErrors(SchemaExtension):
     def __init__(self) -> None:
         self.handlers: dict[type, ExceptionHandler] = {
             ValidationError: ValidationExceptionHandler(),
-            PlatformicsException: NoOpHandler(),
+            PlatformicsError: NoOpHandler(),
         }
         self.default_handler = DefaultExceptionHandler()
 

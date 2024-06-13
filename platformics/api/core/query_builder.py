@@ -4,16 +4,11 @@ Helper functions for working with the database.
 
 import typing
 from collections import defaultdict
-from typing import Any, Optional, Tuple, Sequence
+from typing import Any, Optional, Sequence, Tuple
 
-from platformics.api.core.errors import PlatformicsException
-import platformics.database.models as db
 import strcase
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal
-from platformics.api.core.gql_to_sql import aggregator_map, operator_map, orderBy
-from platformics.database.models.base import Base
-from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import ColumnElement, and_, distinct, inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,11 +16,17 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
 
+import platformics.database.models as db
+from platformics.api.core.errors import PlatformicsError
+from platformics.api.core.query_input_types import OrderBy, aggregator_map, operator_map
+from platformics.database.models.base import Base
+from platformics.security.authorization import CerbosAction, get_resource_query
+
 E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
 
 
-def apply_order_by(field: str, direction: orderBy, query: Select) -> Select:
+def apply_order_by(field: str, direction: OrderBy, query: Select) -> Select:
     match direction.value:
         case "asc":
             query = query.order_by(getattr(query.selected_columns, field).asc())
@@ -42,10 +43,10 @@ def apply_order_by(field: str, direction: orderBy, query: Select) -> Select:
     return query
 
 
-class indexedOrderByClause(TypedDict):
-    field: dict[str, orderBy] | dict[str, dict[str, Any]]
+class IndexedOrderByClause(TypedDict):
+    field: dict[str, OrderBy] | dict[str, dict[str, Any]]
     index: int
-    sort: orderBy
+    sort: OrderBy
 
 
 def convert_where_clauses_to_sql(
@@ -54,8 +55,8 @@ def convert_where_clauses_to_sql(
     action: CerbosAction,
     query: Select,
     sa_model: Base,
-    whereClause: dict[str, Any],
-    order_by: Optional[list[indexedOrderByClause]],
+    where_clause: dict[str, Any],
+    order_by: Optional[list[IndexedOrderByClause]],
     group_by: Optional[ColumnElement[Any]] | Optional[list[Any]],
     depth: int,
 ) -> Tuple[Select, list[Any], list[Any]]:
@@ -66,13 +67,13 @@ def convert_where_clauses_to_sql(
 
     # TODO, this may need to be adjusted, 5 just seemed like a reasonable starting point
     if depth >= 5:
-        raise PlatformicsException("Max filter depth exceeded")
+        raise PlatformicsError("Max filter depth exceeded")
     depth += 1
 
     if not order_by:
         order_by = []
-    if not whereClause:
-        whereClause = {}
+    if not where_clause:
+        where_clause = {}
     if not group_by:
         group_by = []
 
@@ -93,7 +94,7 @@ def convert_where_clauses_to_sql(
                 all_joins[col]["order_by"].append({"field": v, "index": item["index"]})
             else:
                 local_order_by.append({"field": col, "sort": v, "index": item["index"]})
-    for col, v in whereClause.items():
+    for col, v in where_clause.items():
         if col in mapper.relationships:  # type: ignore
             all_joins[col]["where"] = v
         else:
@@ -101,12 +102,12 @@ def convert_where_clauses_to_sql(
     # Unless deleted_at is explicitly set in the where clause OR we are performing a DELETE action,
     # we should only return rows where deleted_at is null. This is to ensure that we don't return soft-deleted rows.
     # Don't do this for files, since they don't have a deleted_at field.
-    if "deleted_at" not in local_where_clauses.keys() and action != CerbosAction.DELETE and sa_model.__name__ != "File":
+    if "deleted_at" not in local_where_clauses and action != CerbosAction.DELETE and sa_model.__name__ != "File":
         local_where_clauses["deleted_at"] = {"_is_null": True}
     for group in group_by:  # type: ignore
         col = strcase.to_snake(group.name)
         if col in mapper.relationships:  # type: ignore
-            all_joins[col]["group_by"] = getattr(group, "selections")
+            all_joins[col]["group_by"] = group.selections
         else:
             local_group_by.append(getattr(sa_model, col))
 
@@ -126,7 +127,7 @@ def convert_where_clauses_to_sql(
             action,
             cerbos_query,
             related_cls,
-            join_info.get("where"), # type: ignore
+            join_info.get("where"),  # type: ignore
             join_info.get("order_by"),
             join_info.get("group_by"),
             depth,
@@ -139,20 +140,16 @@ def convert_where_clauses_to_sql(
         ]
         query = query.join(query_alias, and_(*joincondition_a))
         # Add the subquery columns and subquery_order_by fields to the current query
-        aliased_field_num = 0
-        for item in subquery_order_by:
+        for aliased_field_num, item in enumerate(subquery_order_by):
             aliased_field_name = f"{join_field}_order_field_{aliased_field_num}"
             field_to_match = getattr(subquery.c, item["field"])  # type: ignore
-            aliased_field_num += 1
             query = query.add_columns(field_to_match.label(aliased_field_name))
             local_order_by.append({"field": aliased_field_name, "sort": item["sort"], "index": item["index"]})
 
         # Add the subquery columns and subquery_group_by fields to the current query
         for item in subquery_group_by:
-            if isinstance(item, str):
-                field_name = item
-            else:
-                field_name = getattr(item, "key")
+            # mypy is currently inferring the wrong type for `item` so we can silence it until we can fix it.
+            field_name = item if isinstance(item, str) else item.key  # type: ignore[attr-defined]
             aliased_field_name = f"{join_field}.{field_name}"
             field_to_match = getattr(subquery.c, field_name)  # type: ignore
             query = query.add_columns(field_to_match.label(aliased_field_name))
@@ -170,11 +167,15 @@ def convert_where_clauses_to_sql(
             # For the variants of regexp_match, we pass in a dict with the comparator, should_negate, and flag
             elif isinstance(sa_comparator, dict):
                 if sa_comparator["should_negate"]:
-                    query = query.filter(~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])))
+                    query = query.filter(
+                        ~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])),
+                    )
                 else:
-                    query = query.filter(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]))
+                    query = query.filter(
+                        getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]),
+                    )
             else:
-                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value)) # type: ignore
+                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))  # type: ignore
 
     return query, local_order_by, local_group_by
 
@@ -197,15 +198,15 @@ def get_db_query(
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []
-    order_by = [indexedOrderByClause({"field": x, "index": i}) for i, x in enumerate(order_by)]  # type: ignore
+    order_by = [IndexedOrderByClause({"field": x, "index": i}) for i, x in enumerate(order_by)]  # type: ignore
     query, order_by, _group_by = convert_where_clauses_to_sql(
         principal,
         cerbos_client,
         action,
         query,
-        model_cls, # type: ignore
+        model_cls,  # type: ignore
         where,
-        order_by, # type: ignore
+        order_by,  # type: ignore
         [],
         0,
     )
@@ -285,7 +286,7 @@ def get_aggregate_db_query(
             for col in aggregator.selections:
                 col_name = strcase.to_snake(col.name)
                 aggregate_query_fields.append(
-                    agg_fn(getattr(model_cls, col_name)).label(f"{aggregator.name}_{col_name}")  # type: ignore
+                    agg_fn(getattr(model_cls, col_name)).label(f"{aggregator.name}_{col_name}"),  # type: ignore
                 )
     query = query.with_only_columns(*aggregate_query_fields)
     query, _order_by, group_by = convert_where_clauses_to_sql(
@@ -293,7 +294,7 @@ def get_aggregate_db_query(
         cerbos_client,
         action,
         query,
-        model_cls, # type: ignore
+        model_cls,  # type: ignore
         where,
         [],
         group_by,

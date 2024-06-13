@@ -17,7 +17,7 @@ import platformics.database.models as base_db
 import database.models as db
 import strawberry
 import datetime
-from platformics.api.core.helpers import get_db_rows, get_aggregate_db_rows
+from platformics.api.core.query_builder import get_db_rows, get_aggregate_db_rows
 from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator, {{cls.name}}UpdateInputValidator
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause
@@ -32,9 +32,9 @@ from api.types.{{related_field.related_class.snake_name}} import ({{related_fiel
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import Principal, Resource
 from fastapi import Depends
-from platformics.api.core.errors import PlatformicsException
+from platformics.api.core.errors import PlatformicsError
 from platformics.api.core.deps import get_cerbos_client, get_db_session, require_auth_principal, is_system_user
-from platformics.api.core.gql_to_sql import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
+from platformics.api.core.query_input_types import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
 from platformics.api.core.strawberry_extensions import DependencyExtension
 from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import inspect
@@ -49,7 +49,7 @@ import enum
 
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}
-from support.enums import 
+from support.enums import
     {%- endif %}
     {{- " " }}
     {{- field.type}}
@@ -420,7 +420,7 @@ async def resolve_{{ cls.plural_snake_name }}(
     limit = limit_offset["limit"] if limit_offset and "limit" in limit_offset else None
     offset = limit_offset["offset"] if limit_offset and "offset" in limit_offset else None
     if offset and not limit:
-        raise PlatformicsException("Cannot use offset without limit")
+        raise PlatformicsError("Cannot use offset without limit")
     return await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, order_by, CerbosAction.VIEW, limit, offset)  # type: ignore
 
 
@@ -488,7 +488,7 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
     groupby_selections = groupby_selections[0].selections if groupby_selections else []
 
     if not aggregate_selections:
-        raise PlatformicsException("No aggregate functions selected")
+        raise PlatformicsError("No aggregate functions selected")
 
     rows = await get_aggregate_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, aggregate_selections, [], groupby_selections)  # type: ignore
     aggregate_output = format_{{ cls.snake_name }}_aggregate_output(rows)
@@ -514,7 +514,7 @@ async def create_{{ cls.snake_name }}(
     # If we have any system_writable fields present, make sure that our auth'd user *is* a system user
     if not is_system_user:
         {%- if not cls.user_create_fields %}
-        raise PlatformicsException("Unauthorized: {{cls.name}} is not creatable")
+        raise PlatformicsError("Unauthorized: {{cls.name}} is not creatable")
         {%- else %}
             {%- for field in cls.system_only_create_fields %}
 	    del(params["{{field.name}}"])
@@ -529,7 +529,7 @@ async def create_{{ cls.snake_name }}(
     attr = {"collection_id": validated.collection_id, "owner_user_id": int(principal.id)}
     resource = Resource(id="NEW_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
     if not cerbos_client.is_allowed("create", principal, resource):
-        raise PlatformicsException("Unauthorized: Cannot create entity in this collection")
+        raise PlatformicsError("Unauthorized: Cannot create entity in this collection")
         {%- endif %}
     {%- endfor %}
 
@@ -540,7 +540,7 @@ async def create_{{ cls.snake_name }}(
     if validated.{{field.name}}_id:
         {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
         if not {{field.name}}:
-            raise PlatformicsException("Unauthorized: {{field.name}} does not exist")
+            raise PlatformicsError("Unauthorized: {{field.name}} does not exist")
         {%- endif %}
     {%- endfor %}
 
@@ -568,11 +568,11 @@ async def update_{{ cls.snake_name }}(
     """
     validated = {{cls.name}}UpdateInputValidator(**input.__dict__)
     params = validated.model_dump()
-    
+
     # Need at least one thing to update
     num_params = len([x for x in params if params[x] is not None])
     if num_params == 0:
-        raise PlatformicsException("No fields to update")
+        raise PlatformicsError("No fields to update")
 
     # Validate that the user can read all of the entities they're linking to.
     {%- for field in cls.mutable_fields %}
@@ -581,7 +581,7 @@ async def update_{{ cls.snake_name }}(
     if validated.{{field.name}}_id:
         {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
         if not {{field.name}}:
-            raise PlatformicsException("Unauthorized: {{field.name}} does not exist")
+            raise PlatformicsError("Unauthorized: {{field.name}} does not exist")
             {%- if field.type != cls.name %}
         params["{{field.name}}"] = {{field.name}}[0]
         del params["{{field.name}}_id"]
@@ -593,7 +593,7 @@ async def update_{{ cls.snake_name }}(
     # If we have any system_writable fields present, make sure that our auth'd user *is* a system user
     if not is_system_user:
         {%- if not cls.user_mutable_fields %}
-        raise PlatformicsException("Unauthorized: {{cls.name}} is not mutable")
+        raise PlatformicsError("Unauthorized: {{cls.name}} is not mutable")
         {%- else %}
             {%- for field in cls.system_only_mutable_fields %}
         del params["{{field.name}}"]
@@ -604,7 +604,7 @@ async def update_{{ cls.snake_name }}(
     # Fetch entities for update, if we have access to them
     entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.UPDATE)
     if len(entities) == 0:
-        raise PlatformicsException("Unauthorized: Cannot update entities")
+        raise PlatformicsError("Unauthorized: Cannot update entities")
 
     {%- for field in self.mutable_fields %}
         {%- if field.name == "collection_id" %}
@@ -613,7 +613,7 @@ async def update_{{ cls.snake_name }}(
         attr = {"collection_id": validated.collection_id}
         resource = Resource(id="SOME_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
         if not cerbos_client.is_allowed(CerbosAction.UPDATE, principal, resource):
-            raise PlatformicsException("Unauthorized: Cannot access new collection")
+            raise PlatformicsError("Unauthorized: Cannot access new collection")
         {%- endif %}
     {%- endfor %}
 
@@ -642,7 +642,7 @@ async def delete_{{ cls.snake_name }}(
     # Fetch entities for deletion, if we have access to them
     entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.DELETE)
     if len(entities) == 0:
-        raise PlatformicsException("Unauthorized: Cannot delete entities")
+        raise PlatformicsError("Unauthorized: Cannot delete entities")
 
     # Update DB
     for entity in entities:
