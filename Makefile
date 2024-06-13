@@ -71,7 +71,12 @@ gha-setup: ## Set up the environment in CI
 build:
 	rm -rf dist/*.whl
 	poetry build
+	# Export poetry dependency list as a requirements.txt, which makes Docker builds
+	# faster by not having to reinstall all dependencies every time we build a new wheel.
+	poetry export --without-hashes --format=requirements.txt > requirements.txt
 	$(docker_compose) build
+	$(MAKE_TEST_APP) build
+	rm requirements.txt
 
 .PHONY: dev ## Launch a container suitable for developing the platformics library
 dev:
