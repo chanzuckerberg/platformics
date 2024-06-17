@@ -271,7 +271,7 @@ async def test_soft_deleted_objects(sync_db: SyncDB, gql_client: GQLTestClient) 
             }}
         }}
     """
-    output = await gql_client.query(soft_delete_mutation, member_projects=[project_id])
+    output = await gql_client.query(soft_delete_mutation, member_projects=[project_id], service_identity="workflows")
     assert len(output["data"]["updateSequencingRead"]) == 3
 
     # Check that the soft-deleted sequencing reads are not returned
@@ -313,7 +313,9 @@ async def test_soft_deleted_objects(sync_db: SyncDB, gql_client: GQLTestClient) 
         }}
     """
 
-    output = await gql_client.query(hard_delete_mutation, user_id=user_id, member_projects=[project_id])
+    output = await gql_client.query(
+        hard_delete_mutation, user_id=user_id, member_projects=[project_id], service_identity="workflows"
+    )
     assert len(output["data"]["deleteSequencingRead"]) == 3
 
     # Check that the hard-deleted sequencing reads are not returned

@@ -286,7 +286,9 @@ async def test_delete_from_s3(
     assert "Contents" in moto_client.list_objects(Bucket=file.namespace, Prefix=file.path)
 
     # Issue deletion
-    result = await gql_client.query(query, user_id=user1_id, member_projects=[project1_id])
+    result = await gql_client.query(
+        query, user_id=user1_id, member_projects=[project1_id], service_identity="workflows"
+    )
     assert result["data"]["deleteSequencingRead"][0]["id"] == str(file.entity_id)
 
     # Make sure file either does or does not exist
