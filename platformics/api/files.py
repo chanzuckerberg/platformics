@@ -33,8 +33,8 @@ from platformics.api.core.deps import (
     require_auth_principal,
     require_system_user,
 )
-from platformics.api.core.gql_to_sql import EnumComparators, IntComparators, StrComparators, UUIDComparators
-from platformics.api.core.helpers import get_db_rows
+from platformics.api.core.query_builder import get_db_rows
+from platformics.api.core.query_input_types import EnumComparators, IntComparators, StrComparators, UUIDComparators
 from platformics.api.core.strawberry_extensions import DependencyExtension
 from platformics.api.types.entities import Entity
 from platformics.security.authorization import CerbosAction, get_resource_query
@@ -262,7 +262,8 @@ async def validate_file(
 
     # Validate data
     try:
-        validator.validate(client=s3_client, bucket=file.namespace, file_path=file.path)
+        validator(s3_client, file.namespace, file.path).validate()
+
         file_size = s3_client.head_object(Bucket=file.namespace, Key=file.path)["ContentLength"]
     except:  # noqa
         file.status = db.FileStatus.FAILED

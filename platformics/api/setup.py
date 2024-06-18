@@ -12,9 +12,10 @@ from strawberry.fastapi import GraphQLRouter
 from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
 
-from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_db_module, get_engine
+from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_db_module, get_engine, get_s3_client
 from platformics.api.core.gql_loaders import EntityLoader
 from platformics.database.connect import AsyncDB
+from platformics.database.models.file import File
 from platformics.settings import APISettings
 
 # ------------------------------------------------------------------------------
@@ -53,10 +54,12 @@ def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.
     """
     Make sure tests can get their own instances of the app.
     """
+    File.set_settings(settings)
+    File.set_s3_client(get_s3_client(settings))
     settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
 
     title = settings.SERVICE_NAME
-    graphql_app: GraphQLRouter = GraphQLRouter(schema, context_getter=get_context, graphiql=True)
+    graphql_app: GraphQLRouter = GraphQLRouter(schema, context_getter=get_context)
     _app = FastAPI(title=title, debug=settings.DEBUG)
     _app.include_router(graphql_app, prefix="/graphql")
     # Add a global settings object to the app that we can use as a dependency

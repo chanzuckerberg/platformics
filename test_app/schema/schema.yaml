@@ -79,6 +79,11 @@ classes:
       updated_at:
         range: date
         readonly: true
+      deleted_at:
+        range: date
+        annotations:
+          mutable: true
+          system_writable_only: True
     annotations:
       plural: Entities
 
@@ -175,8 +180,14 @@ classes:
         required: true
       r1_file:
         range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
       r2_file:
         range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
       technology:
         range: SequencingTechnology
         required: true
@@ -189,10 +200,11 @@ classes:
       primer_file:
         range: GenomicRange
         inverse: GenomicRange.sequencing_reads
-      contigs:
+      contig:
         range: Contig
-        inverse: Contig.sequencing_read
-        multivalued: true
+        inverse: Contig.sequencing_reads
+        annotations:
+          mutable: false
     annotations:
       plural: SequencingReads
 
@@ -203,6 +215,8 @@ classes:
     attributes:
       file:
         range: File
+        annotations:
+          cascade_delete: true
       sequencing_reads:
         range: SequencingRead
         inverse: SequencingRead.primer_file
@@ -215,11 +229,18 @@ classes:
     mixins:
       - EntityMixin
     attributes:
-      sequencing_read:
+      sequencing_reads:
         range: SequencingRead
-        inverse: Sample.contigs
+        inverse: SequencingRead.contig
+        multivalued: true
       sequence:
         required: true
+      upstream_database:
+        range: UpstreamDatabase
+        inverse: UpstreamDatabase.contig
+        required: true
+        annotations:
+          mutable: false
     annotations:
       plural: Contigs
 
@@ -234,3 +255,61 @@ classes:
         inverse: entity.id
         annotations:
           hidden: true
+
+  UpstreamDatabase:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+        annotations:
+          indexed: true
+      contig:
+        range: Contig
+        inverse: Contig.upstream_database
+        multivalued: true
+      # This is where NCBI indexes would live
+    annotations:
+      plural: UpstreamDatabases
+
+  ConstraintCheckedType:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      length_3_to_8:
+        range: string
+        annotations:
+          minimum_length: 3
+          maximum_length: 8
+      regex_format_check:
+        range: string
+        pattern: '\d{3}-\d{2}-\d{4}'
+      min_value_0:
+        range: integer
+        minimum_value: 0
+      enum_field:
+        range: NucleicAcid
+      bool_field:
+        range: boolean
+      max_value_9:
+        range: integer
+        maximum_value: 9
+      min_value_0_max_value_9:
+        range: integer
+        minimum_value: 0
+        maximum_value: 9
+      float_1dot1_to_2dot2:
+        range: float
+        minimum_value: 1.1
+        maximum_value: 2.2
+      no_string_checks:
+        range: string
+      no_int_checks:
+        range: integer
+      no_float_checks:
+        range: float
+    annotations:
+      plural: ConstraintCheckedTypes

@@ -257,3 +257,6 @@ test_app/test_infra/*
 
 # temp files
 /tmp/*
+
+# build artifacts
+requirements.txt

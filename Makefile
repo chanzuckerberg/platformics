@@ -21,10 +21,6 @@ help: ## display help for this makefile
 	@echo "### SHARED FUNCTIONS END ###"
 
 .PHONY: codegen
-codegen:
-	$(MAKE_TEST_APP) codegen
-
-.PHONY: codegen
 codegen: ## Run codegen to convert the LinkML schema to a GQL API
 	$(docker_compose_run) $(CONTAINER) python3 -m platformics.cli.main api generate --schemafile ./schema/schema.yaml --output-prefix .
 
@@ -75,7 +71,12 @@ gha-setup: ## Set up the environment in CI
 build:
 	rm -rf dist/*.whl
 	poetry build
+	# Export poetry dependency list as a requirements.txt, which makes Docker builds
+	# faster by not having to reinstall all dependencies every time we build a new wheel.
+	poetry export --without-hashes --format=requirements.txt > requirements.txt
 	$(docker_compose) build
+	$(MAKE_TEST_APP) build
+	rm requirements.txt
 
 .PHONY: dev ## Launch a container suitable for developing the platformics library
 dev:

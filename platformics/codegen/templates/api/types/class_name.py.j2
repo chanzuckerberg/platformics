@@ -17,7 +17,7 @@ import platformics.database.models as base_db
 import database.models as db
 import strawberry
 import datetime
-from platformics.api.core.helpers import get_db_rows, get_aggregate_db_rows
+from platformics.api.core.query_builder import get_db_rows, get_aggregate_db_rows
 from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator, {{cls.name}}UpdateInputValidator
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause
@@ -34,7 +34,7 @@ from cerbos.sdk.model import Principal, Resource
 from fastapi import Depends
 from platformics.api.core.errors import PlatformicsError
 from platformics.api.core.deps import get_cerbos_client, get_db_session, require_auth_principal, is_system_user
-from platformics.api.core.gql_to_sql import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
+from platformics.api.core.query_input_types import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
 from platformics.api.core.strawberry_extensions import DependencyExtension
 from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import inspect

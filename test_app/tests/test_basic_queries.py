@@ -2,10 +2,13 @@
 Test basic queries and mutations
 """
 
+import datetime
 import pytest
 from platformics.database.connect import SyncDB
 from conftest import GQLTestClient, SessionStorage
 from test_infra.factories.sample import SampleFactory
+
+date_now = datetime.datetime.now()
 
 
 @pytest.mark.asyncio
@@ -24,13 +27,25 @@ async def test_graphql_query(
     with sync_db.session() as session:
         SessionStorage.set_session(session)
         SampleFactory.create_batch(
-            2, collection_location="San Francisco, CA", owner_user_id=user_id, collection_id=project_id
+            2,
+            collection_location="San Francisco, CA",
+            collection_date=date_now,
+            owner_user_id=user_id,
+            collection_id=project_id,
         )
         SampleFactory.create_batch(
-            6, collection_location="Mountain View, CA", owner_user_id=user_id, collection_id=project_id
+            6,
+            collection_location="Mountain View, CA",
+            collection_date=date_now,
+            owner_user_id=user_id,
+            collection_id=project_id,
         )
         SampleFactory.create_batch(
-            4, collection_location="Phoenix, AZ", owner_user_id=secondary_user_id, collection_id=9999
+            4,
+            collection_location="Phoenix, AZ",
+            collection_date=date_now,
+            owner_user_id=secondary_user_id,
+            collection_id=9999,
         )
 
     # Fetch all samples
@@ -69,6 +84,7 @@ async def test_graphql_mutations(
                 sampleType: "Type 1"
                 waterControl: false
                 collectionLocation: "San Francisco, CA"
+                collectionDate: "2024-01-01"
                 collectionId: 123
             }) {
                 id,

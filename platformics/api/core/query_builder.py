@@ -18,7 +18,7 @@ from typing_extensions import TypedDict
 
 import platformics.database.models as db
 from platformics.api.core.errors import PlatformicsError
-from platformics.api.core.gql_to_sql import OrderBy, aggregator_map, operator_map
+from platformics.api.core.query_input_types import aggregator_map, operator_map, orderBy
 from platformics.database.models.base import Base
 from platformics.security.authorization import CerbosAction, get_resource_query
 
@@ -26,7 +26,7 @@ E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
 
 
-def apply_order_by(field: str, direction: OrderBy, query: Select) -> Select:
+def apply_order_by(field: str, direction: orderBy, query: Select) -> Select:
     match direction.value:
         case "asc":
             query = query.order_by(getattr(query.selected_columns, field).asc())
@@ -44,9 +44,9 @@ def apply_order_by(field: str, direction: OrderBy, query: Select) -> Select:
 
 
 class IndexedOrderByClause(TypedDict):
-    field: dict[str, OrderBy] | dict[str, dict[str, Any]]
+    field: dict[str, orderBy] | dict[str, dict[str, Any]]
     index: int
-    sort: OrderBy
+    sort: orderBy
 
 
 def convert_where_clauses_to_sql(

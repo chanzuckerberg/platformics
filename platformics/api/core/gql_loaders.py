@@ -9,7 +9,7 @@ from strawberry.dataloader import DataLoader
 
 import platformics.database.models as db
 from platformics.api.core.errors import PlatformicsError
-from platformics.api.core.helpers import get_aggregate_db_query, get_db_query, get_db_rows
+from platformics.api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.database.connect import AsyncDB
 from platformics.security.authorization import CerbosAction
 
