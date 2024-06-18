@@ -83,6 +83,14 @@ class NodeExtension(FieldExtension):
             info: Info,
             id: Annotated[strawberry.ID, argument(description="The ID of the object.")],
         ):
+            type_resolvers = []
+            for selected_type in info.selected_fields[0].selections:
+                field_type = selected_type.type_condition
+                type_def = info.schema.get_type_by_name(field_type)
+                origin = type_def.origin.resolve_type if isinstance(type_def.origin, LazyType) else type_def.origin
+                assert issubclass(origin, Node)
+                type_resolvers.append(origin)
+            print(f"tr: {type_resolvers}")
             return id.resolve_type(info).resolve_node(
                 id.node_id,
                 info=info,

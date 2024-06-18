@@ -201,8 +201,10 @@ classes:
       primer_file:
         range: GenomicRange
         inverse: GenomicRange.sequencing_reads
+        # Only mutable by system user (needed for upload flow)
         annotations:
-          mutable: false
+          mutable: true
+          system_writable_only: True
       contig:
         range: Contig
         inverse: Contig.sequencing_reads
