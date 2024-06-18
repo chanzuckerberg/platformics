@@ -262,10 +262,9 @@ async def test_create_wont_associate_inaccessible_relationships(
             input: {{
               collectionId: 111,
               sampleId: "{test_sample.id}",
-              protocol: artic_v4,
+              protocol: MNGS,
               technology: Illumina,
               nucleicAcid: RNA,
-              clearlabsExport: false
             }}
           ) {{ id }}
         }}
