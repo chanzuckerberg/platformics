@@ -164,6 +164,10 @@ classes:
         range: SequencingRead
         multivalued: true
         inverse: SequencingRead.sample
+      system_mutable_field:
+        range: string
+        annotations:
+          system_writable_only: True
     annotations:
       plural: Samples
 
@@ -194,12 +198,11 @@ classes:
       nucleic_acid:
         range: NucleicAcid
         required: true
-      has_ercc:
-        range: boolean
-        required: true
       primer_file:
         range: GenomicRange
         inverse: GenomicRange.sequencing_reads
+        annotations:
+          mutable: false
       contig:
         range: Contig
         inverse: Contig.sequencing_reads
@@ -313,3 +316,26 @@ classes:
         range: float
     annotations:
       plural: ConstraintCheckedTypes
+
+  SystemWritableOnlyType:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+    annotations:
+      system_writable_only: true
+      plural: SystemWritableOnlyTypes
+
+  ImmutableType:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+    annotations:
+      plural: ImmutableTypes
