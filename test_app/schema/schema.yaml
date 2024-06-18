@@ -180,8 +180,14 @@ classes:
         required: true
       r1_file:
         range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
       r2_file:
         range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
       technology:
         range: SequencingTechnology
         required: true
@@ -194,6 +200,10 @@ classes:
       primer_file:
         range: GenomicRange
         inverse: GenomicRange.sequencing_reads
+        # Only mutable by system user (needed for upload flow)
+        annotations:
+          mutable: true
+          system_writable_only: True
       contig:
         range: Contig
         inverse: Contig.sequencing_reads

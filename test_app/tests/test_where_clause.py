@@ -271,7 +271,8 @@ async def test_soft_deleted_objects(sync_db: SyncDB, gql_client: GQLTestClient) 
             }}
         }}
     """
-    output = await gql_client.query(soft_delete_mutation, member_projects=[project_id])
+    # Only service identities are allowed to soft delete entities
+    output = await gql_client.query(soft_delete_mutation, member_projects=[project_id], service_identity="workflows")
     assert len(output["data"]["updateSequencingRead"]) == 3
 
     # Check that the soft-deleted sequencing reads are not returned
