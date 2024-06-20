@@ -51,7 +51,7 @@ init:
 	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
 
 .PHONY: seed-moto
-seed-moto: ## Seed the moto db by running the ../bin/seed_moto.sh script
+seed-moto: ## Seed the moto db by running the ./bin/seed_moto.sh script
 	touch .moto_recording
 	./bin/seed_moto.sh
 

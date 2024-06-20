@@ -55,7 +55,8 @@ async def test_upload_process(
           }}
         }}
     """
-    output = await gql_client.query(mutation, member_projects=member_projects)
+
+    output = await gql_client.query(mutation, member_projects=member_projects, user_id=user_id)
     file_id = output["data"]["uploadFile"]["file"]["id"]
     credentials = output["data"]["uploadFile"]["credentials"]
 
