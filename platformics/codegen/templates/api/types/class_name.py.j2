@@ -517,7 +517,7 @@ async def create_{{ cls.snake_name }}(
         raise PlatformicsError("Unauthorized: {{cls.name}} is not creatable")
         {%- else %}
             {%- for field in cls.system_only_create_fields %}
-	    del(params["{{field.name}}"])
+	    params.pop("{{field.name}}", None)
             {%- endfor %}
         {%- endif %}
     {%- endif %}
@@ -596,7 +596,7 @@ async def update_{{ cls.snake_name }}(
         raise PlatformicsError("Unauthorized: {{cls.name}} is not mutable")
         {%- else %}
             {%- for field in cls.system_only_mutable_fields %}
-        del params["{{field.name}}"]
+        params.pop("{{field.name}}", None)
             {%- endfor %}
         {%- endif %}
     {%- endif %}
