@@ -2,21 +2,12 @@
 Tests for nested queries + authorization
 """
 
-import base64
 import pytest
 from collections import defaultdict
 from platformics.database.connect import SyncDB
 from conftest import GQLTestClient, SessionStorage
 from test_infra.factories.sample import SampleFactory
 from test_infra.factories.sequencing_read import SequencingReadFactory
-from platformics.api.types.entities import Entity
-
-
-def get_id(entity: Entity) -> str:
-    entity_type = entity.__class__.__name__
-    node_id = f"{entity_type}:{entity.id}".encode("ascii")
-    node_id_b64 = base64.b64encode(node_id).decode("utf-8")
-    return node_id_b64
 
 
 @pytest.mark.asyncio
@@ -155,9 +146,9 @@ async def test_relay_node_queries(
         sample1 = SampleFactory(owner_user_id=111, collection_id=888)
         sample2 = SampleFactory(owner_user_id=111, collection_id=888)
         sequencing_read = SequencingReadFactory(sample=sample1, owner_user_id=111, collection_id=888)
-        sample1_id = get_id(sample1)
-        sample2_id = get_id(sample2)
-        sequencing_read_id = get_id(sequencing_read)
+        sample1_id = sample1.id
+        sample2_id = sample2.id
+        sequencing_read_id = sequencing_read.id
 
     # Fetch one node
     query = f"""
