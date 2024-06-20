@@ -45,8 +45,14 @@ init:
 	# $(docker_compose_run) $(CONTAINER) ruff check --fix .
 	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/api/schema.graphql'
 	docker compose up -d
+	$(MAKE) seed-moto
 	sleep 5 # wait for the app to reload after having files updated.
 	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
+
+.PHONY: seed-moto
+seed-moto: ## Seed the moto db by running the ./bin/seed_moto.sh script
+	touch .moto_recording
+	./bin/seed_moto.sh
 
 .PHONY: clean
 clean: ## Remove all codegen'd artifacts.
@@ -54,6 +60,7 @@ clean: ## Remove all codegen'd artifacts.
 	rm -rf cerbos
 	rm -rf support
 	rm -rf database
+	rm -f .moto_recording
 	rm -rf test_infra
 	$(docker_compose) --profile '*' down
 
@@ -81,7 +88,7 @@ restart: ## Restart the GQL service
 stop: ## Stop the local dev environment.
 	$(docker_compose) --profile '*' stop
 
-.PHONY: local-seed
+.PHONY: seed
 seed: ## Seed the dev db with a reasonable set of starting data.
 	$(docker_compose) exec $(APP_CONTAINER) python3 scripts/seed.py
 

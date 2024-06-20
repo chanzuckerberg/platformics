@@ -65,7 +65,7 @@ codegen-tests: codegen  ## Run tests
 .PHONY: gha-setup
 gha-setup: ## Set up the environment in CI
 	docker swarm init
-
+	touch test_app/.moto_recording
 
 .PHONY: build ## Build python packages and docker images
 build:
@@ -87,6 +87,7 @@ dev:
 .PHONY: clean
 clean: ## Remove all build artifacts
 	rm -rf dist
+	rm -rf test_app/.moto_recording
 	$(docker_compose) down
 	$(MAKE_TEST_APP) clean
 
