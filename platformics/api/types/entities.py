@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Any, Iterable
 
 import strawberry
 from strawberry.types import Info
@@ -29,3 +29,13 @@ class EntityInterface(relay.Node):
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
         sql_model = getattr(db_module, gql_type)
         return await dataloader.resolve_nodes(sql_model, node_ids)
+
+    @classmethod
+    async def resolve_node(cls, node_id: str, info: Info, required: bool = False) -> Any:
+        dataloader = info.context["sqlalchemy_loader"]
+        db_module = info.context["db_module"]
+        gql_type: str = cls.__strawberry_definition__.name  # type: ignore
+        sql_model = getattr(db_module, gql_type)
+        res = await dataloader.resolve_nodes(sql_model, [node_id])
+        if res:
+            return res[0]

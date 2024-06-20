@@ -83,8 +83,17 @@ class NodeExtension(FieldExtension):
             info: Info,
             id: Annotated[strawberry.ID, argument(description="The ID of the object.")],
         ):
-            return id.resolve_type(info).resolve_node(
-                id.node_id,
+            type_resolvers = []
+            for selected_type in info.selected_fields[0].selections:
+                field_type = selected_type.type_condition
+                type_def = info.schema.get_type_by_name(field_type)
+                origin = type_def.origin.resolve_type if isinstance(type_def.origin, LazyType) else type_def.origin
+                assert issubclass(origin, Node)
+                type_resolvers.append(origin)
+            # FIXME TODO this only works if we're getting a *single* subclassed `Node` type --
+            # if we're getting multiple subclass types, we need to resolve them all somehow
+            return type_resolvers[0].resolve_node(
+                id,
                 info=info,
                 required=not is_optional,
             )
