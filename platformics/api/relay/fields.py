@@ -90,9 +90,10 @@ class NodeExtension(FieldExtension):
                 origin = type_def.origin.resolve_type if isinstance(type_def.origin, LazyType) else type_def.origin
                 assert issubclass(origin, Node)
                 type_resolvers.append(origin)
-            print(f"tr: {type_resolvers}")
-            return id.resolve_type(info).resolve_node(
-                id.node_id,
+            # FIXME TODO this only works if we're getting a *single* subclassed `Node` type --
+            # if we're getting multiple subclass types, we need to resolve them all somehow
+            return type_resolvers[0].resolve_node(
+                id,
                 info=info,
                 required=not is_optional,
             )
