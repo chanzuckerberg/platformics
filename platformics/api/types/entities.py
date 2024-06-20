@@ -36,6 +36,6 @@ class EntityInterface(relay.Node):
         db_module = info.context["db_module"]
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
         sql_model = getattr(db_module, gql_type)
-        res = (await dataloader.resolve_nodes(sql_model, [node_id]))
+        res = await dataloader.resolve_nodes(sql_model, [node_id])
         if res:
             return res[0]

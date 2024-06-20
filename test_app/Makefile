@@ -44,9 +44,8 @@ init:
 	$(docker_compose_run) $(APP_CONTAINER) black .
 	# $(docker_compose_run) $(CONTAINER) ruff check --fix .
 	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/api/schema.graphql'
-	sleep 5 # wait for the app to reload after having files updated.
 	docker compose up -d
-	sleep 5
+	sleep 5 # wait for the app to reload after having files updated.
 	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
 
 .PHONY: clean
@@ -55,6 +54,7 @@ clean: ## Remove all codegen'd artifacts.
 	rm -rf cerbos
 	rm -rf support
 	rm -rf database
+	rm -rf test_infra
 	$(docker_compose) --profile '*' down
 
 .PHONY: start

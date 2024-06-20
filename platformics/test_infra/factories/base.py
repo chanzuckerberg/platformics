@@ -100,7 +100,8 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
                     session.execute(
                         sa.text(
                             f"""UPDATE {entity_name} SET {entity_field_name}_id = file.id
-                            FROM file WHERE {entity_name}.entity_id = file.entity_id""",
+                            FROM file WHERE {entity_name}.entity_id = file.entity_id and file.entity_field_name = :field_name""",
                         ),
+                        {"field_name": entity_field_name},
                     )
         session.commit()
