@@ -62,6 +62,7 @@ classes:
       producing_run_id:
         range: uuid
         annotations:
+          mutable: false  # This field can't be modified by an `Update` mutation
           system_writable_only: True
       owner_user_id:
         range: integer
@@ -179,6 +180,8 @@ classes:
       sample:
         range: Sample
         inverse: Sample.sequencing_reads
+        annotations:
+          mutable: false
       protocol:
         range: SequencingProtocol
         required: true
@@ -220,6 +223,7 @@ classes:
     attributes:
       file:
         range: File
+        readonly: true
         annotations:
           cascade_delete: true
       sequencing_reads:
@@ -340,4 +344,5 @@ classes:
         range: string
         required: true
     annotations:
+      mutable: false
       plural: ImmutableTypes
