@@ -62,7 +62,7 @@ services:
       - PLATFORMICS_DATABASE_NAME=platformics
       - DEFAULT_UPLOAD_BUCKET=local-bucket
       - DEFAULT_UPLOAD_PROTOCOL=s3
-      - OUTPUT_S3_PREFIX=nextgen
+      - OUTPUT_S3_PREFIX=platformics
       - BOTO_ENDPOINT_URL=http://motoserver.platformics:4000
       - AWS_REGION=us-west-2
       - AWS_ACCESS_KEY_ID=test

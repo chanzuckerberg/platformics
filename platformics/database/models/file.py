@@ -81,7 +81,7 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
     settings = File.get_settings()
     s3_client = File.get_s3_client()
 
-    # If this file is managed by NextGen, see if it needs to be deleted from S3
+    # If this file is managed by platformics, see if it needs to be deleted from S3
     if target.path.startswith(f"{settings.OUTPUT_S3_PREFIX}/") and target.protocol == FileAccessProtocol.s3:
         # Is this the last File object pointing to this path?
         files_pointing_to_same_path = connection.execute(

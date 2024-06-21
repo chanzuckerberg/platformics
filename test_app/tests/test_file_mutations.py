@@ -221,9 +221,9 @@ async def test_create_file(
 @pytest.mark.parametrize(
     "file_path,multiple_files_for_one_path,should_delete",
     [
-        ("nextgen/test1.fastq", False, True),
+        ("platformics/test1.fastq", False, True),
         ("bla/test1.fastq", False, False),
-        ("nextgen/test1.fastq", True, False),
+        ("platformics/test1.fastq", True, False),
         ("bla/test1.fastq", True, False),
     ],
 )
