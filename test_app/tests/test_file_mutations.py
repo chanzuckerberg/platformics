@@ -189,7 +189,7 @@ async def test_create_file(
     # Upload a fastq file to a mock bucket so we can create a file object from it
     file_namespace = "local-bucket"
     file_path = "test1.fastq"
-    file_path_local = "tests/fixtures/test1.fasta"
+    file_path_local = "tests/fixtures/test1.fastq"
     file_size = os.stat(file_path_local).st_size
     with open(file_path_local, "rb") as fp:
         moto_client.put_object(Bucket=file_namespace, Key=file_path, Body=fp)
@@ -211,7 +211,7 @@ async def test_create_file(
                 path
                 size
             }}
-
+        }}
     """
     output = await gql_client.query(mutation, member_projects=[123], service_identity="workflows")
     assert output["data"]["createFile"]["size"] == file_size
