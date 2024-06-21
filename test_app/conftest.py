@@ -6,6 +6,7 @@ import json
 import os
 import typing
 from typing import Optional
+from platformics.api.core.error_handler import HandleErrors
 
 import boto3
 import pytest
@@ -37,8 +38,6 @@ from platformics.api.setup import get_strawberry_config
 from api.mutations import Mutation
 from api.queries import Query
 import strawberry
-
-from main import app
 
 __all__ = [
     "gql_client",
@@ -117,12 +116,6 @@ async def async_db(sync_db: SyncDB, test_db: NoopExecutor) -> typing.AsyncGenera
         )
     )
     yield db
-
-
-@pytest_asyncio.fixture()
-async def api_test_schema(async_db: AsyncDB) -> FastAPI:
-    overwrite_api(app, async_db)
-    return app
 
 
 # When importing `gql_client`, it will use the `http_client` below, which uses the test schema
@@ -235,14 +228,25 @@ def overwrite_api(api: FastAPI, async_db: AsyncDB) -> None:
     api.dependency_overrides[get_s3_client] = patched_s3_client
 
 
+def raise_exception() -> str:
+    raise Exception("Unexpected error")
+
+# Subclass Query with an additional field to test Exception handling.
+@strawberry.type
+class MyQuery(Query):
+    @strawberry.field
+    def uncaught_exception(self) -> str:
+        # Trigger an AttributeException
+        return self.kaboom  # type: ignore
+
 @pytest_asyncio.fixture()
-async def api(async_db: AsyncDB) -> FastAPI:
+async def api_test_schema(async_db: AsyncDB) -> FastAPI:
     """
     Create an API instance using the real schema.
     """
     settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
     strawberry_config = get_strawberry_config()
-    schema = strawberry.Schema(query=Query, mutation=Mutation, config=strawberry_config)
+    schema = strawberry.Schema(query=MyQuery, mutation=Mutation, config=strawberry_config, extensions=[HandleErrors()])
     api = get_app(settings, schema, models)
     overwrite_api(api, async_db)
     return api
