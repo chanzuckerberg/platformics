@@ -344,4 +344,5 @@ classes:
         range: string
         required: true
     annotations:
+      mutable: false
       plural: ImmutableTypes
