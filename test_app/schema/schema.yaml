@@ -165,6 +165,8 @@ classes:
         range: SequencingRead
         multivalued: true
         inverse: SequencingRead.sample
+        annotations:
+          cascade_delete: true
       system_mutable_field:
         range: string
         annotations:
