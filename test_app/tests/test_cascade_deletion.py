@@ -35,7 +35,7 @@ async def test_cascade_delete(
         }}
       }}
     """
-    result = await gql_client.query(query, user_id=user_id, member_projects=[project_id])
+    result = await gql_client.query(query, user_id=user_id, member_projects=[project_id], service_identity="workflows")
     assert result["data"]["deleteSample"][0]["id"] == str(sequencing_reads[0].sample_id)
 
     # The first SequencingRead should be deleted
