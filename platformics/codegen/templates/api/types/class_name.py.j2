@@ -18,7 +18,12 @@ import database.models as db
 import strawberry
 import datetime
 from platformics.api.core.query_builder import get_db_rows, get_aggregate_db_rows
-from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator, {{cls.name}}UpdateInputValidator
+{%- if cls.create_fields %}
+from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
+{%- endif %}
+{%- if cls.mutable_fields %}
+from api.validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
+{%- endif %}
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause
 {%- endif %}
@@ -517,7 +522,7 @@ async def create_{{ cls.snake_name }}(
         raise PlatformicsError("Unauthorized: {{cls.name}} is not creatable")
         {%- else %}
             {%- for field in cls.system_only_create_fields %}
-	    del(params["{{field.name}}"])
+	    params.pop("{{field.name}}", None)
             {%- endfor %}
         {%- endif %}
     {%- endif %}
@@ -596,7 +601,7 @@ async def update_{{ cls.snake_name }}(
         raise PlatformicsError("Unauthorized: {{cls.name}} is not mutable")
         {%- else %}
             {%- for field in cls.system_only_mutable_fields %}
-        del params["{{field.name}}"]
+        params.pop("{{field.name}}", None)
             {%- endfor %}
         {%- endif %}
     {%- endif %}
