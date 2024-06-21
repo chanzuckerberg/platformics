@@ -23,6 +23,8 @@ help: ## display help for this makefile
 .PHONY: codegen
 codegen: build-base ## Run codegen to convert the LinkML schema to a GQL API
 	$(docker_compose_run) $(BUILD_CONTAINER) api generate --schemafile ./schema/schema.yaml --output-prefix .
+	$(docker_compose_run) $(CONTAINER) black .
+	#$(docker_compose_run) $(CONTAINER) ruff check --fix  .
 
 .PHONY: rm-pycache
 rm-pycache: ## remove all __pycache__ files (run if encountering issues with pycharm debugger (containers exiting prematurely))
@@ -56,9 +58,6 @@ lint: ## Check for / fix bad linting
 .PHONY: codegen-tests
 codegen-tests: codegen  ## Run tests
 	$(docker_compose) up -d
-	$(docker_compose_run) -v platformics api generate --schemafile /app/schema/test_app.yaml --output-prefix /app
-	$(docker_compose_run) $(CONTAINER) black .
-	$(docker_compose_run) $(CONTAINER) ruff check --fix  .
 	$(docker_compose_run) $(CONTAINER) pytest
 
 ### GitHub Actions ###################################################
