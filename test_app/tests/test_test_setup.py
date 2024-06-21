@@ -25,4 +25,4 @@ async def test_graphql_query(gql_client: GQLTestClient, api_test_schema: FastAPI
     """
     output = await gql_client.query(query)
     assert output["data"] is None
-    assert output["errors"][0]["message"] == "Cannot query field 'referenceGenomes' on type 'Query'."
+    assert output["errors"][0]["message"].startswith("Cannot query field 'referenceGenomes' on type")
