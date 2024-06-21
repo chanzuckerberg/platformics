@@ -78,7 +78,7 @@ build-base:
 	rm requirements.txt
 
 .PHONY: build ## Build the base docker image and the test app docker image
-build: build-platformics
+build: build-base
 	$(MAKE_TEST_APP) build
 
 .PHONY: dev ## Launch a container suitable for developing the platformics library
