@@ -74,12 +74,12 @@ class {{cls.name}}(Entity):
             {%- endif -%}
             {%- if attr.is_virtual_relationship %}
     {{attr.name}}: Mapped[
-        {{ "list[" if attr.multivalued else ""}}{{ attr.type }}{{ "]" if attr.multivalued else ""}}
+        {{ "list['" if attr.multivalued else ""}}{{ attr.type }}{{ "']" if attr.multivalued else ""}}
     ] = relationship(
         "{{attr.type}}",
-        back_populates="{{attr.inverse_field}}",
+        back_populates="{{attr.back_populates}}",
         uselist=True,
-        foreign_keys="{{attr.type}}.{{attr.inverse_field}}_id",
+        foreign_keys="{{attr.type}}.{{attr.inverse_field}}",
         {{cascade}}
     )
             {%- else %}
@@ -98,7 +98,7 @@ class {{cls.name}}(Entity):
         "{{attr.type}}",
         foreign_keys={{attr.name}}_id,
         {%- if attr.inverse %}
-        back_populates="{{attr.inverse_field}}",
+        back_populates="{{cls.plural_snake_name}}",
         {%- endif %}
         {{cascade}}
     )

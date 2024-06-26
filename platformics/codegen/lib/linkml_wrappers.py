@@ -8,7 +8,7 @@ functions to keep complicated LinkML-specific logic out of our Jinja2 templates.
 from functools import cached_property
 
 import strcase
-from linkml_runtime.linkml_model.meta import ClassDefinition, EnumDefinition, SlotDefinition
+from linkml_runtime.linkml_model.meta import ClassDefinition, EnumDefinition, SlotDefinition, TypeDefinition
 from linkml_runtime.utils.schemaview import SchemaView
 
 
@@ -33,11 +33,11 @@ class FieldWrapper:
 
     @cached_property
     def name(self) -> str:
-        return self.wrapped_field.name
+        return self.wrapped_field.name.replace(" ", "_")
 
     @cached_property
     def camel_name(self) -> str:
-        return strcase.to_lower_camel(self.wrapped_field.name)
+        return strcase.to_lower_camel(self.name)
 
     @cached_property
     def multivalued(self) -> str:
@@ -115,9 +115,19 @@ class FieldWrapper:
             return self.wrapped_field.annotations["system_writable_only"].value
         return False
 
+    def _resolve_concrete_type(self, type: str) -> str:
+        while type:
+            parent = self.view.get_element(type)
+            if not parent or isinstance(parent, TypeDefinition):
+                return type
+            if not parent.abstract:
+                return type
+            type = parent.is_a
+        raise Exception("No concrete type found for {type}")
+
     @cached_property
     def type(self) -> str:
-        return self.wrapped_field.range
+        return self._resolve_concrete_type(self.wrapped_field.range)
 
     @cached_property
     def inverse(self) -> str:
@@ -125,15 +135,30 @@ class FieldWrapper:
 
     @cached_property
     def inverse_class(self) -> str:
-        return self.wrapped_field.inverse.split(".")[0]
+        print(self.wrapped_field.inverse)
+        if "." in self.wrapped_field.inverse:
+            return self.wrapped_field.inverse.split(".")[0]
+        return f"{self.wrapped_field.range}.{self.wrapped_field.inverse}"
 
     @cached_property
     def inverse_class_snake_name(self) -> str:
         return strcase.to_snake(self.inverse_class)
 
     @cached_property
+    def back_populates(self) -> str:
+        if "." in self.wrapped_field.inverse:
+            return self.wrapped_field.inverse.split(".")[1]
+        return self.wrapped_field.inverse.replace(" ", "_")
+        # return self.related_class.plural_snake_name
+
+    @cached_property
     def inverse_field(self) -> str:
-        return self.wrapped_field.inverse.split(".")[1]
+        if "." in self.wrapped_field.inverse:
+            return self.wrapped_field.inverse.split(".")[1] + "_id"
+        related_cls = self.related_class
+        if related_cls.name == "Entity":
+            return "id"
+        return "entity_id"
 
     @cached_property
     def is_enum(self) -> bool:
@@ -151,7 +176,8 @@ class FieldWrapper:
 
     @property
     def related_class(self) -> "EntityWrapper":
-        return EntityWrapper(self.view, self.view.get_element(self.wrapped_field.range))
+        entity_name = self._resolve_concrete_type(self.wrapped_field.range)
+        return EntityWrapper(self.view, self.view.get_element(entity_name))
 
     @property
     def related_enum(self) -> "EnumWrapper":
@@ -353,8 +379,19 @@ class ViewWrapper:
             cls = self.view.get_element(class_name)
             if cls.mixin:
                 continue
-            # If this class doesn't descend from Entity, skip it.
-            if cls.is_a != "Entity":
+            if cls.abstract:
                 continue
+            # If this class doesn't descend from Entity, skip it.
+            is_entity = False
+            parent = cls.is_a
+            while parent:
+                if parent == "Entity":
+                    is_entity = True
+                    break
+                parent = self.view.get_element(parent).is_a
+            if not is_entity:
+                print("Skipping class", cls.name, "because it doesn't descend from Entity")
+                continue
+            print("Adding class", cls.name)
             classes.append(EntityWrapper(self.view, cls))
         return classes

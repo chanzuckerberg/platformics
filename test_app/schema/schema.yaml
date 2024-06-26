@@ -1,50 +1,254 @@
-id: https://czid.org/entities/schema/platformics
-title: CZID Platformics Bio-Entities Schema
-name: platformics
+id: https://chanzuckerberg.github.io/alhazen/linkml/sciknow
+name: ScientificKnowledgeExpressionModel
+description: >-
+  LinkML Schema for scientific knowledge collections, expressions, items, and fragments.
+prefixes:     
+  skem: https://chanzuckerberg.github.io/alhazen/linkml/sciknow
+  dct: 'http://purl.org/dc/terms/'
+  linkml: https://w3id.org/linkml/
+  schema: http://schema.org/
+  biolink: 'https://w3id.org/biolink/vocab/'
+  fabio: 'http://purl.org/spar/fabio/'
+  MESH: 'http://id.nlm.nih.gov/mesh/'
+  iao: 'http://purl.obolibrary.org/obo/IAO_'
+  WIKIDATA: 'https://www.wikidata.org/entity/'            
+  WIKIDATA_PROPERTY: 'https://www.wikidata.org/prop/'
+  pmid: 'https://www.ncbi.nlm.nih.gov/pubmed/'
+  epmcid: 'https://europepmc.org/articles/'
+  pmcid: 'https://www.ncbi.nlm.nih.gov/pmc/articles/'
+  doi: 'https://doi.org/'
+  orcid: 'https://orcid.org/'
+  umls: 'http://purl.bioontology.org/ontology/UMLS/'
+  
+imports:
+  - linkml:types
+default_curi_maps:
+  - semweb_context
+default_prefix: skem
 default_range: string
+  
+slots:
+  abstract:
+    description: >-
+      The written abstract of a ScientificKnowledgeExpression. 
+      This is typically a paragraph of text providing 
+      a summary of the expression.
+    domain: ScientificKnowledgeExpression
+    range: string
 
-types:
-  string:
-    uri: xsd:string
-    base: str
-    description: A character string
+  affiliations:
+    description: >-
+      The affiliations of an author. 
+    domain: Author
+    range: Organization
+    inverse: authors
+    multivalued: true
 
-  integer:
-    uri: xsd:integer
-    base: int
-    description: An integer
+  cites:
+    description: >-
+      The ScientificKnowledgeExpression that are cited by this ScientificKnowledgeExpression. 
+    domain: ScientificKnowledgeExpression
+    range: ScientificKnowledgeExpression
+    multivalued: true
+ 
+  content:
+    description: >-
+      The content of an InformationContentEntity expressed as a string.
+    domain: InformationContentEntity
+    range: string
 
-  uuid:
-    uri: xsd:string
-    typeof: str
-    base: str
-    description: A UUID
+  creation date:
+    range: date
+    description: >-
+      date on which an entity was created. This can be applied to nodes or edges
+    exact_mappings:
+      - dct:createdOn
+      - WIKIDATA_PROPERTY:P577
 
-enums:
-  FileStatus:
-    permissible_values:
-      SUCCESS:
-      FAILED:
-      PENDING:
-  FileAccessProtocol:
-    permissible_values:
-      s3:
-        description: This file is accessible via the (AWS) S3 protocol
-      https:
-        description: This file is accessible via the HTTPS protocol
-  NucleicAcid:
-    permissible_values:
-      RNA:
-      DNA:
-  SequencingProtocol:
-    permissible_values:
-      MNGS:
-      TARGETED:
-      MSSPE:
-  SequencingTechnology:
-    permissible_values:
-      Illumina:
-      Nanopore:
+  format:
+    description: >-
+      The format (JSON, XML, BINARY) of the content of an InformationContentEntity.
+    domain: InformationContentEntity
+    exact_mappings:
+      - dct:format
+
+  has authors:
+    inverse: is author of
+    description: >-
+      The named entity that authored an ScientificKnowledgeExpression. 
+    domain: ScientificKnowledgeExpression
+    range: Author
+    multivalued: true
+    exact_mappings:
+      - schema:author
+
+  has members:
+    description: >-
+      holds between collections and their members
+    inverse: member of
+    multivalued: true
+    domain: ScientificKnowledgeCollection
+    range: ScientificKnowledgeExpression
+  
+  has notes:
+    inverse: is about
+    multivalued: true
+    domain: InformationContentEntity
+    range: Note
+    description: >-
+      Points to notes that are about a given entity.
+
+  has part:
+    inverse: part of
+    domain: ScientificKnowledgeItem
+    range: ScientificKnowledgeFragment
+    multivalued: true
+    description: >-
+      holds between wholes and their parts (material entities or processes)
+
+  has representation:
+    inverse: representation of
+    domain: ScientificKnowledgeExpression
+    range: ScientificKnowledgeItem
+    multivalued: true
+    description: >-
+      holds between wholes and their parts (material entities or processes)
+
+  iri:
+    description: >-
+      An IRI for an entity. 
+    domain: Entity
+    multivalued: true
+    range: string
+
+  is about: 
+    description: >-
+       A (currently) primitive relation that relates an information artifact to an entity. 
+    domain: Note
+    range: InformationContentEntity
+    multivalued: true
+    exact_mappings:
+      - iao:0000136
+    inverse: has notes
+
+  is author of:
+    inverse: has authors
+    description: >-
+      The ScientificKnowledgeExpression that an Author is the author of. 
+    domain: Author
+    range: ScientificKnowledgeExpression
+    multivalued: true
+
+  license:
+    domain: InformationContentEntity
+    description: >-
+      A license under which an information content entity is provided.
+    exact_mappings:
+      - dct:license
+
+  logical query:
+    description: >-
+      A logical query that can be used to retrieve a set of entities from a 
+      knowledgebase. Typically expressed as a boolean logic expression over 
+      terms to be searched for.
+    domain: ScientificKnowledgeCollection
+    range: string
+
+  member of:
+    description: >-
+      holds between individuals and collections that they are members of
+    multivalued: true
+    inverse: has members
+    domain: ScientificKnowledgeExpression
+    range: ScientificKnowledgeCollection
+
+  name:
+    aliases: ['label', 'display name', 'title']
+    description: >-
+      A human-readable name for an attribute or entity.
+    domain: Entity
+    slot_uri: rdfs:label
+
+  offset:
+    description: >-
+      The offset of the start of the fragment from the start of the text.
+    domain: ScientificKnowledgeFragment
+    range: integer
+  
+  length:
+    description: >-
+      The length of the fragment.
+    domain: ScientificKnowledgeFragment
+    range: integer
+      
+  part of:
+    description: >-
+      holds between parts and wholes (material entities or processes)
+    inverse: has part
+    multivalued: false
+    domain: ScientificKnowledgeFragment
+    range: ScientificKnowledgeItem
+    
+  provenance:
+    domain: InformationContentEntity
+    range: string
+    description: >-
+      A description of the provenance of an information content entity.
+      Expressed as a list of commands describing how the collection was built.
+      This should involve describing the operation to generate the collection in 
+      sufficient detail that that could be replicated by an LLM agent with 
+      the appropriate tooling.  
+    
+  publication date:
+    range: date
+    description: >-
+      date on which an entity was published (i.e., made available to the public).
+    exact_mappings:
+      - dct:createdOn
+      - WIKIDATA_PROPERTY:P577
+
+  representation of:
+    description: >-
+      The ScientificKnowledgeExpression that this ScientificKnowledgeItem 
+      is a representation of.
+    inverse: has representation
+    multivalued: false
+    domain: ScientificKnowledgeItem
+    range: ScientificKnowledgeExpression
+
+  rights:
+    domain: InformationContentEntity
+    exact_mappings:
+      - dct:rights
+
+  token count:
+    description: >-
+      The number of tokens in the content of an InformationContentEntity.
+    domain: InformationContentEntity
+    range: integer
+
+  type:
+    description: >-
+      The type of an Entity expressed as curi.
+    domain: Entity
+    range: string
+    required: true
+  
+  id:
+    identifier: true
+    description: >-
+      A simple, locally-generated unique identifier specific with different heuristic formatting for each application.
+    required: true
+
+  xref:
+    aliases: ['dbxref', 'Dbxref', 'DbXref', 'record_url', 'source_record_urls']
+    domain: InformationContentEntity
+    range: string
+    description: >-
+      A database cross reference or alternative identifier for a NamedThing or edge between two NamedThings.  
+      This property should point to a database record or webpage that 
+      defines the definition of the NamedThing. 
+    multivalued: true
 
 classes:
   Entity:
@@ -85,173 +289,10 @@ classes:
         annotations:
           mutable: true
           system_writable_only: True
+    exact_mappings:
+      - biolink:entity
     annotations:
       plural: Entities
-
-  File:
-    attributes:
-      id:
-        identifier: true
-        range: uuid
-        required: true
-      # This file's ID is stored in the entity column <entity_field_name>_id
-      entity_field_name:
-        range: string
-        required: true
-      # Which entity this file is connected to
-      entity:
-        range: Entity
-        required: true
-      status:
-        range: FileStatus
-        required: true
-      protocol:
-        range: FileAccessProtocol
-        required: true
-      # Bucket name
-      namespace:
-        range: string
-        required: true
-      # Prefix (does not start with /)
-      path:
-        range: string
-        required: true
-      file_format:
-        range: string
-        required: true
-      compression_type:
-        range: string
-      size:
-        range: integer
-        minimum_value: 0
-      # Information about file upload (optional)
-      upload_client:
-        range: FileUploadClient
-      upload_error:
-        range: string
-      created_at:
-        range: date
-        required: true
-        readonly: true
-      updated_at:
-        range: date
-        readonly: true
-
-  Sample:
-    is_a: Entity
-    mixins:
-      - EntityMixin
-    attributes:
-      name:
-        range: string
-        required: true
-        annotations:
-          minimum_length: 4
-          maximum_length: 128
-      sample_type:
-        range: string
-        required: true
-      water_control:
-        range: boolean
-        required: true
-      collection_date:
-        range: date
-      collection_location:
-        range: string
-        required: true
-      description:
-        range: string
-      sequencing_reads:
-        range: SequencingRead
-        multivalued: true
-        inverse: SequencingRead.sample
-        annotations:
-          cascade_delete: true
-      system_mutable_field:
-        range: string
-        annotations:
-          system_writable_only: True
-    annotations:
-      plural: Samples
-
-  SequencingRead:
-    is_a: Entity
-    mixins:
-      - EntityMixin
-    attributes:
-      sample:
-        range: Sample
-        inverse: Sample.sequencing_reads
-      protocol:
-        range: SequencingProtocol
-        required: true
-      r1_file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
-      r2_file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
-      technology:
-        range: SequencingTechnology
-        required: true
-      nucleic_acid:
-        range: NucleicAcid
-        required: true
-      primer_file:
-        range: GenomicRange
-        inverse: GenomicRange.sequencing_reads
-        # Only mutable by system user (needed for upload flow)
-        annotations:
-          mutable: true
-          system_writable_only: True
-      contig:
-        range: Contig
-        inverse: Contig.sequencing_reads
-        annotations:
-          mutable: false
-    annotations:
-      plural: SequencingReads
-
-  GenomicRange:
-    is_a: Entity
-    mixins:
-      - EntityMixin
-    attributes:
-      file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
-      sequencing_reads:
-        range: SequencingRead
-        inverse: SequencingRead.primer_file
-        multivalued: true
-    annotations:
-      plural: GenomicRanges
-
-  Contig:
-    is_a: Entity
-    mixins:
-      - EntityMixin
-    attributes:
-      sequencing_reads:
-        range: SequencingRead
-        inverse: SequencingRead.contig
-        multivalued: true
-      sequence:
-        required: true
-      upstream_database:
-        range: UpstreamDatabase
-        inverse: UpstreamDatabase.contig
-        required: true
-        annotations:
-          mutable: false
-    annotations:
-      plural: Contigs
 
   EntityMixin:
     mixin: true
@@ -265,84 +306,184 @@ classes:
         annotations:
           hidden: true
 
-  UpstreamDatabase:
+
+  NamedThing:
     is_a: Entity
     mixins:
       - EntityMixin
-    attributes:
-      name:
+    abstract: true
+    description: "an entity or concept/class described by a name"
+    slots:
+      - name
+    annotations:
+      plural: NamedThings
+    
+  InformationContentEntity:
+    mixins:
+      - EntityMixin
+    aliases: ['information', 'information artefact', 'information entity']
+    abstract: true
+    is_a: NamedThing
+    description: >
+      A piece of information that is represented in the typically describes some topic of discourse or is used as support.
+    slots:
+      - creation date
+      - content
+      - token count
+      - format
+      - provenance
+      - xref
+      - license
+      - has notes
+    annotations:
+      plural: InformationContentEntities
+
+  UserQuestion:
+    is_a: InformationContentEntity
+    mixins:
+      - EntityMixin
+    description: >
+      A question, inquiry, or instruction from an user of the Alhazen system.
+    annotations:
+      plural: InformationContentEntities
+
+  InformationResource:
+    is_a: InformationContentEntity
+    mixins:
+      - EntityMixin
+    aliases: ['knowledgebase']
+    description: 
+      A database or knowledgebase and its supporting ecosystem of interfaces 
+      and services that deliver content to consumers (e.g. web portals, APIs, 
+      query endpoints, streaming services, data downloads, etc.).
+      A single Information Resource by this definition may span many different datasets or
+      databases, and include many access endpoints and user
+      interfaces. Information Resources include project-specific resources
+      such as a Translator Knowledge Provider, and community knowledgebases like ChemBL, OMIM, or DGIdb.
+    annotations:
+      plural: InformationResources
+
+  ScientificKnowledgeCollection:
+    description:
+      A collection of expressions of scientific knowledge. 
+    is_a: InformationContentEntity 
+    mixins:
+      - EntityMixin
+    slots:
+      - has members
+    annotations:
+      plural: ScientificKnowledgeCollections
+
+  ScientificKnowledgeExpression:
+    description: >-
+      Any expression of scientific knowledge.   
+    is_a: InformationContentEntity
+    mixins:
+      - EntityMixin
+    slots:
+      - has representation
+      - member of 
+      - has authors
+      - publication date
+      - type
+    exact_mappings:
+      - fabio:expression
+    slot_usage:
+      type:
         range: string
-        required: true
-        annotations:
-          indexed: true
-      contig:
-        range: Contig
-        inverse: Contig.upstream_database
+    annotations:
+      plural: ScientificKnowledgeExpressions
+
+  ScientificKnowledgeItem:
+    mixins:
+      - EntityMixin
+    description:
+      A specific instance of a ScientificKnowledgeExpression:- our internal representation
+      of an EPMC citation record, a local copy of a full-text article. This is the 
+      substrate that forms the basis for a ScientificKnowledgeFragment. 
+    is_a: InformationContentEntity 
+    slots:
+      - representation of
+      - has part
+    annotations:
+      plural: ScientificKnowledgeItems
+
+  ScientificKnowledgeFragment:
+    mixins:
+      - EntityMixin
+    description:
+      A selected subportion of the contents of a ScientificKnowledgeExpression,
+      described by an selector. 
+    is_a: InformationContentEntity 
+    slots:
+      - part of
+      - offset
+      - length
+    annotations:
+      plural: ScientificKnowledgeFragments
+
+  Note:
+    aliases: ['annotation']
+    mixins:
+      - EntityMixin
+    description:
+      A structured piece of information with an author that is about another InformationContentEntity.
+    is_a: InformationContentEntity 
+    slots:
+      - is about
+      - format
+      - type
+    #slot_usage:
+    #  type:
+    #    range: NoteType
+    annotations:
+      plural: Notes
+    
+  Author:
+    is_a: InformationContentEntity
+    mixins:
+      - EntityMixin
+    slots:
+      - affiliations
+      - is author of
+    annotations:
+      plural: Authors
+
+  Organization:
+    is_a: InformationContentEntity
+    mixins:
+      - EntityMixin
+    attributes:  
+      city:
         multivalued: true
-      # This is where NCBI indexes would live
+        range: City
+        inverse: organizations
+      country:
+        multivalued: true
+        range: Country
+        inverse: organizations
     annotations:
-      plural: UpstreamDatabases
+      plural: Organizations
 
-  ConstraintCheckedType:
-    is_a: Entity
+  City: 
     mixins:
       - EntityMixin
-    attributes:
-      length_3_to_8:
-        range: string
-        annotations:
-          minimum_length: 3
-          maximum_length: 8
-      regex_format_check:
-        range: string
-        pattern: '\d{3}-\d{2}-\d{4}'
-      min_value_0:
-        range: integer
-        minimum_value: 0
-      enum_field:
-        range: NucleicAcid
-      bool_field:
-        range: boolean
-      max_value_9:
-        range: integer
-        maximum_value: 9
-      min_value_0_max_value_9:
-        range: integer
-        minimum_value: 0
-        maximum_value: 9
-      float_1dot1_to_2dot2:
-        range: float
-        minimum_value: 1.1
-        maximum_value: 2.2
-      no_string_checks:
-        range: string
-      no_int_checks:
-        range: integer
-      no_float_checks:
-        range: float
+    is_a: NamedThing
     annotations:
-      plural: ConstraintCheckedTypes
+      plural: Cities
 
-  SystemWritableOnlyType:
-    is_a: Entity
+  Country: 
     mixins:
       - EntityMixin
-    attributes:
-      name:
-        range: string
-        required: true
+    is_a: NamedThing
     annotations:
-      system_writable_only: true
-      plural: SystemWritableOnlyTypes
-
-  ImmutableType:
-    is_a: Entity
-    mixins:
-      - EntityMixin
-    attributes:
-      name:
+      plural: Countries
+    attributes:  
+      code2:
         range: string
-        required: true
-    annotations:
-      mutable: false
-      plural: ImmutableTypes
+      code3:
+        range: string
+      region:
+        range: string
+      income:
+        range: string
