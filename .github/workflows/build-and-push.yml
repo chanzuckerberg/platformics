@@ -36,7 +36,7 @@ jobs:
       uses: docker/setup-buildx-action@v2
 
     - name: Build with Poetry
-      run: make wheel
+      run: make build-wheel
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
