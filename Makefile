@@ -66,13 +66,16 @@ gha-setup: ## Set up the environment in CI
 	docker swarm init
 	touch test_app/.moto_recording
 
-.PHONY: build-base ## Build the base docker image
-build-base:
+.PHONY: prep-build ## Create python packages and export requirements.
+prep-build:
 	rm -rf dist/*.whl
 	poetry build
 	# Export poetry dependency list as a requirements.txt, which makes Docker builds
 	# faster by not having to reinstall all dependencies every time we build a new wheel.
 	poetry export --without-hashes --format=requirements.txt > requirements.txt
+
+.PHONY: build-base ## Build the base docker image
+build-base: prep-build
 	$(docker_compose) build
 	rm requirements.txt
 
