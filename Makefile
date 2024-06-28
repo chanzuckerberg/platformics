@@ -21,7 +21,7 @@ help: ## display help for this makefile
 	@echo "### SHARED FUNCTIONS END ###"
 
 .PHONY: codegen
-codegen: build-base ## Run codegen to convert the LinkML schema to a GQL API
+codegen: build-docker-base ## Run codegen to convert the LinkML schema to a GQL API
 	$(docker_compose_run) $(BUILD_CONTAINER) api generate --schemafile ./schema/schema.yaml --output-prefix .
 	$(docker_compose_run) $(CONTAINER) black .
 	#$(docker_compose_run) $(CONTAINER) ruff check --fix  .
@@ -66,21 +66,21 @@ gha-setup: ## Set up the environment in CI
 	docker swarm init
 	touch test_app/.moto_recording
 
-.PHONY: prep-build ## Create python packages and export requirements.
-prep-build:
+.PHONY: build-wheel ## Create python packages and export requirements.
+build-wheel:
 	rm -rf dist/*.whl
 	poetry build
 	# Export poetry dependency list as a requirements.txt, which makes Docker builds
 	# faster by not having to reinstall all dependencies every time we build a new wheel.
 	poetry export --without-hashes --format=requirements.txt > requirements.txt
 
-.PHONY: build-base ## Build the base docker image
-build-base: prep-build
+.PHONY: build-docker-base ## Build the base docker image
+build-docker-base: build-wheel
 	$(docker_compose) build
 	rm requirements.txt
 
 .PHONY: build ## Build the base docker image and the test app docker image
-build: build-base
+build: build-docker-base
 	$(MAKE_TEST_APP) build
 
 .PHONY: dev ## Launch a container suitable for developing the platformics library
