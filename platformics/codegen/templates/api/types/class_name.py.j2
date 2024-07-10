@@ -62,7 +62,7 @@ from support.enums import
 {%- endfor %}
 
 
-E = typing.TypeVar("E", base_db.File, base_db.Entity)
+E = typing.TypeVar("E", base_db.File, db.{{ cls.name }})
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
@@ -507,7 +507,7 @@ async def create_{{ cls.snake_name }}(
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
     is_system_user: bool = Depends(is_system_user),
-) -> db.Entity:
+) -> db.{{ cls.name }}:
     """
     Create a new {{ cls.name }} object. Used for mutations (see api/mutations.py).
     """
@@ -567,7 +567,7 @@ async def update_{{ cls.snake_name }}(
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
     is_system_user: bool = Depends(is_system_user),
-) -> Sequence[db.Entity]:
+) -> Sequence[db.{{ cls.name }}]:
     """
     Update {{ cls.name }} objects. Used for mutations (see api/mutations.py).
     """
@@ -640,7 +640,7 @@ async def delete_{{ cls.snake_name }}(
     session: AsyncSession = Depends(get_db_session, use_cache=False),
     cerbos_client: CerbosClient = Depends(get_cerbos_client),
     principal: Principal = Depends(require_auth_principal),
-) -> Sequence[db.Entity]:
+) -> Sequence[db.{{ cls.name }}]:
     """
     Delete {{ cls.name }} objects. Used for mutations (see api/mutations.py).
     """

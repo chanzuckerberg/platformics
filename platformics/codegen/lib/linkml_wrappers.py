@@ -25,7 +25,7 @@ class FieldWrapper:
         """
         Error if a property doesn't exist
         """
-        raise NotImplementedError(f"please define field property {attr}")
+        raise NotImplementedError(f"please define field property {self.wrapped_field.name}.{attr}")
 
     @cached_property
     def identifier(self) -> str:
@@ -33,11 +33,11 @@ class FieldWrapper:
 
     @cached_property
     def name(self) -> str:
-        return self.wrapped_field.name
+        return self.wrapped_field.name.replace(" ", "_")
 
     @cached_property
     def camel_name(self) -> str:
-        return strcase.to_lower_camel(self.wrapped_field.name)
+        return strcase.to_lower_camel(self.name)
 
     @cached_property
     def multivalued(self) -> str:
@@ -207,7 +207,7 @@ class EntityWrapper:
 
     # Blow up if a property doesn't exist
     def __getattr__(self, attr: str) -> str:
-        raise NotImplementedError(f"please define entity property {attr}")
+        raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
 
     @cached_property
     def name(self) -> str:

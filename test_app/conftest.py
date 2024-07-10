@@ -231,6 +231,7 @@ def overwrite_api(api: FastAPI, async_db: AsyncDB) -> None:
 def raise_exception() -> str:
     raise Exception("Unexpected error")
 
+
 # Subclass Query with an additional field to test Exception handling.
 @strawberry.type
 class MyQuery(Query):
@@ -238,6 +239,7 @@ class MyQuery(Query):
     def uncaught_exception(self) -> str:
         # Trigger an AttributeException
         return self.kaboom  # type: ignore
+
 
 @pytest_asyncio.fixture()
 async def api_test_schema(async_db: AsyncDB) -> FastAPI:
