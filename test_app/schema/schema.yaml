@@ -293,6 +293,8 @@ classes:
         annotations:
           minimum_length: 3
           maximum_length: 8
+      field with spaces:
+        range: string
       regex_format_check:
         range: string
         pattern: '\d{3}-\d{2}-\d{4}'
