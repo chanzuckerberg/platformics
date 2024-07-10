@@ -35,8 +35,9 @@ def override_auth_principal(principal: Principal = Depends(get_auth_principal)):
             "user_id": 0,
             "owner_projects": [],
             "member_projects": [],
-            "viewer_projects": [444],
             "service_identity": [],
+            # This value can be read from a secret or env var or whatever. Just hardcoded here for brevity.
+            "viewer_projects": [444],
         },
     )
 
