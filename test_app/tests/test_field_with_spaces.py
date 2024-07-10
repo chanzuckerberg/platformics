@@ -41,3 +41,4 @@ async def test_field_with_spaces(
     """
     output = await gql_client.query(query, user_id=user_id, member_projects=[project_id])
     assert cct.field_with_spaces == output["data"]["constraintCheckedTypes"][0]["fieldWithSpaces"]
+    assert output["data"]["constraintCheckedTypes"][0]["fieldWithSpaces"]
