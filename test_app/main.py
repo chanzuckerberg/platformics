@@ -9,9 +9,8 @@ from platformics.api.core.error_handler import HandleErrors
 from platformics.settings import APISettings
 from database import models
 
-from customMutations import Mutation
-
-from customQueries import Query
+from custom_mutations import Mutation
+from custom_queries import Query
 
 
 settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753

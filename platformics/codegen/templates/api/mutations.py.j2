@@ -16,7 +16,7 @@ from api.types.{{ class.snake_name }} import {{ class.name }}, {%- if class.crea
 {%- endfor %}
 
 @strawberry.type
-class BaseMutation:
+class Mutation:
     {%- if render_files %}
     # File mutations
     create_file: File = create_file
