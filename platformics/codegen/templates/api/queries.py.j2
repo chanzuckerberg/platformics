@@ -17,7 +17,7 @@ from api.types.{{ class.snake_name }} import {{ class.name }}, resolve_{{ class.
 
 
 @strawberry.type
-class Query:
+class BaseQuery:
     # Allow relay-style queries by node ID
     node: relay.Node = relay.node()
     nodes: List[relay.Node] = relay.node()
