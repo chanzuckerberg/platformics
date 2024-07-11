@@ -47,6 +47,10 @@ class FieldWrapper:
     def required(self) -> bool:
         return self.wrapped_field.required or False
 
+    @cached_property
+    def designates_type(self) -> bool:
+        return self.wrapped_field.designates_type
+
     # Validation attributes
     @cached_property
     def minimum_value(self) -> float | int | None:
@@ -210,6 +214,20 @@ class EntityWrapper:
         raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
 
     @cached_property
+    def is_a(self) -> str:
+        return self.wrapped_class.is_a
+
+    @cached_property
+    def is_a_snake(self) -> str:
+        return strcase.to_snake(self.is_a)
+
+    @cached_property
+    def type_designator(self) -> FieldWrapper:
+        for field in self.all_fields:
+            if field.designates_type:
+                return field
+
+    @cached_property
     def name(self) -> str:
         return self.wrapped_class.name
 
@@ -235,14 +253,14 @@ class EntityWrapper:
 
     @cached_property
     def identifier(self) -> str:
-        # Prioritize sending back identifiers from the entity mixin instead of inherited fields.
+        # Prioritize sending back identifiers from the current class and mixins instead of inherited fields.
+        domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         for field in self.all_fields:
-            # FIXME, the entity.id / entity_id relationship is a little brittle right now :(
-            if field.identifier and "EntityMixin" in field.wrapped_field.domain_of:
-                return field.name
+            if field.identifier and domains_owned_by_this_class.intersection(set(field.wrapped_field.domain_of)):
+                return f"{field.name}"
         for field in self.all_fields:
-            if field.identifier:
-                return field.name
+            if field.identifier and self.name in field.wrapped_field.domain_of:
+                return f"{field.name}"
         raise Exception("No identifier found")
 
     @cached_property
@@ -312,7 +330,7 @@ class EntityWrapper:
         return [
             FieldWrapper(self.view, item)
             for item in self.view.class_induced_slots(self.name)
-            if "Entity" not in item.domain_of
+            if self.name in item.domain_of
         ]
 
     @cached_property
@@ -351,10 +369,9 @@ class ViewWrapper:
         classes = []
         for class_name in self.view.all_classes():
             cls = self.view.get_element(class_name)
+            # Mixins don't get represented in the outputted schemas
             if cls.mixin:
                 continue
-            # If this class doesn't descend from Entity, skip it.
-            if cls.is_a != "Entity":
-                continue
+            print("Adding class: ", cls.name)
             classes.append(EntityWrapper(self.view, cls))
         return classes

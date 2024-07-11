@@ -48,6 +48,7 @@ enums:
 
 classes:
   Entity:
+    abstract: True
     attributes:
       id:
         identifier: true
@@ -57,8 +58,10 @@ classes:
       type:
         range: string
         designates_type: true
+        required: true
         annotations:
           hidden: true
+          indexed: true
       producing_run_id:
         range: uuid
         annotations:
@@ -69,10 +72,14 @@ classes:
         minimum_value: 0
         required: true
         readonly: true
+        annotations:
+          indexed: true
       collection_id:
         range: integer
         minimum_value: 0
         required: True
+        annotations:
+          indexed: true
       created_at:
         range: date
         required: true
@@ -136,6 +143,8 @@ classes:
       updated_at:
         range: date
         readonly: true
+    annotations:
+      plural: Files
 
   Sample:
     is_a: Entity
