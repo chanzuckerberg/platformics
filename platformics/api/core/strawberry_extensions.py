@@ -10,6 +10,7 @@ from fastapi.params import Depends as DependsClass
 from strawberry.extensions import FieldExtension
 from strawberry.field import StrawberryField
 from strawberry.types import Info
+from typing import Any, Awaitable, Callable
 
 
 def get_func_with_only_deps(func: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
@@ -33,6 +34,44 @@ def get_func_with_only_deps(func: typing.Callable[..., typing.Any]) -> typing.Ca
         newfunc.__annotations__[param.name] = str
 
     return newfunc
+
+
+class RegisteredPlatformicsPlugins:
+    plugins: dict[str, typing.Callable[..., typing.Any]] = {}
+
+    @classmethod
+    def register(cls, callback_order: str, type: str, action: str, callback: typing.Callable[..., typing.Any]) -> None:
+        cls.plugins[f"{callback_order}:{type}:{action}"] = callback
+
+    @classmethod
+    def getCallback(cls, callback_order: str, type: str, action: str) -> typing.Callable[..., typing.Any] | None:
+        return cls.plugins.get(f"{callback_order}:{type}:{action}")
+
+
+class PlatformicsPluginExtension(FieldExtension):
+    def __init__(self, type: str, action: str) -> None:
+        self.type = type
+        self.action = action
+        self.strawberry_field_names = ["self"]
+
+    async def resolve_async(
+        self,
+        next_: typing.Callable[..., typing.Any],
+        source: typing.Any,
+        info: Info,
+        **kwargs: dict[str, typing.Any],
+    ) -> typing.Any:
+        before_callback = RegisteredPlatformicsPlugins.getCallback("before", self.type, self.action)
+        if before_callback:
+            before_callback(source, info, **kwargs)
+
+        result = await next_(source, info, **kwargs)
+
+        after_callback = RegisteredPlatformicsPlugins.getCallback("after", self.type, self.action)
+        if after_callback:
+            result = after_callback(result, source, info, **kwargs)
+
+        return result
 
 
 class DependencyExtension(FieldExtension):
