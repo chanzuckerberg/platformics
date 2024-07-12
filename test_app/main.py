@@ -9,9 +9,6 @@ from platformics.api.core.error_handler import HandleErrors
 from platformics.settings import APISettings
 from database import models
 
-from custom_mutations import Mutation
-from custom_queries import Query
-
 
 settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
 schema = strawberry.Schema(query=Query, mutation=Mutation, config=get_strawberry_config(), extensions=[HandleErrors()])
