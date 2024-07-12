@@ -22,7 +22,7 @@ from platformics.api.core.query_input_types import aggregator_map, operator_map,
 from platformics.database.models.base import Base
 from platformics.security.authorization import CerbosAction, get_resource_query
 
-E = typing.TypeVar("E", db.File, db.Entity)
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 

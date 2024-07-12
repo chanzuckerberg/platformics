@@ -6,15 +6,6 @@ from strawberry.types import Info
 from platformics.api import relay
 
 
-@strawberry.type
-class Entity:
-    id: strawberry.ID
-    type: str
-    producing_run_id: strawberry.ID
-    owner_user_id: int
-    collection_id: int
-
-
 @strawberry.interface
 class EntityInterface(relay.Node):
     # In the Strawberry docs, this field is called `code`, but we're using `id` instead.

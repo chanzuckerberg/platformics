@@ -26,6 +26,16 @@ enums:
       SUCCESS:
       FAILED:
       PENDING:
+  FileUploadClient:
+    permissible_values:
+      browser:
+        description: File uploaded from the user's browser
+      cli:
+        description: File uploaded from the CLI
+      s3:
+        description: File uploaded from S3
+      basespace:
+        description: File uploaded from Illumina Basespace Cloud
   FileAccessProtocol:
     permissible_values:
       s3:
@@ -94,6 +104,7 @@ classes:
           system_writable_only: True
     annotations:
       plural: Entities
+
 
   File:
     attributes:

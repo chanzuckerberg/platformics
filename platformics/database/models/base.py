@@ -1,17 +1,5 @@
-import datetime
-import uuid
-from typing import TYPE_CHECKING
-
-import uuid6
-from sqlalchemy import Column, DateTime, Index, Integer, MetaData, String
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.sql import func
-
-if TYPE_CHECKING:
-    from platformics.database.models.file import File
-else:
-    File = "File"
+from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 meta = MetaData(
     naming_convention={

@@ -8,7 +8,7 @@ Make changes to the template codegen/templates/api/types/class_name.py.j2 instea
 # ruff: noqa: E501 Line too long
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 import typing
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
@@ -23,9 +23,6 @@ from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 {%- endif %}
 {%- if cls.mutable_fields %}
 from api.validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
-{%- endif %}
-{%- if render_files %}
-from platformics.api.files import File, FileWhereClause
 {%- endif %}
 from api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
 from platformics.api.types.entities import EntityInterface
@@ -62,7 +59,7 @@ from support.enums import
 {%- endfor %}
 
 
-E = typing.TypeVar("E", base_db.File, db.{{ cls.name }})
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
@@ -159,8 +156,8 @@ def load_files_from(attr_name: str) -> Callable:
     async def load_files(
         root: "{{ cls.name }}",
         info: Info,
-        where: Annotated["FileWhereClause", strawberry.lazy("platformics.api.files")] | None = None,
-    ) -> Optional[Annotated["File", strawberry.lazy("platformics.api.files")]]:
+        where: Annotated["FileWhereClause", strawberry.lazy("api.types.file")] | None = None,
+    ) -> Optional[Annotated["File", strawberry.lazy("api.types.file")]]:
         """
         Given a list of {{ cls.name }} IDs for a certain file type, return related Files
         """
@@ -260,7 +257,7 @@ class {{ cls.name }}(EntityInterface):
     {{ attr.name }}: {{ getType("datetime.datetime", attr.required) }}
         {%- elif attr.type == "File" %}
     {{ attr.name }}_id: Optional[strawberry.ID]
-    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("platformics.api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
+    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("api.types.file")]] = load_files_from("{{ attr.name }}")  # type: ignore
         {%- elif attr.type == cls.name %}
     {{ attr.name }}_id: Optional[strawberry.ID]
         {%- elif attr.inverse %}

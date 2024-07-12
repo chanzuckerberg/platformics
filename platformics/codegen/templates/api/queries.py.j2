@@ -9,7 +9,7 @@ import strawberry
 from platformics.api import relay
 from typing import Sequence, List
 {%- if render_files %}
-from platformics.api.files import File, resolve_files
+#from platformics.api.files import File, resolve_files
 {%- endif %}
 {%- for class in classes %}
 from api.types.{{ class.snake_name }} import {{ class.name }}, resolve_{{ class.plural_snake_name }}, {{ class.name }}Aggregate, resolve_{{ class.plural_snake_name }}_aggregate
@@ -24,7 +24,7 @@ class Query:
 
     {%- if render_files %}
     # Query files
-    files: Sequence[File] = resolve_files
+    # files: Sequence[File] = resolve_files
     {%- endif %}
 
     # Query entities
