@@ -48,6 +48,14 @@ class RegisteredPlatformicsPlugins:
         return cls.plugins.get(f"{callback_order}:{type}:{action}")
 
 
+def register_plugin(callback_order: str, type: str, action: str) -> Callable[..., Callable[..., Any]]:
+    def decorator_register(func: Callable[..., Any]) -> Callable[..., Any]:
+        RegisteredPlatformicsPlugins.register(callback_order, type, action, func)
+        return func
+
+    return decorator_register
+
+
 class PlatformicsPluginExtension(FieldExtension):
     def __init__(self, type: str, action: str) -> None:
         self.type = type
