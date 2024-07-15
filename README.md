@@ -40,7 +40,7 @@ The libraries and tools that make Platformics work:
 1. Copy the test_app boilerplate code to your own repository.
 2. Edit `schema/schema.yml` to reflect your application's data model.
 3. Run `make build` and then `make init` to build and run your own GraphQL API service.
-4. Browse to http://localhost:9009 to interact with your api!
+4. Browse to http://localhost:9009/graphql to interact with your api!
 5. Run `make token` to generate an authorization token that you can use to interact with the API. The `make` target copies the necessary headers to the system clipboard. Paste the token into the `headers` section at the bottom of the GraphQL explorer API
 
 ## Iterating on your schema
