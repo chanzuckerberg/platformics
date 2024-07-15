@@ -33,8 +33,8 @@ The libraries and tools that make Platformics work:
 - [x] Add custom GQL queries/mutations to generated API
 
 ## Roadmap
-- [] Plugin hooks to add business logic to generated GQL resolvers
-- [] Support arbitrary class inheritance hierarchies
+- [ ] Plugin hooks to add business logic to generated GQL resolvers
+- [ ] Support arbitrary class inheritance hierarchies
 
 ## How to set up your own platformics API
 1. Copy the test_app boilerplate code to your own repository.
