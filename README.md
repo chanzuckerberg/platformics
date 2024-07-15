@@ -62,6 +62,7 @@ The libraries and tools that make Platformics work:
 
 ## HOWTO
 - [Extend the generated API](docs/HOWTO-extend-generated-api.md)
+- [Customize Codegen templates](docs/HOWTO-customize-templates.md)
 
 ## Contributing
 This project adheres to the Contributor Covenant code of conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
