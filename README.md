@@ -1,5 +1,5 @@
 # Platformics
----
+
 Platformics is a GraphQL API framework that relies on code generation to implement a full featured GraphQL API on top of a PostgreSQL database, with support for authorization policy enforcement and file persistence via S3. It's built on top of the best available Python tools and frameworks!
 
 The libraries and tools that make Platformics work:
