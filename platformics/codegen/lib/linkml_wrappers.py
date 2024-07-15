@@ -214,6 +214,10 @@ class EntityWrapper:
         raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
 
     @cached_property
+    def is_abstract(self) -> str:
+        return self.wrapped_class.abstract
+
+    @cached_property
     def is_a(self) -> str:
         return self.wrapped_class.is_a
 

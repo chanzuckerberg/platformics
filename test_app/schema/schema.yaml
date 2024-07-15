@@ -57,7 +57,7 @@ enums:
       Nanopore:
 
 classes:
-  Entity:
+  Kapow:
     abstract: True
     attributes:
       id:
@@ -106,61 +106,61 @@ classes:
       plural: Entities
 
 
-  File:
-    attributes:
-      id:
-        identifier: true
-        range: uuid
-        required: true
-      # This file's ID is stored in the entity column <entity_field_name>_id
-      entity_field_name:
-        range: string
-        required: true
-      # Which entity this file is connected to
-      entity:
-        range: Entity
-        required: true
-      status:
-        range: FileStatus
-        required: true
-      protocol:
-        range: FileAccessProtocol
-        required: true
-      # Bucket name
-      namespace:
-        range: string
-        required: true
-      # Prefix (does not start with /)
-      path:
-        range: string
-        required: true
-      file_format:
-        range: string
-        required: true
-      compression_type:
-        range: string
-      size:
-        range: integer
-        minimum_value: 0
-      # Information about file upload (optional)
-      upload_client:
-        range: FileUploadClient
-      upload_error:
-        range: string
-      created_at:
-        range: date
-        required: true
-        readonly: true
-      updated_at:
-        range: date
-        readonly: true
-    annotations:
-      plural: Files
+#  File:
+#    attributes:
+#      id:
+#        identifier: true
+#        range: uuid
+#        required: true
+#      # This file's ID is stored in the entity column <entity_field_name>_id
+#      entity_field_name:
+#        range: string
+#        required: true
+#      # Which entity this file is connected to
+#      entity:
+#        range: Kapow
+#        required: true
+#      status:
+#        range: FileStatus
+#        required: true
+#      protocol:
+#        range: FileAccessProtocol
+#        required: true
+#      # Bucket name
+#      namespace:
+#        range: string
+#        required: true
+#      # Prefix (does not start with /)
+#      path:
+#        range: string
+#        required: true
+#      file_format:
+#        range: string
+#        required: true
+#      compression_type:
+#        range: string
+#      size:
+#        range: integer
+#        minimum_value: 0
+#      # Information about file upload (optional)
+#      upload_client:
+#        range: FileUploadClient
+#      upload_error:
+#        range: string
+#      created_at:
+#        range: date
+#        required: true
+#        readonly: true
+#      updated_at:
+#        range: date
+#        readonly: true
+#    annotations:
+#      plural: Files
 
   Sample:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       name:
         range: string
@@ -195,9 +195,9 @@ classes:
       plural: Samples
 
   SequencingRead:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       sample:
         range: Sample
@@ -205,16 +205,16 @@ classes:
       protocol:
         range: SequencingProtocol
         required: true
-      r1_file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
-      r2_file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
+#      r1_file:
+#        range: File
+#        readonly: true
+#        annotations:
+#          cascade_delete: true
+#      r2_file:
+#        range: File
+#        readonly: true
+#        annotations:
+#          cascade_delete: true
       technology:
         range: SequencingTechnology
         required: true
@@ -237,15 +237,15 @@ classes:
       plural: SequencingReads
 
   GenomicRange:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
-      file:
-        range: File
-        readonly: true
-        annotations:
-          cascade_delete: true
+#      file:
+#        range: File
+#        readonly: true
+#        annotations:
+#          cascade_delete: true
       sequencing_reads:
         range: SequencingRead
         inverse: SequencingRead.primer_file
@@ -254,9 +254,9 @@ classes:
       plural: GenomicRanges
 
   Contig:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       sequencing_reads:
         range: SequencingRead
@@ -273,22 +273,22 @@ classes:
     annotations:
       plural: Contigs
 
-  EntityMixin:
+  KapowMixin:
     mixin: true
     attributes:
-      entity_id:
+      kapow_id:
         required: true
         readonly: true
         range: uuid
         identifier: true
-        inverse: entity.id
+        inverse: kapow.id
         annotations:
           hidden: true
 
   UpstreamDatabase:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       name:
         range: string
@@ -304,9 +304,9 @@ classes:
       plural: UpstreamDatabases
 
   ConstraintCheckedType:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       length_3_to_8:
         range: string
@@ -346,9 +346,9 @@ classes:
       plural: ConstraintCheckedTypes
 
   SystemWritableOnlyType:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       name:
         range: string
@@ -358,9 +358,9 @@ classes:
       plural: SystemWritableOnlyTypes
 
   ImmutableType:
-    is_a: Entity
+    is_a: Kapow
     mixins:
-      - EntityMixin
+      - KapowMixin
     attributes:
       name:
         range: string

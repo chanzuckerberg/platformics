@@ -85,8 +85,11 @@ build: build-docker-base
 
 .PHONY: dev ## Launch a container suitable for developing the platformics library
 dev:
-	$(MAKE_TEST_APP) init
+	cd test_app; docker compose up -d motoserver platformics-db cerbos
 	cd test_app; docker compose stop graphql-api
+	$(MAKE) codegen
+	$(MAKE_TEST_APP) alembic-autogenerate
+	$(MAKE_TEST_APP) alembic-upgrade-head
 	docker compose up -d
 
 .PHONY: clean

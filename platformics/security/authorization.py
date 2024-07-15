@@ -24,13 +24,14 @@ def get_resource_query(
 ) -> Select:
     rd = ResourceDesc(model_cls.__tablename__)
     plan = cerbos_client.plan_resources(action, principal, rd)
-    if model_cls == db.File:  # type: ignore
+    # if model_cls == db.File:  # type: ignore
+    if model_cls == CerbosClient:  # type: ignore
         raise NotImplementedError("You need to fix the files thing!!")
-        #attr_map = {
-            #"request.resource.attr.owner_user_id": db.Entity.owner_user_id,  # type: ignore
-            #"request.resource.attr.collection_id": db.Entity.collection_id,  # type: ignore
-        #}
-        #joins = [(db.Entity, db.File.entity_id == db.Entity.id)]  # type: ignore
+        # attr_map = {
+        # "request.resource.attr.owner_user_id": db.Entity.owner_user_id,  # type: ignore
+        # "request.resource.attr.collection_id": db.Entity.collection_id,  # type: ignore
+        # }
+        # joins = [(db.Entity, db.File.entity_id == db.Entity.id)]  # type: ignore
     else:
         attr_map = {
             "request.resource.attr.owner_user_id": model_cls.owner_user_id,  # type: ignore
