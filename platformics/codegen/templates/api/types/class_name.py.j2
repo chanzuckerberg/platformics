@@ -40,7 +40,7 @@ from fastapi import Depends
 from platformics.api.core.errors import PlatformicsError
 from platformics.api.core.deps import get_cerbos_client, get_db_session, require_auth_principal, is_system_user
 from platformics.api.core.query_input_types import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
-from platformics.api.core.strawberry_extensions import DependencyExtension
+from platformics.api.core.strawberry_extensions import DependencyExtension, PlatformicsPluginExtension
 from platformics.security.authorization import CerbosAction, get_resource_query
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import RowMapping
@@ -500,7 +500,7 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
     return aggregate_output
 
 {%- if cls.create_fields %}
-@strawberry.mutation(extensions=[DependencyExtension()])
+@strawberry.mutation(extensions=[DependencyExtension(), PlatformicsPluginExtension("{{ cls.snake_name }}", "create")])
 async def create_{{ cls.snake_name }}(
     input: {{ cls.name }}CreateInput,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
@@ -559,7 +559,7 @@ async def create_{{ cls.snake_name }}(
 
 
 {%- if cls.mutable_fields %}
-@strawberry.mutation(extensions=[DependencyExtension()])
+@strawberry.mutation(extensions=[DependencyExtension(), PlatformicsPluginExtension("{{ cls.snake_name }}", "update")])
 async def update_{{ cls.snake_name }}(
     input: {{ cls.name }}UpdateInput,
     where: {{ cls.name }}WhereClauseMutations,
@@ -634,7 +634,7 @@ async def update_{{ cls.snake_name }}(
 {%- endif %}
 
 
-@strawberry.mutation(extensions=[DependencyExtension()])
+@strawberry.mutation(extensions=[DependencyExtension(), PlatformicsPluginExtension("{{ cls.snake_name }}", "delete")])
 async def delete_{{ cls.snake_name }}(
     where: {{ cls.name }}WhereClauseMutations,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
