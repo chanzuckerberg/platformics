@@ -48,19 +48,8 @@ The libraries and tools that make Platformics work:
 2. Run `make codegen` to re-run code gen and restart the API service
 3. If your changes require DB schema changes, run `make alembic-autogenerate` and `make alembic-upgrade-head` to generate DB migrations and run them.
 
-## Debugging
-1. Install the `Dev Containers` extension for vscode
-2. Open a new VSCode window in your api directory. It will read the `.devcontainer/devcontainer.json` configuration and prompt you to reopen the directory in a container (lower right side of the screen). Click "Reopen in container"
-3. Click the "Run and Debug" icon in the icon bar on the right side of the VSCode window (or ctrl+shift+d). Then click the "start debugging" icon at the top of the run and debug panel (or press F5). This will launch a secondary instance of the API service that listens on port 9008.
-4. Set all the breakpoints you want. Browse to the api at http://localhost:9008/graphql to trigger them. Remember that the application restarts when files change, so you'll have to start and stop the debugger to pick up any changes you make!
-
-## Debugging and developing platformics itself
-1. Run `make dev` in the root of this directory. This launches a compose service called `dev-app` that has the `platformics` directory in this repo mounted inside the `test_app` application as a sub-module, so it can be edited directly and be debugged via the VSCode debugger.
-2. Open a new VSCode window in the root of this reopo. It will read the `.devcontainer/devcontainer.json` configuration and prompt you to reopen the directory in a container (lower right side of the screen). Click "Reopen in container"
-3. Click the "Run and Debug" icon in the icon bar on the right side of the VSCode window (or ctrl+shift+d). Then click the "start debugging" icon at the top of the run and debug panel (or press F5). This will launch a secondary instance of the API service that listens on port 9008.
-4. Set all the breakpoints you want. Browse to the api at http://localhost:9008/graphql to trigger them. Remember that the application restarts when files change, so you'll have to start and stop the debugger to pick up any changes you make!
-
 ## HOWTO
+- [Work with platformics](docs/HOWTO-working-with-platformics.md)
 - [Extend the generated API](docs/HOWTO-extend-generated-api.md)
 - [Customize Codegen templates](docs/HOWTO-customize-templates.md)
 
