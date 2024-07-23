@@ -24,9 +24,7 @@ Notable files and subdirectories:
   * `connect.py` - functions for connecting to database
 * `support/` - miscellaneous support enums, functions for files
 * `test_infra/` - contains base entity and file factories
-* `settings.py` - config variables
-
-
+* `settings.py` - config variables using [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 
 
 ### Test app
@@ -79,4 +77,4 @@ For either of these two flows, the main app will be listening on port 9009 and d
 
 
 ### Queries
-To view SQL logs for queries, set `DB_ECHO=true` in `docker-compose.yml`
+To view SQL logs for queries, set `DB_ECHO=true` in `docker-compose.yml`. Run `make start` or `docker compose up -d` to apply the change.
