@@ -30,7 +30,7 @@ async def get_engine(
     settings: APISettings = Depends(get_settings),
 ) -> typing.AsyncGenerator[AsyncDB, None]:
     """Wrap resolvers in a DB engine"""
-    engine = init_async_db(settings.DB_URI)
+    engine = init_async_db(settings.DB_URI, echo=settings.DB_ECHO)
     try:
         yield engine
     finally:
