@@ -14,7 +14,6 @@ from platformics.codegen.lib.linkml_wrappers import ViewWrapper
 DIR_CODEGEN = [
     "support",
     "api/types",
-    "api/validators",
     "api/helpers",
     "database/models",
     "database/migrations",
@@ -22,6 +21,7 @@ DIR_CODEGEN = [
     "cerbos/policies",
     "cerbos/policies/_schemas",
     "test_infra/factories",
+    "validators",
 ]
 
 
@@ -163,7 +163,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     )
     generate_entity_subclass_files(
         output_prefix,
-        "api/validators/class_name.py",
+        "validators/class_name.py",
         environment,
         wrapped_view,
         render_files=render_files,

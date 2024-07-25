@@ -32,11 +32,11 @@ Notable files and subdirectories:
 * `api/` - entrypoint for GQL API service
   * `helpers/` - generated GQL types and helper functions for GROUPBY queries
   * `types/` - generated GQL types 
-  * `validators/` - generated Pydantic validators for create and update inputs
   * `mutations.py` - generated mutations (create, update, delete) for each entity type
   * `queries.py` - generated queries (list and aggregate) for each entity type
   * `schema.graphql` - GQL format schema
   * `schema.json` - JSON format schema
+* `validators/` - generated Pydantic validators for create and update inputs
 * `cerbos/` - generated access policies for user actions for each entity type
 * `database/` - code related to establishing DB connections / sessions
   * `migrations/` - alembic migrations

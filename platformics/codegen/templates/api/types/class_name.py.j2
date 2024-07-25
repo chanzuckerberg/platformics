@@ -19,10 +19,10 @@ import strawberry
 import datetime
 from platformics.api.core.query_builder import get_db_rows, get_aggregate_db_rows
 {%- if cls.create_fields %}
-from api.validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
+from validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 {%- endif %}
 {%- if cls.mutable_fields %}
-from api.validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
+from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
 {%- endif %}
 {%- if render_files %}
 from platformics.api.files import File, FileWhereClause

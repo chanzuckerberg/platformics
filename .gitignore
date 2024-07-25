@@ -255,6 +255,7 @@ test_app/cerbos/*
 test_app/support/*
 test_app/test_infra/*
 test_app/.moto_recording
+test_app/validators/*
 
 # temp files
 /tmp/*
