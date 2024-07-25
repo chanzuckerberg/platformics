@@ -38,7 +38,7 @@ from strawberry.utils.inspect import in_async_context
 from strawberry.utils.typing import eval_type, is_classvar
 from typing_extensions import Annotated, Literal, Self, TypeAlias, get_args, get_origin
 
-from platformics.api.relay.exceptions import NodeIDAnnotationError
+from platformics.graphql_api.relay.exceptions import NodeIDAnnotationError
 
 if TYPE_CHECKING:
     from strawberry.utils.await_maybe import AwaitableOrValue

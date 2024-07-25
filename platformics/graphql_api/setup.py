@@ -12,8 +12,8 @@ from strawberry.fastapi import GraphQLRouter
 from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
 
-from platformics.api.core.deps import get_auth_principal, get_cerbos_client, get_db_module, get_engine, get_s3_client
-from platformics.api.core.gql_loaders import EntityLoader
+from platformics.graphql_api.core.deps import get_auth_principal, get_cerbos_client, get_db_module, get_engine, get_s3_client
+from platformics.graphql_api.core.gql_loaders import EntityLoader
 from platformics.database.connect import AsyncDB
 from platformics.database.models.file import File
 from platformics.settings import APISettings

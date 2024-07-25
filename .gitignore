@@ -249,7 +249,7 @@ pyrightconfig.json
 .env.localdev
 
 # Codegen on test app
-test_app/api/*
+test_app/graphql_api/*
 test_app/database/*
 test_app/cerbos/*
 test_app/support/*

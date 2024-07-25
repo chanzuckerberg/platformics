@@ -39,7 +39,7 @@ from strawberry.utils.aio import asyncgen_to_list
 from strawberry.utils.typing import eval_type
 from typing_extensions import Annotated, get_origin
 
-from platformics.api.relay.exceptions import (
+from platformics.graphql_api.relay.exceptions import (
     RelayWrongAnnotationError,
     RelayWrongResolverAnnotationError,
 )

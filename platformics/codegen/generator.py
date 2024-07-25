@@ -13,8 +13,8 @@ from platformics.codegen.lib.linkml_wrappers import ViewWrapper
 
 DIR_CODEGEN = [
     "support",
-    "api/types",
-    "api/helpers",
+    "graphql_api/types",
+    "graphql_api/helpers",
     "database/models",
     "database/migrations",
     "database/migrations/versions",
@@ -106,8 +106,8 @@ def generate_entity_import_files(
         "database/models/__init__.py",
         "database/migrations/env.py",
         "database/migrations/script.py.mako",
-        "api/queries.py",
-        "api/mutations.py",
+        "graphql_api/queries.py",
+        "graphql_api/mutations.py",
     ]
     classes = view.entities
     for filename in import_templates:
@@ -156,7 +156,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     )
     generate_entity_subclass_files(
         output_prefix,
-        "api/types/class_name.py",
+        "graphql_api/types/class_name.py",
         environment,
         wrapped_view,
         render_files=render_files,
@@ -184,7 +184,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     )
     generate_entity_subclass_files(
         output_prefix,
-        "api/helpers/class_name.py",
+        "graphql_api/helpers/class_name.py",
         environment,
         wrapped_view,
         render_files=render_files,

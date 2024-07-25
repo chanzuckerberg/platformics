@@ -63,7 +63,7 @@ warn_unreachable = true
 explicit_package_bases = true
 ignore_missing_imports = true
 exclude = [
-  "platformics/api/relay",
+  "platformics/graphql_api/relay",
   "platformics/thirdparty"
 ]
 # We'd like to turn this on soon but we're not there yet.
@@ -71,7 +71,7 @@ exclude = [
 
 # do not look at shopify and turn anything originating from it into Any
 [[tool.mypy.overrides]]
-module = ["platformics.api.relay.*"]
+module = ["platformics.graphql_api.relay.*"]
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]

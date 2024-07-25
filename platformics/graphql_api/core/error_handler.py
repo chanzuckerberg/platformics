@@ -5,7 +5,7 @@ from graphql.error import GraphQLError
 from pydantic import ValidationError
 from strawberry.extensions.base_extension import SchemaExtension
 
-from platformics.api.core.errors import PlatformicsError
+from platformics.graphql_api.core.errors import PlatformicsError
 
 
 class ExceptionHandler(ABC):
