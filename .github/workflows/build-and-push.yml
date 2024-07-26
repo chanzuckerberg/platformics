@@ -51,9 +51,9 @@ jobs:
       id: docker_tag
       run: |
         if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          echo "::set-output name=tag::${{ steps.release.outputs.version }}"
+          echo "tag=${{ steps.release.outputs.version }}" >> $GITHUB_ENV
         else
-          echo "::set-output name=tag::latest"
+          echo "tag=latest" >> $GITHUB_ENV
         fi
 
     - name: Build and push Docker image
@@ -62,4 +62,4 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}-test:${{ steps.docker_tag.outputs.version }}
+          ghcr.io/${{ github.repository }}-test:${{ env.tag }}
