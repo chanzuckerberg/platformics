@@ -24,7 +24,7 @@ from strawberry.scalars import JSON
 from strawberry.types import Info
 from typing_extensions import TypedDict
 
-from platformics.api.core.deps import (
+from platformics.graphql_api.core.deps import (
     get_cerbos_client,
     get_db_session,
     get_s3_client,
@@ -33,10 +33,10 @@ from platformics.api.core.deps import (
     require_auth_principal,
     require_system_user,
 )
-from platformics.api.core.query_builder import get_db_rows
-from platformics.api.core.query_input_types import EnumComparators, IntComparators, StrComparators, UUIDComparators
-from platformics.api.core.strawberry_extensions import DependencyExtension
-from platformics.api.types.entities import Entity
+from platformics.graphql_api.core.query_builder import get_db_rows
+from platformics.graphql_api.core.query_input_types import EnumComparators, IntComparators, StrComparators, UUIDComparators
+from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
+from platformics.graphql_api.types.entities import Entity
 from platformics.security.authorization import CerbosAction, get_resource_query
 from platformics.settings import APISettings
 from platformics.support.file_enums import FileAccessProtocol, FileStatus
@@ -134,7 +134,7 @@ async def load_entities(
     root: "File",
     info: Info,
     where: EntityWhereClause | None = None,
-) -> typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]]:
+) -> typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.graphql_api.types.entities")]]:
     """
     Dataloader to fetch related entities, given file IDs.
     """
@@ -158,7 +158,7 @@ class File:
     id: strawberry.ID
     entity_id: strawberry.ID
     entity_field_name: str
-    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.api.types.entities")]] = (
+    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.graphql_api.types.entities")]] = (
         load_entities
     )
     status: FileStatus

@@ -43,11 +43,11 @@ init:
 	$(MAKE) alembic-upgrade-head
 	$(docker_compose_run) $(APP_CONTAINER) black .
 	# $(docker_compose_run) $(CONTAINER) ruff check --fix .
-	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/api/schema.graphql'
+	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/graphql_api/schema.graphql'
 	docker compose up -d
 	$(MAKE) seed-moto
 	sleep 5 # wait for the app to reload after having files updated.
-	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql api/schema.json
+	docker compose exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:9009/graphql graphql_api/schema.json
 
 .PHONY: seed-moto
 seed-moto: ## Seed the moto db by running the ./bin/seed_moto.sh script
@@ -56,7 +56,7 @@ seed-moto: ## Seed the moto db by running the ./bin/seed_moto.sh script
 
 .PHONY: clean
 clean: ## Remove all codegen'd artifacts.
-	rm -rf api
+	rm -rf graphql_api
 	rm -rf cerbos
 	rm -rf support
 	rm -rf database
@@ -106,8 +106,8 @@ token: ## Copy an auth token for this local dev env to the system clipboard
 
 .PHONY: update-cli
 update-cli:  ## Update the GQL types used by the CLI
-	$(docker_compose) exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:8042/graphql api/schema.json
-	$(docker_compose) exec $(APP_CONTAINER) sgqlc-codegen schema api/schema.json cli/gql_schema.py
+	$(docker_compose) exec $(APP_CONTAINER) python3 -m sgqlc.introspection --exclude-deprecated --exclude-description http://localhost:8042/graphql graphql_api/schema.json
+	$(docker_compose) exec $(APP_CONTAINER) sgqlc-codegen schema graphql_api/schema.json cli/gql_schema.py
 
 .PHONY: fix-poetry-lock
 fix-poetry-lock: ## Fix poetry lockfile after merge conflict & repairing pyproject.toml

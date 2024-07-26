@@ -52,7 +52,7 @@ class File(Base):
     entity_field_name: Mapped[str] = mapped_column(String, nullable=False)
     entity: Mapped[Entity] = relationship(Entity, foreign_keys=entity_id)
 
-    # TODO: Changes here need to be reflected in api/files.py
+    # TODO: Changes here need to be reflected in graphql_api/files.py
     status: Mapped[FileStatus] = mapped_column(Enum(FileStatus, native_enum=False), nullable=False)
     protocol: Mapped[FileAccessProtocol] = mapped_column(Enum(FileAccessProtocol, native_enum=False), nullable=False)
     namespace: Mapped[str] = mapped_column(String, nullable=False)

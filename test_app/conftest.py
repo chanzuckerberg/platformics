@@ -6,7 +6,7 @@ import json
 import os
 import typing
 from typing import Optional
-from platformics.api.core.error_handler import HandleErrors
+from platformics.graphql_api.core.error_handler import HandleErrors
 
 import boto3
 import pytest
@@ -16,14 +16,14 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 from moto import mock_s3
 from mypy_boto3_s3.client import S3Client
-from platformics.api.core.deps import (
+from platformics.graphql_api.core.deps import (
     get_auth_principal,
     get_db_session,
     get_engine,
     get_s3_client,
     require_auth_principal,
 )
-from platformics.api.setup import get_app
+from platformics.graphql_api.setup import get_app
 from platformics.database.connect import AsyncDB, SyncDB, init_async_db, init_sync_db
 from platformics.database.models.base import Base
 from platformics.test_infra.factories.base import FileFactory, SessionStorage
@@ -34,9 +34,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from platformics.settings import APISettings
 from database import models
-from platformics.api.setup import get_strawberry_config
-from api.mutations import Mutation
-from api.queries import Query
+from platformics.graphql_api.setup import get_strawberry_config
+from graphql_api.mutations import Mutation
+from graphql_api.queries import Query
 import strawberry
 
 __all__ = [

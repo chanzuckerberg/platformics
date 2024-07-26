@@ -3,7 +3,7 @@ from typing import Any, Iterable
 import strawberry
 from strawberry.types import Info
 
-from platformics.api import relay
+from platformics.graphql_api import relay
 
 
 @strawberry.type

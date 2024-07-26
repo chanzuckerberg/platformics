@@ -13,7 +13,7 @@ repos:
   rev: "v1.10.0"
   hooks:
   - id: mypy
-    exclude: "platformics/thirdparty|platformics/api/relay"
+    exclude: "platformics/thirdparty|platformics/graphql_api/relay"
     additional_dependencies: ["types-PyYAML", "types-dateparser", "types-requests"]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.5.0
