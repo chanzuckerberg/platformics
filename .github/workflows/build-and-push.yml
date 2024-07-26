@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - ninabernick/semver
   workflow_dispatch:
 
 jobs:
@@ -47,14 +46,6 @@ jobs:
         release-type: simple
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Determine Docker tag
-      id: docker_tag
-      run: |
-        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          echo "tag=${{ steps.release.outputs.version }}" >> $GITHUB_ENV
-        else
-          echo "tag=latest" >> $GITHUB_ENV
-        fi
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v6
@@ -62,4 +53,5 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}-test:${{ env.tag }}
+          ghcr.io/${{ github.repository }}:${{ steps.release.outputs.version }}
+          ghcr.io/${{ github.repository }}:latest
