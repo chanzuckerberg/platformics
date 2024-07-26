@@ -42,7 +42,7 @@ jobs:
     
     - name: Release Please Action
       id: release
-      uses: google-github-actions/release-please-action@v4
+      uses: googleapis/release-please-action@v4
       with:
         release-type: simple
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -57,7 +57,7 @@ jobs:
         fi
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v6
       with:
         context: .
         push: true
