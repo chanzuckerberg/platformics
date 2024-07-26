@@ -47,8 +47,14 @@ jobs:
         release-type: simple
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Print version
-      run: echo "Calculated version is ${{ steps.release.outputs.version }}"
+    - name: Determine Docker tag
+      id: docker_tag
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "::set-output name=tag::${{ steps.release.outputs.version }}"
+        else
+          echo "::set-output name=tag::latest"
+        fi
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
@@ -56,5 +62,4 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}-test:latest
-          ghcr.io/${{ github.repository }}-test:${{ steps.release.outputs.version }}
+          ghcr.io/${{ github.repository }}-test:${{ steps.docker_tag.outputs.version }}
