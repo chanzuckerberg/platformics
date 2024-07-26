@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - ninabernick/semver
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -37,6 +39,16 @@ jobs:
 
     - name: Build with Poetry
       run: make build-wheel
+    
+    - name: Release Please Action
+      id: release
+      uses: google-github-actions/release-please-action@v4
+      with:
+        release-type: simple
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Print version
+      run: echo "Calculated version is ${{ steps.release.outputs.version }}"
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
@@ -44,4 +56,5 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}-test:latest
+          ghcr.io/${{ github.repository }}-test:${{ steps.release.outputs.version }}
