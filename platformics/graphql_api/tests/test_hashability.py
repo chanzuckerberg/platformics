@@ -7,7 +7,7 @@ import enum
 
 import strawberry
 
-from platformics.api.core.gql_loaders import get_input_hash
+from platformics.graphql_api.core.gql_loaders import get_input_hash
 
 
 @strawberry.enum

@@ -4,13 +4,13 @@ Launch the GraphQL server.
 
 import strawberry
 import uvicorn
-from platformics.api.setup import get_app, get_strawberry_config
-from platformics.api.core.error_handler import HandleErrors
+from platformics.graphql_api.setup import get_app, get_strawberry_config
+from platformics.graphql_api.core.error_handler import HandleErrors
 from platformics.settings import APISettings
 from database import models
 
-from api.mutations import Mutation
-from api.queries import Query
+from graphql_api.mutations import Mutation
+from graphql_api.queries import Query
 
 settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
 schema = strawberry.Schema(query=Query, mutation=Mutation, config=get_strawberry_config(), extensions=[HandleErrors()])

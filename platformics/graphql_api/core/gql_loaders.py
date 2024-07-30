@@ -7,8 +7,8 @@ from cerbos.sdk.model import Principal
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
-from platformics.api.core.errors import PlatformicsError
-from platformics.api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
+from platformics.graphql_api.core.errors import PlatformicsError
+from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.database.connect import AsyncDB
 from platformics.security.authorization import CerbosAction
 

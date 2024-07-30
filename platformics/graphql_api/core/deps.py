@@ -10,7 +10,7 @@ from mypy_boto3_sts.client import STSClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from platformics.api.core.error_handler import PlatformicsError
+from platformics.graphql_api.core.error_handler import PlatformicsError
 from platformics.database.connect import AsyncDB, init_async_db
 from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
@@ -30,7 +30,7 @@ async def get_engine(
     settings: APISettings = Depends(get_settings),
 ) -> typing.AsyncGenerator[AsyncDB, None]:
     """Wrap resolvers in a DB engine"""
-    engine = init_async_db(settings.DB_URI)
+    engine = init_async_db(settings.DB_URI, echo=settings.DB_ECHO)
     try:
         yield engine
     finally:

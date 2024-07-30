@@ -67,6 +67,7 @@ services:
       - AWS_REGION=us-west-2
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
+      - DB_ECHO=true
       # TODO - these are keypairs for testing only! Do not use in prod!!
       - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem
