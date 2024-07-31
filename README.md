@@ -45,7 +45,7 @@ The libraries and tools that make Platformics work:
 5. Run `make token` to generate an authorization token that you can use to interact with the API. The `make` target copies the necessary headers to the system clipboard. Paste the token into the `headers` section at the bottom of the GraphQL explorer API
 
 ## Versioning platformics
-Right now, platformics is used in downstream applications by using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image.
+Right now, platformics is used in downstream applications by using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image. The version in `pyproject.toml` is managed using [poetry-dynamic-versioning](https://pypi.org/project/poetry-dynamic-versioning/) which determines version based on git tags.
 
 ## Iterating on your schema
 1. Make changes to `schema/schema.yml`
