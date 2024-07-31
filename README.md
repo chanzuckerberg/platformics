@@ -35,6 +35,7 @@ The libraries and tools that make Platformics work:
 ## Roadmap
 - [ ] Plugin hooks to add business logic to generated GQL resolvers
 - [ ] Support arbitrary class inheritance hierarchies
+- [ ] Package and publish to PyPI
 
 ## How to set up your own platformics API
 1. Copy the test_app boilerplate code to your own repository.
@@ -42,6 +43,9 @@ The libraries and tools that make Platformics work:
 3. Run `make build` and then `make init` to build and run your own GraphQL API service.
 4. Browse to http://localhost:9009/graphql to interact with your api!
 5. Run `make token` to generate an authorization token that you can use to interact with the API. The `make` target copies the necessary headers to the system clipboard. Paste the token into the `headers` section at the bottom of the GraphQL explorer API
+
+## Versioning platformics
+Right now, platformics is used in downstream applications by using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image.
 
 ## Iterating on your schema
 1. Make changes to `schema/schema.yml`
