@@ -1,0 +1,23 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+      - ninabernick/semver
+
+jobs:
+  release:
+    name: Run release-please
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run release-please
+      uses: google-github-actions/release-please-action@v3
+      with:
+        release-type: python
+        token: ${{ secrets.GITHUB_TOKEN }}
+        bump-minor-pre-major: true

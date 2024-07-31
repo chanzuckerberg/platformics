@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "platformics"
-version = "0.1.0"
+version = "0.0.0" # placeholder version
 description = "Platformics bio entities framework"
 authors = ["CZI Infectious Disease Team <help@czid.org>"]
 license = "MIT License"
@@ -51,8 +51,11 @@ sqlalchemy_utils = "^0.41.1"
 strawberry-graphql = "^0.217.0"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
 
 [tool.black]
 line-length = 120

@@ -1,9 +1,9 @@
 name: Build and push docker image
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: 
+      - published
   workflow_dispatch:
 
 jobs:
@@ -38,14 +38,6 @@ jobs:
 
     - name: Build with Poetry
       run: make build-wheel
-    
-    - name: Release Please Action
-      id: release
-      uses: googleapis/release-please-action@v4
-      with:
-        release-type: simple
-        token: ${{ secrets.GITHUB_TOKEN }}
-
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v6
@@ -53,5 +45,5 @@ jobs:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:${{ steps.release.outputs.version }}
+          ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
           ghcr.io/${{ github.repository }}:latest
