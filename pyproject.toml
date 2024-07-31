@@ -1,6 +1,7 @@
 [tool.poetry]
 name = "platformics"
-version = "0.0.0" # placeholder version
+# placeholder version that will be replace by poetry-dynamic-versioning
+version = "0.0.0"
 description = "Platformics bio entities framework"
 authors = ["CZI Infectious Disease Team <help@czid.org>"]
 license = "MIT License"
@@ -52,6 +53,7 @@ strawberry-graphql = "^0.217.0"
 
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+# a wrapper for poetry.core.masonry.api
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry-dynamic-versioning]
