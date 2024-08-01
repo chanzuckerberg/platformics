@@ -38,7 +38,7 @@ The libraries and tools that make Platformics work:
 - [ ] Package and publish to PyPI
 
 ## How to set up your own platformics API
-1. Copy the test_app boilerplate code to your own repository.
+1. Copy the test_app boilerplate code to your own repository. Make sure you have poetry and pre-commit installed.
 2. Edit `schema/schema.yml` to reflect your application's data model.
 3. Run `make build` and then `make init` to build and run your own GraphQL API service.
 4. Browse to http://localhost:9009/graphql to interact with your api!
