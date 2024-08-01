@@ -76,6 +76,12 @@ class FieldWrapper:
         return None
 
     @cached_property
+    def default_callable(self) -> str | None:
+        if "default_value_callable" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["default_value_callable"].value
+        return None
+
+    @cached_property
     def auto_increment(self) -> bool:
         if "auto_increment" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["auto_increment"].value

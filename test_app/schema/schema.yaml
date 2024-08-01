@@ -65,6 +65,8 @@ classes:
         range: uuid
         readonly: true # The API handles generating the values for these fields
         required: true
+        annotations:
+          default_value_callable: uuid6.uuid7
       type:
         range: string
         designates_type: true

@@ -9,6 +9,7 @@ Make changes to the template codegen/templates/database/models/class_name.py.j2 
 {% set ignored_fields = [cls.name] %}
 
 import uuid
+import uuid6
 import datetime
 from typing import TYPE_CHECKING
 
@@ -52,6 +53,7 @@ class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
 {% macro getStandardParameters(field) -%}
     nullable={{ "False" if field.required else "True"}}
     {%- if field.default_value%}, server_default={{field.default_value}}{%- endif %}
+    {%- if field.default_callable%}, default={{field.default_callable}}{%- endif %}
     {%- if field.indexed%}, index=True{%- endif %}
     {%- if field.onupdate%}, onupdate={{field.onupdate}}{%- endif %}
     {%- if field.auto_increment%}, autoincrement=True{%- endif %}
