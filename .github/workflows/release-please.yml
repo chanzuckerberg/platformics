@@ -1,29 +1,27 @@
 name: Release Please
-
 on:
   push:
     branches:
       - main
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+name: release-please
 jobs:
-  release:
-    name: Run release-please
-    runs-on: ubuntu-latest
-
+  release-please:
+    runs-on: [ARM64, self-hosted, Linux]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # See https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+      # For why we need to generate a token and not use the default
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.CZI_RELEASE_PLEASE_APP_ID }}
+          private_key: ${{ secrets.CZI_RELEASE_PLEASE_PK }}
 
-    - name: Generate token
-      id: generate_token
-      uses: chanzuckerberg/github-app-token@v1.1.4
-      with:
-        app_id: ${{ secrets.CZI_RELEASE_PLEASE_APP_ID }}
-        private_key: ${{ secrets.CZI_RELEASE_PLEASE_PK }}
-
-    - name: Run release-please
-      uses: google-github-actions/release-please-action@v3
-      with:
-        release-type: python
-        token: ${{ steps.generate_token.outputs.token }}
-        bump-minor-pre-major: true
+      - name: release please
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
