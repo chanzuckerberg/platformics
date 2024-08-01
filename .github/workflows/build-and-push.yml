@@ -5,6 +5,11 @@ on:
     types: 
       - published
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag version to tag image, e.g. v0.1.1"
+        required: true
+        type: string
 
 jobs:
   build-and-push:
@@ -35,7 +40,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
 
     - name: Build with Poetry
       run: make build-wheel
@@ -45,6 +50,7 @@ jobs:
       with:
         context: .
         push: true
+        platforms: linux/amd64,linux/arm64
         tags: |
-          ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
+          ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name || github.event.inputs.release_tag }}
           ghcr.io/${{ github.repository }}:latest
