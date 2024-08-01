@@ -8,6 +8,7 @@ functions to keep complicated LinkML-specific logic out of our Jinja2 templates.
 from functools import cached_property
 
 import strcase
+import contextlib
 from linkml_runtime.linkml_model.meta import ClassDefinition, EnumDefinition, SlotDefinition
 from linkml_runtime.utils.schemaview import SchemaView
 
@@ -65,9 +66,39 @@ class FieldWrapper:
         return None
 
     @cached_property
+    def default_value(self) -> str | None:
+        if self.wrapped_field.ifabsent is not None:
+            default_value = self.wrapped_field.ifabsent
+            # Make sure to quote this so it's safe!
+            return repr(default_value.value)
+        if "default_sa_function" in self.wrapped_field.annotations:
+            return "func.{func}".format(func=self.wrapped_field.annotations["default_sa_function"].value)
+        return None
+
+    @cached_property
+    def auto_increment(self) -> bool:
+        if "auto_increment" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["auto_increment"].value
+        return False
+
+    @cached_property
+    def onupdate(self) -> str | None:
+        if "onupdate" in self.wrapped_field.annotations:
+            # Make sure to quote this so it's safe!
+            return repr(self.wrapped_field.annotations["onupdate"].value)
+        if "onupdate_sa_function" in self.wrapped_field.annotations:
+            return "func.{func}".format(func=self.wrapped_field.annotations["onupdate_sa_function"].value)
+        return None
+
+    @cached_property
     def indexed(self) -> bool:
         if "indexed" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["indexed"].value
+        if self.identifier:
+            return True
+        with contextlib.suppress(NotImplementedError, AttributeError, ValueError):
+            if self.related_class.identifier:
+                return True
         return False
 
     @cached_property
@@ -256,15 +287,15 @@ class EntityWrapper:
         return [FieldWrapper(self.view, item) for item in self.view.class_induced_slots(self.name) if not item.readonly]
 
     @cached_property
-    def identifier(self) -> str:
+    def identifier(self) -> FieldWrapper:
         # Prioritize sending back identifiers from the current class and mixins instead of inherited fields.
         domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         for field in self.all_fields:
             if field.identifier and domains_owned_by_this_class.intersection(set(field.wrapped_field.domain_of)):
-                return f"{field.name}"
+                return field
         for field in self.all_fields:
             if field.identifier and self.name in field.wrapped_field.domain_of:
-                return f"{field.name}"
+                return field
         raise Exception("No identifier found")
 
     @cached_property

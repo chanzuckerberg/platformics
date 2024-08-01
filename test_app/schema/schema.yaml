@@ -94,9 +94,13 @@ classes:
         range: date
         required: true
         readonly: true
+        annotations:
+          default_sa_function: now()
       updated_at:
         range: date
         readonly: true
+        annotations:
+          onupdate_sa_function: now()
       deleted_at:
         range: date
         annotations:
@@ -368,3 +372,41 @@ classes:
     annotations:
       mutable: false
       plural: ImmutableTypes
+
+  Owner:
+    attributes:
+      my_id_col:
+        identifier: true
+        range: integer
+        readonly: true # The API handles generating the values for these fields
+        required: true
+        annotations:
+          auto_increment: true
+      name:
+        range: string
+        required: true
+      pets:
+        range: Pet
+        inverse: Pet.owner
+        multivalued: true
+    annotations:
+      plural: Owners
+
+  Pet:
+    attributes:
+      owner_id_col:
+        identifier: true
+        range: integer
+        readonly: true # The API handles generating the values for these fields
+        required: true
+        annotations:
+          auto_increment: true
+      name:
+        range: string
+        required: true
+      owner:
+        range: Owner
+        required: false
+        inverse: Owner.pets
+    annotations:
+      plural: Pets

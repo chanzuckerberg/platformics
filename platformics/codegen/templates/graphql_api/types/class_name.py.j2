@@ -25,7 +25,7 @@ from validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
 {%- endif %}
 {%- if render_files %}
-from platformics.graphql_api.files import File, FileWhereClause
+# from platformics.graphql_api.files import File, FileWhereClause
 {%- endif %}
 from graphql_api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
 from platformics.graphql_api.types.entities import EntityInterface
@@ -178,13 +178,35 @@ Define Strawberry GQL types
 ------------------------------------------------------------------------------
 """
 
+{%- macro getComparators(field) -%}
+  {%- if field.type == "uuid" -%}
+    UUIDComparators
+  {%- elif field.type == "string" -%}
+    StrComparators
+  {%- elif field.type == "Array2dFloat" -%}
+    JSONB
+  {%- elif field.type == "integer" -%}
+    IntComparators
+  {%- elif field.type == "float" -%}
+    FloatComparators
+  {%- elif field.is_enum -%}
+    EnumComparators[{{ field.type }}]]
+  {%- elif field.type == "boolean" -%}
+    BoolComparators
+  {%- elif field.type == "date" -%}
+    DatetimeComparators
+  {%- elif field.inverse -%}
+    Annotated["{{ field.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ field.related_class.snake_name }}")]
+  {%- endif -%}
+{%- endmacro %}
+
 """
 Only let users specify IDs in WHERE clause when mutating data (for safety).
 We can extend that list as we gather more use cases from the FE team.
 """
 @strawberry.input
 class {{ cls.name }}WhereClauseMutations(TypedDict):
-    id: UUIDComparators | None
+    {{ cls.identifier.name }}: {{ getComparators(cls.identifier) }} | None
 
 
 """
@@ -193,24 +215,10 @@ Supported WHERE clause attributes
 @strawberry.input
 class {{ cls.name }}WhereClause(TypedDict):
     {%- for attr in cls.visible_fields %}
-        {%- if attr.type == "uuid" %}
-    {{ attr.name }}: Optional[UUIDComparators] | None
-        {%- elif attr.type == "string" %}
-    {{ attr.name }}: Optional[StrComparators] | None
-        {%- elif attr.is_enum %}
-    {{ attr.name }}: Optional[EnumComparators[{{ attr.type }}]] | None
-        {%- elif attr.type == "integer" %}
-    {{ attr.name }}: Optional[IntComparators] | None
-        {%- elif attr.type == "float" %}
-    {{ attr.name }}: Optional[FloatComparators] | None
-        {%- elif attr.type == "boolean" %}
-    {{ attr.name }}: Optional[BoolComparators] | None
-        {%- elif attr.type == "date" %}
-    {{ attr.name }}: Optional[DatetimeComparators] | None
-        {%- elif attr.inverse %}
-    {{ attr.name }}: Optional[Annotated["{{ attr.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] | None
-        {%- elif attr.type == cls.name %}
-    {{ attr.name }}_id: Optional[UUIDComparators] | None
+        {%- if attr.type == cls.name %}
+    {{ attr.name }}_id: Optional[{{ getComparators(attr.related_class.identifier) }}] | None
+        {%- else %}
+    {{ attr.name }}: Optional[{{ getComparators(attr) }}] | None
         {%- endif %}
     {%- endfor %}
 

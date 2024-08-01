@@ -16,6 +16,7 @@ from platformics.database.models.base import Base
 from sqlalchemy import ForeignKey, String, Float, Integer, Enum, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}
 from support.enums import
@@ -48,24 +49,58 @@ class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
     __tablename__ = "{{ cls.snake_name }}"
     __mapper_args__ = {"polymorphic_identity": __tablename__, {%- if cls.type_designator %}"polymorphic_on": "{{cls.type_designator.name}}"{%- else %}"polymorphic_load": "inline"{%- endif %}}
 
+{% macro getStandardParameters(field) -%}
+    nullable={{ "False" if field.required else "True"}}
+    {%- if field.default_value%}, server_default={{field.default_value}}{%- endif %}
+    {%- if field.indexed%}, index=True{%- endif %}
+    {%- if field.onupdate%}, onupdate={{field.onupdate}}{%- endif %}
+    {%- if field.auto_increment%}, autoincrement=True{%- endif %}
+    {%- if field.identifier %}, primary_key=True{%- endif %}
+{%- endmacro %}
+{%- macro getPyType(field) -%}
+  {%- if field.type == "uuid" -%}
+    uuid.UUID
+  {%- elif field.type == "string" -%}
+    str
+  {%- elif field.type == "Array2dFloat" -%}
+    JSONB
+  {%- elif field.type == "integer" -%}
+    int
+  {%- elif field.type == "float" -%}
+    float
+  {%- elif field.is_enum -%}
+    {{field.type}}
+  {%- elif field.type == "boolean" -%}
+    bool
+  {%- elif field.type == "date" -%}
+    datetime.datetime
+  {%- endif -%}
+{%- endmacro %}
+{%- macro getSaType(field) -%}
+  {%- if field.type == "uuid" -%}
+    UUID
+  {%- elif field.type == "string" -%}
+    String
+  {%- elif field.type == "Array2dFloat" -%}
+    JSONB
+  {%- elif field.type == "integer" -%}
+    Integer
+  {%- elif field.type == "float" -%}
+    Float
+  {%- elif field.is_enum -%}
+    Enum({{field.type}}, native_enum=False)
+  {%- elif field.type == "boolean" -%}
+    Boolean
+  {%- elif field.type == "date" -%}
+    DateTime(timezone=True)
+  {%- endif -%}
+{%- endmacro %}
 
     {%- for attr in cls.owned_fields %}
         {%- if attr.type == "uuid" %}
-    {{attr.name}}: Mapped[uuid.UUID] = mapped_column({%- if attr.inverse %}ForeignKey("{{attr.inverse}}"){%- else %}UUID{%- endif %}, nullable={{ "False" if attr.required else "True"}}, primary_key={{ "True" if attr.identifier else "False"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "string" %}
-    {{attr.name}}: Mapped[str] = mapped_column(String, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "Array2dFloat" %}
-    {{attr.name}}: Mapped[JSONB] = mapped_column(JSONB, nullable={{ "False" if attr.required else "True"}})
-        {%- elif attr.type == "integer" %}
-    {{attr.name}}: Mapped[int] = mapped_column(Integer, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "float" %}
-    {{attr.name}}: Mapped[int] = mapped_column(Float, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.is_enum %}
-    {{attr.name}}: Mapped[{{attr.type}}] = mapped_column(Enum({{attr.type}}, native_enum=False), nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "boolean" %}
-    {{attr.name}}: Mapped[bool] = mapped_column(Boolean, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "date" %}
-    {{attr.name}}: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
+    {{attr.name}}: Mapped[{{ getPyType(attr) }}] = mapped_column({%- if attr.inverse %}ForeignKey("{{attr.inverse}}"){%- else %}UUID{%- endif %}, {{ getStandardParameters(attr) }})
+        {%- elif getSaType(attr) != "" %}
+    {{attr.name}}: Mapped[{{ getPyType(attr) }}] = mapped_column({{ getSaType(attr) }}, {{ getStandardParameters(attr) }})
         {%- else %}
             {%- if attr.is_cascade_delete -%}
                 {%- if attr.type == "File" -%}
@@ -87,15 +122,10 @@ class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
         {{cascade}}
     )
             {%- else %}
-    {{attr.name}}_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
-        ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier}}"),
-        nullable={{"False" if attr.required else "True"}},
-        {%- if attr.identifier %}
-        primary_key=True,
-        {%- else %}
-        index=True,
-        {%- endif %}
+    {{attr.name}}_id: Mapped[{{ getPyType(attr.related_class.identifier) }}] = mapped_column(
+        {{ getSaType(attr.related_class.identifier) }},
+        ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier.name}}"),
+        {{ getStandardParameters(attr) }}
     )
     {{attr.name}}: Mapped["{{attr.type}}"] = relationship(
         "{{attr.type}}",
