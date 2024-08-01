@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "platformics"
 # placeholder version that will be replace by poetry-dynamic-versioning
-version = "0.1.0"
+version = "0.1.1"
 description = "Platformics bio entities framework"
 authors = ["CZI Infectious Disease Team <help@czid.org>"]
 license = "MIT License"

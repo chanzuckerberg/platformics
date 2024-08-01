@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/chanzuckerberg/platformics/compare/v0.1.0...v0.1.1) (2024-08-01)
+
+
+### Bug Fixes
+
+* use shared infra github token for release please ([#92](https://github.com/chanzuckerberg/platformics/issues/92)) ([78e7da7](https://github.com/chanzuckerberg/platformics/commit/78e7da7499c0879d1edebbd2535c0ea3fac6a2e2))
+
 ## 0.1.0 (2024-07-31)
 
 
