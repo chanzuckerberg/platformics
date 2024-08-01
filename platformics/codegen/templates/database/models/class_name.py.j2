@@ -57,42 +57,29 @@ class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
     {%- if field.auto_increment%}, autoincrement=True{%- endif %}
     {%- if field.identifier %}, primary_key=True{%- endif %}
 {%- endmacro %}
+
+{# Map of LinkML field types to SQLAlchemy and Python types #}
+{%- set type_map = {
+    "uuid": ("UUID", "uuid.UUID"),
+    "string": ("String", "str"),
+    "Array2dFloat": ("JSONB", "JSONB"),
+    "integer": ("Integer", "int"),
+    "float": ("Float", "float"),
+    "boolean": ("Boolean", "bool"),
+    "date": ("DateTime(timezone=True)", "datetime.datetime"),
+} %}
 {%- macro getPyType(field) -%}
-  {%- if field.type == "uuid" -%}
-    uuid.UUID
-  {%- elif field.type == "string" -%}
-    str
-  {%- elif field.type == "Array2dFloat" -%}
-    JSONB
-  {%- elif field.type == "integer" -%}
-    int
-  {%- elif field.type == "float" -%}
-    float
-  {%- elif field.is_enum -%}
+  {%- if field.is_enum -%}
     {{field.type}}
-  {%- elif field.type == "boolean" -%}
-    bool
-  {%- elif field.type == "date" -%}
-    datetime.datetime
+  {%- elif field.type in type_map -%}
+    {{ type_map[field.type][1] }}
   {%- endif -%}
 {%- endmacro %}
 {%- macro getSaType(field) -%}
-  {%- if field.type == "uuid" -%}
-    UUID
-  {%- elif field.type == "string" -%}
-    String
-  {%- elif field.type == "Array2dFloat" -%}
-    JSONB
-  {%- elif field.type == "integer" -%}
-    Integer
-  {%- elif field.type == "float" -%}
-    Float
-  {%- elif field.is_enum -%}
+  {%- if field.is_enum -%}
     Enum({{field.type}}, native_enum=False)
-  {%- elif field.type == "boolean" -%}
-    Boolean
-  {%- elif field.type == "date" -%}
-    DateTime(timezone=True)
+  {%- elif field.type in type_map -%}
+    {{ type_map[field.type][0] }}
   {%- endif -%}
 {%- endmacro %}
 

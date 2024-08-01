@@ -190,7 +190,7 @@ Define Strawberry GQL types
   {%- elif field.type == "float" -%}
     FloatComparators
   {%- elif field.is_enum -%}
-    EnumComparators[{{ field.type }}]]
+    EnumComparators[{{ field.type }}]
   {%- elif field.type == "boolean" -%}
     BoolComparators
   {%- elif field.type == "date" -%}
