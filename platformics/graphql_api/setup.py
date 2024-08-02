@@ -5,17 +5,16 @@ Launch the GraphQL server.
 import typing
 
 import strawberry
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal
 from fastapi import Depends, FastAPI
 from strawberry.fastapi import GraphQLRouter
 from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
+from platformics.security.authorization import AuthzClient, Principal
 
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.deps import (
     get_auth_principal,
-    get_cerbos_client,
+    get_authz_client,
     get_db_module,
     get_engine,
 )
@@ -32,14 +31,14 @@ from platformics.settings import APISettings
 def get_context(
     engine: AsyncDB = Depends(get_engine),
     db_module: AsyncDB = Depends(get_db_module),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(get_auth_principal),
 ) -> dict[str, typing.Any]:
     """
     Defines sqlalchemy_loader, used by dataloaders
     """
     return {
-        "sqlalchemy_loader": EntityLoader(engine=engine, cerbos_client=cerbos_client, principal=principal),
+        "sqlalchemy_loader": EntityLoader(engine=engine, authz_client=authz_client, principal=principal),
         # This is entirely to support automatically resolving Relay Nodes in the EntityInterface
         "db_module": db_module,
     }

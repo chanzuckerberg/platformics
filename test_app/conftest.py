@@ -11,7 +11,7 @@ from platformics.graphql_api.core.error_handler import HandleErrors
 import boto3
 import pytest
 import pytest_asyncio
-from cerbos.sdk.model import Principal
+from platformics.security.authorization import Principal
 from fastapi import FastAPI
 from httpx import AsyncClient
 from moto import mock_s3

@@ -2,15 +2,14 @@ import typing
 from collections import defaultdict
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal
+from platformics.security.authorization import AuthzClient, Principal
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.database.connect import AsyncDB
-from platformics.security.authorization import CerbosAction
+from platformics.security.authorization import AuthzAction
 
 E = typing.TypeVar("E")
 T = typing.TypeVar("T")
@@ -37,11 +36,11 @@ class EntityLoader:
     _loaders: dict[RelationshipProperty, DataLoader]
     _aggregate_loaders: dict[RelationshipProperty, DataLoader]
 
-    def __init__(self, engine: AsyncDB, cerbos_client: CerbosClient, principal: Principal) -> None:
+    def __init__(self, engine: AsyncDB, authz_client: AuthzClient, principal: Principal) -> None:
         self._loaders = {}
         self._aggregate_loaders = {}
         self.engine = engine
-        self.cerbos_client = cerbos_client
+        self.authz_client = authz_client
         self.principal = principal
 
     async def resolve_nodes(self, cls: Any, node_ids: list[str]) -> Sequence[E]:
@@ -49,8 +48,17 @@ class EntityLoader:
         Given a list of node IDs from a Relay `node()` query, return corresponding entities
         """
         db_session = self.engine.session()
-        where = {"entity_id": {"_in": node_ids}}
-        rows = await get_db_rows(cls, db_session, self.cerbos_client, self.principal, where)
+        # What's the class identifier?
+        
+        pk_col = None
+        for col in cls.__table__.columns:
+            if col.primary_key:
+                pk_col = col
+                break
+        if pk_col is None:
+            raise Exception("multi-column primary keys are not supported")
+        where = {pk_col.description: {"_in": node_ids}}
+        rows = await get_db_rows(cls, db_session, self.authz_client, self.principal, where)
         await db_session.close()
         return rows
 
@@ -87,8 +95,8 @@ class EntityLoader:
                     filters.append(remote.in_(keys))
                 query = get_db_query(
                     related_model,
-                    CerbosAction.VIEW,
-                    self.cerbos_client,
+                    AuthzAction.VIEW,
+                    self.authz_client,
                     self.principal,
                     where,
                     order_by,  # type: ignore
@@ -160,8 +168,8 @@ class EntityLoader:
 
                 query, group_by = get_aggregate_db_query(
                     related_model,
-                    CerbosAction.VIEW,
-                    self.cerbos_client,
+                    AuthzAction.VIEW,
+                    self.authz_client,
                     self.principal,
                     where,
                     aggregate_selections,
