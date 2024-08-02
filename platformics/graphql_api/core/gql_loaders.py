@@ -2,14 +2,13 @@ import typing
 from collections import defaultdict
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
-from platformics.security.authorization import AuthzClient, Principal
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
+from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
-from platformics.database.connect import AsyncDB
-from platformics.security.authorization import AuthzAction
+from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 
 E = typing.TypeVar("E")
 T = typing.TypeVar("T")
@@ -49,10 +48,10 @@ class EntityLoader:
         """
         db_session = self.engine.session()
         # What's the class identifier?
-        
+
         pk_col = next((col for col in cls.__table__.columns if col.primary_key), None)
         if pk_col is None:
-            raise Exception("multi-column primary keys are not supported")
+            raise Exception("Primary keys are required for each class")
         where = {pk_col.description: {"_in": node_ids}}
         rows = await get_db_rows(cls, db_session, self.authz_client, self.principal, where)
         await db_session.close()

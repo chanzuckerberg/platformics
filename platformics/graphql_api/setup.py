@@ -20,7 +20,7 @@ from platformics.graphql_api.core.deps import (
 )
 from platformics.graphql_api.core.gql_loaders import EntityLoader
 
-# from platformics.database.models.file import File
+from platformics.database.models.file import File
 from platformics.settings import APISettings
 
 # ------------------------------------------------------------------------------
@@ -40,6 +40,7 @@ def get_context(
     return {
         "sqlalchemy_loader": EntityLoader(engine=engine, authz_client=authz_client, principal=principal),
         # This is entirely to support automatically resolving Relay Nodes in the EntityInterface
+        # and identifying File rows based on entity type, ID and field name
         "db_module": db_module,
     }
 

@@ -8,7 +8,7 @@ Make changes to the template codegen/templates/graphql_api/mutations.py.j2 inste
 import strawberry
 from typing import Sequence
 {%- if render_files %}
-#from platformics.graphql_api.files import File, create_file, upload_file, upload_temporary_file, mark_upload_complete, concatenate_files, SignedURL, MultipartUploadResponse
+from platformics.graphql_api.files import File, create_file, upload_file, upload_temporary_file, mark_upload_complete, concatenate_files, SignedURL, MultipartUploadResponse
 {%- endif %}
 
 {%- for class in classes %}

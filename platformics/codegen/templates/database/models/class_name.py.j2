@@ -31,7 +31,7 @@ from database.models.{{cls.is_a_snake}} import {{cls.is_a}}
 {%- endif %}
 
 if TYPE_CHECKING:
-    from database.models.file import File
+    from platformics.database.models.file import File
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}

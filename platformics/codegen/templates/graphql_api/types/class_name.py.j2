@@ -25,7 +25,7 @@ from validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
 {%- endif %}
 {%- if render_files %}
-# from platformics.graphql_api.files import File, FileWhereClause
+from platformics.graphql_api.files import File, FileWhereClause
 {%- endif %}
 from graphql_api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
 from platformics.graphql_api.core.relay_interface import EntityInterface

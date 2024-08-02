@@ -10,7 +10,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from platformics.database.models.base import Base, Entity
+from platformics.database.models.base import Base
 from platformics.settings import APISettings
 from platformics.support.file_enums import FileAccessProtocol, FileStatus, FileUploadClient
 
@@ -44,13 +44,12 @@ class File(Base):
 
     # TODO - the relationship between Entities and Files is currently being
     # configured in both directions: entities have {fieldname}_file_id fields,
-    # *and* files have {entity_id, field_name} fields to map back to
-    # entities. We'll probably deprecate one side of this relationship in
-    # the future, but I'm not sure yet which one is going to prove to be
-    # more useful.
-    entity_id = mapped_column(ForeignKey("entity.id"))
+    # *and* files have {entity_id, field_name, entity_class_name} fields to map
+    # back to entities. This is necessary to support File objects inheriting the
+    # access control properties of the Entity they're associated with.
+    entity_id: Mapped[str] = mapped_column(String, nullable=False)
     entity_field_name: Mapped[str] = mapped_column(String, nullable=False)
-    entity: Mapped[Entity] = relationship(Entity, foreign_keys=entity_id)
+    entity_class_name: Mapped[str] = mapped_column(String, nullable=False)
 
     # TODO: Changes here need to be reflected in graphql_api/files.py
     status: Mapped[FileStatus] = mapped_column(Enum(FileStatus, native_enum=False), nullable=False)
