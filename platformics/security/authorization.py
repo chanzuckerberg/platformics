@@ -69,7 +69,7 @@ class AuthzClient:
     def can_create(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
         attr = {"collection_id": resource.collection_id, "owner_user_id": int(principal.id)}
-        resource = Resource(id="NEW_ID", kind=resource_type.__tablename__, attr=attr)
+        resource = Resource(id="NEW_ID", kind=resource_type, attr=attr)
         if self.client.is_allowed(AuthzAction.CREATE, principal, resource):
             return True
         return False
@@ -77,8 +77,12 @@ class AuthzClient:
     def can_update(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
         attr = {"collection_id": resource.collection_id}
-        resource = Resource(id=resource.id, kind=resource_type.__tablename__, attr=attr)
-        if self.cient.is_allowed(AuthzAction.UPDATE, principal, resource):
+        # TODO - this should send in the actual resource ID instead of a placeholder string
+        # There are two complexities there though: UUID's don't natively serialize to json,
+        # so they cannot be sent in cerbos perms checks, and we need to find/use the table's
+        # primary key instead of a hardcoded column name.
+        resource = Resource(id="resource_id", kind=resource_type, attr=attr)
+        if self.client.is_allowed(AuthzAction.UPDATE, principal, resource):
             return True
         return False
 

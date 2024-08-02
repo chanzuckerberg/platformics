@@ -50,11 +50,7 @@ class EntityLoader:
         db_session = self.engine.session()
         # What's the class identifier?
         
-        pk_col = None
-        for col in cls.__table__.columns:
-            if col.primary_key:
-                pk_col = col
-                break
+        pk_col = next((col for col in cls.__table__.columns if col.primary_key), None)
         if pk_col is None:
             raise Exception("multi-column primary keys are not supported")
         where = {pk_col.description: {"_in": node_ids}}
