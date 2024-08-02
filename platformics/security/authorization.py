@@ -68,7 +68,7 @@ class AuthzClient:
         self.client = CerbosClient(host=settings.CERBOS_URL)
     
     # Convert a model object to a dictionary
-    def obj_to_dict(self, obj):
+    def _obj_to_dict(self, obj):
         mydict = {}
         relationships = obj.__mapper__.relationships
         for col in obj.__mapper__.all_orm_descriptors:
@@ -82,9 +82,20 @@ class AuthzClient:
             mydict[col.key] = value
         return mydict
 
+    # get a list of non-relationship cols for a model class
+    def _model_class_cols(self, cls):
+        cols = []
+        relationships = cls.__mapper__.relationships
+        for col in cls.__mapper__.all_orm_descriptors:
+            # Don't send related fields to cerbos for authz checks
+            if col.key in relationships:
+                continue
+            cols.append(col)
+        return cols
+
     def can_create(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
-        attr = self.obj_to_dict(resource)
+        attr = self._obj_to_dict(resource)
         resource = Resource(id="NEW_ID", kind=resource_type, attr=attr)
         if self.client.is_allowed(AuthzAction.CREATE, principal, resource):
             return True
@@ -92,7 +103,7 @@ class AuthzClient:
     
     def can_update(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
-        attr = self.obj_to_dict(resource)
+        attr = self._obj_to_dict(resource)
         # TODO - this should send in the actual resource ID instead of a placeholder string
         # There are two complexities there though: UUID's don't natively serialize to json,
         # so they cannot be sent in cerbos perms checks, and we need to find/use the table's
@@ -114,10 +125,10 @@ class AuthzClient:
         #   raise NotImplementedError("You need to fix the files thing!!")
         # else:
         if True:
-            attr_map = {
-                "request.resource.attr.owner_user_id": model_cls.owner_user_id,  # type: ignore
-                "request.resource.attr.collection_id": model_cls.collection_id,  # type: ignore
-            }
+            attr_map = {}
+            # Send all non-relationship columns to cerbos to make decisions
+            for col in self._model_class_cols(model_cls):
+                attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)
             joins = []
         query = get_query(
             plan,
