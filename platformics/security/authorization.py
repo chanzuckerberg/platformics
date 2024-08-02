@@ -1,5 +1,6 @@
 import typing
 from enum import Enum
+from sqlalchemy import inspect
 
 from cerbos.sdk.client import CerbosClient
 from cerbos.sdk.model import ResourceDesc
@@ -66,9 +67,24 @@ class AuthzClient:
         self.settings = settings
         self.client = CerbosClient(host=settings.CERBOS_URL)
     
+    # Convert a model object to a dictionary
+    def obj_to_dict(self, obj):
+        mydict = {}
+        relationships = obj.__mapper__.relationships
+        for col in obj.__mapper__.all_orm_descriptors:
+            # Don't send related fields to cerbos for authz checks
+            if col.key in relationships:
+                continue
+            value = getattr(obj, col.key)
+            if type(value) not in [int, str, bool, float]:
+                # TODO, we probably want to look into a smarter way to serialize fields for cerbos
+                value = str(value)
+            mydict[col.key] = value
+        return mydict
+
     def can_create(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
-        attr = {"collection_id": resource.collection_id, "owner_user_id": int(principal.id)}
+        attr = self.obj_to_dict(resource)
         resource = Resource(id="NEW_ID", kind=resource_type, attr=attr)
         if self.client.is_allowed(AuthzAction.CREATE, principal, resource):
             return True
@@ -76,7 +92,7 @@ class AuthzClient:
     
     def can_update(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
-        attr = {"collection_id": resource.collection_id}
+        attr = self.obj_to_dict(resource)
         # TODO - this should send in the actual resource ID instead of a placeholder string
         # There are two complexities there though: UUID's don't natively serialize to json,
         # so they cannot be sent in cerbos perms checks, and we need to find/use the table's
