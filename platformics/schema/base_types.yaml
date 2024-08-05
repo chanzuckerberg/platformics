@@ -2,23 +2,10 @@ id: https://github.com/chanzuckerberg/platformics
 title: Platformics Base Schema
 name: platformics_base
 default_range: string
-
-types:
-  string:
-    uri: xsd:string
-    base: str
-    description: A character string
-
-  integer:
-    uri: xsd:integer
-    base: int
-    description: An integer
-
-  uuid:
-    uri: xsd:string
-    typeof: str
-    base: str
-    description: A UUID
+prefixes:
+  linkml: https://w3id.org/linkml/
+imports:
+  - linkml:types
 
 enums:
   FileStatus:
