@@ -3,35 +3,13 @@ title: Test App Schema
 name: test_app
 default_range: string
 prefixes:
-  platformics:
-    prefix_prefix: platformics
-    prefix_reference: https://github.com/chanzuckerberg/platformics/tree/main/platformics/schema/
+  linkml: https://w3id.org/linkml/
+  platformics: https://raw.githubusercontent.com/chanzuckerberg/platformics/jgadling/gen-entities/platformics/schema/
 imports:
+  - linkml:types
   - platformics:base_types
 
-types:
-  string:
-    uri: xsd:string
-    base: str
-    description: A character string
-
-  integer:
-    uri: xsd:integer
-    base: int
-    description: An integer
-
-  uuid:
-    uri: xsd:string
-    typeof: str
-    base: str
-    description: A UUID
-
 enums:
-  FileStatus:
-    permissible_values:
-      SUCCESS:
-      FAILED:
-      PENDING:
   NucleicAcid:
     permissible_values:
       RNA:
