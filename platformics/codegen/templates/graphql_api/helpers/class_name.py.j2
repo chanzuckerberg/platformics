@@ -22,7 +22,7 @@ from support.enums import
 {%- endfor %}
 
 {%- for field in cls.related_fields %}
-    {%- if field.related_class.name not in ignored_fields and not field.multivalued and not field.is_virtual_relationship %}
+    {%- if field.related_class.name not in ignored_fields and not field.multivalued and not field.is_virtual_relationship and not field.type == "File" %}
 from graphql_api.helpers.{{ field.related_class.snake_name }} import {{ field.related_class.name }}GroupByOptions, build_{{ field.related_class.snake_name }}_groupby_output
     {%- endif %}
 {%- endfor %}

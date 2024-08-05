@@ -19,11 +19,11 @@ from graphql_api.types.{{ class.snake_name }} import {{ class.name }}, {%- if cl
 class Mutation:
     {%- if render_files %}
     # File mutations
-    #create_file: File = create_file
-    #upload_file: MultipartUploadResponse = upload_file
-    #upload_temporary_file: MultipartUploadResponse = upload_temporary_file
-    #mark_upload_complete: File = mark_upload_complete
-    #concatenate_files: SignedURL = concatenate_files
+    create_file: File = create_file
+    upload_file: MultipartUploadResponse = upload_file
+    upload_temporary_file: MultipartUploadResponse = upload_temporary_file
+    mark_upload_complete: File = mark_upload_complete
+    concatenate_files: SignedURL = concatenate_files
     {%- endif %}
 {%- for class in classes %}
 

@@ -117,19 +117,28 @@ class AuthzClient:
         self,
         principal: Principal,
         action: AuthzAction,
-        model_cls: typing.Union[type[db.Base]],  # type: ignore
+        model_cls: type[db.Base],  # type: ignore
+        relationship: typing.Optional[typing.Any] = None,  # type: ignore
     ) -> Select:
         rd = ResourceDesc(model_cls.__tablename__)
         plan = self.client.plan_resources(action, principal, rd)
-        # if model_cls == db.File:  # type: ignore
-        #   raise NotImplementedError("You need to fix the files thing!!")
-        # else:
-        if True:
-            attr_map = {}
+        print("----")
+        if relationship:
+            print(f"parent_cls is {relationship.parent}")
+        print("----")
+
+        attr_map = {}
+        joins = []
+        if model_cls == db.File:  # type: ignore
+            parent = relationship.parent.entity
+            joins = [(parent, relationship.primaryjoin)]
+
+            for col in self._model_class_cols(parent):
+                attr_map[f"request.resource.attr.{col.key}"] = getattr(parent, col.key)
+        else:
             # Send all non-relationship columns to cerbos to make decisions
             for col in self._model_class_cols(model_cls):
                 attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)
-            joins = []
         query = get_query(
             plan,
             model_cls,  # type: ignore

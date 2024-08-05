@@ -9,7 +9,7 @@ import typing
 import uuid
 from dataclasses import dataclass
 
-import database.models as db
+import platformics.database.models as db
 import strawberry
 import uuid6
 from platformics.security.authorization import AuthzClient, Principal
@@ -40,7 +40,7 @@ from platformics.graphql_api.core.query_input_types import (
     UUIDComparators,
 )
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
-from platformics.security.authorization import AuthzAction, get_resource_query
+from platformics.security.authorization import AuthzAction
 from platformics.settings import APISettings
 from platformics.support.file_enums import FileAccessProtocol, FileStatus
 from platformics.support.format_handlers import get_validator
@@ -200,18 +200,23 @@ class FileWhereClause(TypedDict):
     size: typing.Optional[IntComparators]
 
 
-@strawberry.field(extensions=[DependencyExtension()])
-async def resolve_files(
-    session: AsyncSession = Depends(get_db_session, use_cache=False),
-    authz_client: AuthzClient = Depends(get_authz_client),
-    principal: Principal = Depends(require_auth_principal),
-    where: typing.Optional[FileWhereClause] = None,
-) -> typing.Sequence[File]:
-    """
-    Handles files {} GraphQL queries.
-    """
-    rows = await get_db_rows(db.File, session, authz_client, principal, where, [])
-    return rows  # type: ignore
+#@strawberry.field(extensions=[DependencyExtension()])
+#async def resolve_files(
+#    info: Info,
+#    entity_class_name: str,
+#    session: AsyncSession = Depends(get_db_session, use_cache=False),
+#    authz_client: AuthzClient = Depends(get_authz_client),
+#    principal: Principal = Depends(require_auth_principal),
+#    where: typing.Optional[FileWhereClause] = None,
+#) -> typing.Sequence[File]:
+#    """
+#    Handles files {} GraphQL queries.
+#    """
+#    # TODO FIXME THIS IS TOO OPEN. THIS SHOULD BE LOCKED DOWN TO ONLY ACCEPTABLE TYPES.
+#    db_module = info.context["db_module"],
+#    entity_class = getattr(db_module, entity_class_name)
+#    rows = await get_db_rows(db.File, session, authz_client, principal, where, [])
+#    return rows  # type: ignore
 
 
 # ------------------------------------------------------------------------------
@@ -302,7 +307,7 @@ async def mark_upload_complete(
     Once a file is uploaded, the front-end should make a markUploadComplete mutation
     to mark the file as ready for pipeline analysis.
     """
-    query = get_resource_query(principal, authz_client, AuthzAction.UPDATE, db.File)
+    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File)
     query = query.filter(db.File.id == file_id)
     file = (await session.execute(query)).scalars().one()
     if not file:
@@ -409,8 +414,9 @@ async def create_or_upload_file(
         raise Exception("File name should not contain /")
 
     # Fetch the entity if have access to it
+    # TODO FIXME THIS IS TOO OPEN. THIS SHOULD BE LOCKED DOWN TO ONLY ACCEPTABLE TYPES.
     entity_class = getattr(db_module, entity_class_name)
-    query = get_resource_query(principal, authz_client, AuthzAction.UPDATE, entity_class)
+    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, entity_class)
     pk_col = next((col for col in entity_class.__table__.columns if col.primary_key), None)
     if pk_col is None:
         raise Exception("Primary keys are required for each class")
@@ -425,7 +431,7 @@ async def create_or_upload_file(
         raise Exception(f"This entity does not have a corresponding file of type {entity_field_name}")
 
     # Unlink the File(s) currently connected to this entity (only commit to DB once add the new File below)
-    query = get_resource_query(principal, authz_client, AuthzAction.UPDATE, db.File)
+    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File)
     query = query.filter(db.File.entity_id == entity_id)
     query = query.filter(db.File.entity_field_name == entity_field_name)
     current_files = (await session.execute(query)).scalars().all()

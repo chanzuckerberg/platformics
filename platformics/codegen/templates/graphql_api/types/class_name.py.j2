@@ -194,6 +194,7 @@ Define Strawberry GQL types
     DatetimeComparators
   {%- elif field.inverse -%}
     Annotated["{{ field.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ field.related_class.snake_name }}")]
+  {%- elif field.inverse -%}
   {%- endif -%}
 {%- endmacro %}
 
@@ -214,6 +215,7 @@ class {{ cls.name }}WhereClause(TypedDict):
     {%- for attr in cls.visible_fields %}
         {%- if attr.type == cls.name %}
     {{ attr.name }}_id: Optional[{{ getComparators(attr.related_class.identifier) }}] | None
+        {%- elif attr.type == "File" %}
         {%- else %}
     {{ attr.name }}: Optional[{{ getComparators(attr) }}] | None
         {%- endif %}

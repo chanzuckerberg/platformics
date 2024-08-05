@@ -117,7 +117,7 @@ def convert_where_clauses_to_sql(
     for join_field, join_info in all_joins.items():
         relationship = mapper.relationships[join_field]  # type: ignore
         related_cls = relationship.mapper.entity
-        secure_query = authz_client.get_resource_query(principal, action, related_cls)
+        secure_query = authz_client.get_resource_query(principal, action, related_cls, sa_model)
         # Get the subquery, nested order_by fields, and nested group_by fields that need to be applied to the current query
         subquery, subquery_order_by, subquery_group_by = convert_where_clauses_to_sql(
             principal,
@@ -187,12 +187,13 @@ def get_db_query(
     # so that these type checks could be smarter, but TypedDict doesn't support type checks like that
     where: dict[str, Any],
     order_by: Optional[list[dict[str, Any]]] = None,
+    relationship: Optional[Any] = None,
 ) -> Select:
     """
     Given a model class and a where clause, return a SQLAlchemy query that is limited
     based on the where clause, and which entities the user has access to.
     """
-    query = authz_client.get_resource_query(principal, action, model_cls)
+    query = authz_client.get_resource_query(principal, action, model_cls, relationship)
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []

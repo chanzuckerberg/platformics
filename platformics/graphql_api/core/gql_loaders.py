@@ -95,6 +95,7 @@ class EntityLoader:
                     self.principal,
                     where,
                     order_by,  # type: ignore
+                    relationship,  # type: ignore
                 )
                 for item in filters:
                     query = query.where(item)

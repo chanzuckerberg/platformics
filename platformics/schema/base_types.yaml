@@ -13,6 +13,8 @@ enums:
       SUCCESS:
       FAILED:
       PENDING:
+    annotations:
+      skip_codegen: true
   FileUploadClient:
     permissible_values:
       browser:
@@ -23,12 +25,16 @@ enums:
         description: File uploaded from S3
       basespace:
         description: File uploaded from Illumina Basespace Cloud
+    annotations:
+      skip_codegen: true
   FileAccessProtocol:
     permissible_values:
       s3:
         description: This file is accessible via the (AWS) S3 protocol
       https:
         description: This file is accessible via the HTTPS protocol
+    annotations:
+      skip_codegen: true
 
 classes:
   File:
@@ -85,3 +91,4 @@ classes:
         readonly: true
     annotations:
       plural: Files
+      skip_codegen: true

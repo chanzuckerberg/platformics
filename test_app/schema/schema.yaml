@@ -4,7 +4,8 @@ name: test_app
 default_range: string
 prefixes:
   linkml: https://w3id.org/linkml/
-  platformics: https://raw.githubusercontent.com/chanzuckerberg/platformics/jgadling/gen-entities/platformics/schema/
+  # platformics: https://raw.githubusercontent.com/chanzuckerberg/platformics/jgadling/gen-entities/platformics/schema/
+  platformics: ../platformics/schema/
 imports:
   - linkml:types
   - platformics:base_types
@@ -93,6 +94,10 @@ classes:
       sample_type:
         range: string
         required: true
+      some_file:
+        range: File
+        annotations:
+          cascade_delete: true
       water_control:
         range: boolean
         required: true
@@ -127,16 +132,16 @@ classes:
       protocol:
         range: SequencingProtocol
         required: true
-#      r1_file:
-#        range: File
-#        readonly: true
-#        annotations:
-#          cascade_delete: true
-#      r2_file:
-#        range: File
-#        readonly: true
-#        annotations:
-#          cascade_delete: true
+      r1_file:
+        range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
+      r2_file:
+        range: File
+        readonly: true
+        annotations:
+          cascade_delete: true
       technology:
         range: SequencingTechnology
         required: true

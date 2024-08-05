@@ -29,6 +29,7 @@ from support.enums import
 {%- if cls.is_a %}
 from database.models.{{cls.is_a_snake}} import {{cls.is_a}}
 {%- endif %}
+from platformics.database.models.file import File
 
 if TYPE_CHECKING:
     from platformics.database.models.file import File
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}
         {%- endif %}
     {%- endfor %}
+    ...
 else:
     File = "File"
     {%- for related_field in related_fields %}
@@ -44,6 +46,7 @@ else:
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
         {%- endif %}
     {%- endfor %}
+    ...
 
 
 class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):

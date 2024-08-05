@@ -403,6 +403,9 @@ class ViewWrapper:
         enums = []
         for enum_name in self.view.all_enums():
             enum = self.view.get_element(enum_name)
+            # Don't codegen stuff that users asked us not to.
+            if enum.annotations.get("skip_codegen") and enum.annotations["skip_codegen"].value:
+                continue
             enums.append(EnumWrapper(self.view, enum))
         return enums
 
@@ -411,6 +414,9 @@ class ViewWrapper:
         classes = []
         for class_name in self.view.all_classes():
             cls = self.view.get_element(class_name)
+            # Don't codegen stuff that users asked us not to.
+            if cls.annotations.get("skip_codegen") and cls.annotations["skip_codegen"].value:
+                continue
             # Mixins don't get represented in the outputted schemas
             if cls.mixin:
                 continue
