@@ -10,7 +10,7 @@ Make changes to the template codegen/templates/test_infra/factories/class_name.p
 import random
 import factory
 from database.models import {{ cls.name }}
-from platformics.test_infra.factories.base import CommonFactory, FileFactory
+from platformics.test_infra.factories.base import FileFactory
 {%- for field in cls.related_fields %}
     {%- if field.inverse and not field.multivalued%}
 from test_infra.factories.{{ field.related_class.snake_name }} import {{ field.related_class.name }}Factory
@@ -20,14 +20,16 @@ from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
+{%- if cls.is_a %}
+from test_infra.factories.{{cls.is_a_snake}} import {{cls.is_a}}Factory
+{%- endif %}
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
 Faker.add_provider(EnumProvider)
 
 
-{%- if not cls.is_abstract %}
-class {{ cls.name }}Factory(CommonFactory):
+class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}factory.alchemy.SQLAlchemyModelFactory{%- endif %}):
     class Meta:
         sqlalchemy_session = None  # workaround for a bug in factoryboy
         model = {{ cls.name }}
@@ -94,4 +96,3 @@ class {{ cls.name }}Factory(CommonFactory):
             {%- endif %}
         {%- endif %}
     {%- endfor %}
-{%- endif %}

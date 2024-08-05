@@ -11,7 +11,7 @@ from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
 
-#from platformics.database.models.file import File, FileStatus
+from platformics.database.models.file import File, FileStatus
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -39,21 +39,6 @@ class SessionStorage:
     @classmethod
     def get_session(cls) -> sa.orm.Session | None:
         return cls.session
-
-
-class CommonFactory(factory.alchemy.SQLAlchemyModelFactory):
-    """
-    Base class for all factories
-    """
-
-    owner_user_id = fuzzy.FuzzyInteger(1, 1000)
-    collection_id = fuzzy.FuzzyInteger(1, 1000)
-    entity_id = uuid6.uuid7()  # needed so we can set `sqlalchemy_get_or_create` = entity_id in other factories
-
-    class Meta:
-        sqlalchemy_session_factory = SessionStorage.get_session
-        sqlalchemy_session_persistence = "commit"
-        sqlalchemy_session = None  # workaround for a bug in factoryboy
 
 
 class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -90,10 +75,10 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
             raise Exception("No session found")
         # For each file, find the entity associated with it
         # and update the file_id for that entity.
-#        files = session.query(File).all()
-#        for file in files:
-#            if file.entity_id:
-#                entity_field_name = file.entity_field_name
+        files = session.query(File).all()
+        for file in files:
+            if file.entity_id:
+                entity_field_name = file.entity_field_name
 #                entity = session.query(Entity).filter(Entity.id == file.entity_id).first()
 #                if entity:
 #                    entity_name = entity.type
@@ -104,4 +89,4 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
 #                        ),
 #                        {"field_name": entity_field_name},
 #                    )
-#        session.commit()
+        session.commit()

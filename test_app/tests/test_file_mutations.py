@@ -8,7 +8,8 @@ import typing
 import sqlalchemy as sa
 from mypy_boto3_s3.client import S3Client
 from platformics.database.connect import SyncDB
-from database.models import File, FileStatus
+from platformics.database.models import File
+from platformics.support.file_enums import FileStatus
 from conftest import SessionStorage, FileFactory, GQLTestClient
 from test_infra.factories.sequencing_read import SequencingReadFactory
 from database.models import SequencingRead
