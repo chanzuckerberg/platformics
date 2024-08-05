@@ -47,7 +47,7 @@ classes:
         required: true
       # Which specific instance of an entity that this file belongs to
       entity_id:
-        range: str
+        range: string
         required: true
       status:
         range: FileStatus
