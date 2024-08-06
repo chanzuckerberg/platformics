@@ -18,6 +18,7 @@ from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy_utils.functions import get_primary_keys
 from sqlalchemy.sql import func
 from strawberry.scalars import JSON
 from strawberry.types import Info
@@ -41,6 +42,7 @@ from platformics.graphql_api.core.query_input_types import (
 )
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
 from platformics.security.authorization import AuthzAction
+from platformics.support import sqlalchemy_helpers
 from platformics.settings import APISettings
 from platformics.support.file_enums import FileAccessProtocol, FileStatus
 from platformics.support.format_handlers import get_validator
@@ -198,25 +200,6 @@ class FileWhereClause(TypedDict):
     file_format: typing.Optional[StrComparators]
     compression_type: typing.Optional[StrComparators]
     size: typing.Optional[IntComparators]
-
-
-#@strawberry.field(extensions=[DependencyExtension()])
-#async def resolve_files(
-#    info: Info,
-#    entity_class_name: str,
-#    session: AsyncSession = Depends(get_db_session, use_cache=False),
-#    authz_client: AuthzClient = Depends(get_authz_client),
-#    principal: Principal = Depends(require_auth_principal),
-#    where: typing.Optional[FileWhereClause] = None,
-#) -> typing.Sequence[File]:
-#    """
-#    Handles files {} GraphQL queries.
-#    """
-#    # TODO FIXME THIS IS TOO OPEN. THIS SHOULD BE LOCKED DOWN TO ONLY ACCEPTABLE TYPES.
-#    db_module = info.context["db_module"],
-#    entity_class = getattr(db_module, entity_class_name)
-#    rows = await get_db_rows(db.File, session, authz_client, principal, where, [])
-#    return rows  # type: ignore
 
 
 # ------------------------------------------------------------------------------
@@ -414,12 +397,9 @@ async def create_or_upload_file(
         raise Exception("File name should not contain /")
 
     # Fetch the entity if have access to it
-    # TODO FIXME THIS IS TOO OPEN. THIS SHOULD BE LOCKED DOWN TO ONLY ACCEPTABLE TYPES.
-    entity_class = getattr(db_module, entity_class_name)
+    entity_class = sqlalchemy_helpers.get_orm_class_by_name(entity_class_name)
     query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, entity_class)
-    pk_col = next((col for col in entity_class.__table__.columns if col.primary_key), None)
-    if pk_col is None:
-        raise Exception("Primary keys are required for each class")
+    _, pk_col = sqlalchemy_helpers.get_primary_key(entity_class)
     query = query.filter(pk_col == entity_id)
     entity = (await session.execute(query)).scalars().one()
     if not entity:

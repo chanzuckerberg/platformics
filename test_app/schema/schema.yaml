@@ -72,11 +72,6 @@ classes:
         readonly: true
         annotations:
           onupdate_sa_function: now()
-      deleted_at:
-        range: date
-        annotations:
-          mutable: true
-          system_writable_only: True
     annotations:
       plural: Entities
 

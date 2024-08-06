@@ -41,6 +41,12 @@ class FieldWrapper:
         return strcase.to_lower_camel(self.name)
 
     @cached_property
+    def type_designator(self) -> bool:
+        if self.wrapped_field.designates_type:
+            return True
+        return False
+
+    @cached_property
     def multivalued(self) -> str:
         return self.wrapped_field.multivalued
 
@@ -261,6 +267,14 @@ class EntityWrapper:
     @cached_property
     def is_a_snake(self) -> str:
         return strcase.to_snake(self.is_a)
+
+    @cached_property
+    def parent_key(self) -> FieldWrapper | None:
+        if not self.is_a:
+            return
+        for field in self.all_fields:
+            if field.inverse and field.inverse.split(".")[0] == self.is_a_snake:
+                return field
 
     @cached_property
     def type_designator(self) -> FieldWrapper:

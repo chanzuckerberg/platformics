@@ -6,12 +6,15 @@ import factory
 import faker
 import sqlalchemy as sa
 import uuid6
+from platformics.database.models.base import Base
 from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
+from sqlalchemy_utils.functions import get_primary_keys
 
 from platformics.database.models.file import File, FileStatus
+from platformics.support import sqlalchemy_helpers
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -40,22 +43,30 @@ class SessionStorage:
     def get_session(cls) -> sa.orm.Session | None:
         return cls.session
 
+class CommonFactory(factory.alchemy.SQLAlchemyModelFactory):
+    """
+    Base class for all factories
+    """
+    class Meta:
+        sqlalchemy_session_factory = SessionStorage.get_session
+        sqlalchemy_session_persistence = "commit"
+        sqlalchemy_session = None  # workaround for a bug in factoryboy
+
 
 class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
     """
     Factory for generating files
     """
-
     class Meta:
         sqlalchemy_session_factory = SessionStorage.get_session
         sqlalchemy_session_persistence = "commit"
         sqlalchemy_session = None  # workaround for a bug in factoryboy
-#        model = File
+        model = File
         # What fields do we try to match to existing db rows to determine whether we
         # should create a new row or not?
         sqlalchemy_get_or_create = ("namespace", "path")
 
-#    status = factory.Faker("enum", enum_cls=FileStatus)
+    status = factory.Faker("enum", enum_cls=FileStatus)
     protocol = "s3"
     namespace = fuzzy.FuzzyChoice(["local-bucket", "remote-bucket"])
     path = factory.LazyAttribute(lambda o: generate_relative_file_path(o))
@@ -76,17 +87,19 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
         # For each file, find the entity associated with it
         # and update the file_id for that entity.
         files = session.query(File).all()
+
         for file in files:
             if file.entity_id:
+                related_class = sqlalchemy_helpers.get_orm_class_by_name(file.entity_class_name)
+                table_entity = related_class.__table__
+                table_name = table_entity.key
+                pk_col_name, _ = sqlalchemy_helpers.get_primary_key(table_entity)
                 entity_field_name = file.entity_field_name
-#                entity = session.query(Entity).filter(Entity.id == file.entity_id).first()
-#                if entity:
-#                    entity_name = entity.type
-#                    session.execute(
-#                        sa.text(
-#                            f"""UPDATE {entity_name} SET {entity_field_name}_id = file.id
-#                            FROM file WHERE {entity_name}.entity_id = file.entity_id and file.entity_field_name = :field_name""",
-#                        ),
-#                        {"field_name": entity_field_name},
-#                    )
+                session.execute(
+                    sa.text(
+                        f"""UPDATE {table_name} SET {entity_field_name}_id = file.id
+                        FROM file WHERE {table_name}.{pk_col_name}::varchar = file.entity_id and file.entity_field_name = :field_name""",
+                    ),
+                    {"field_name": entity_field_name},
+                )
         session.commit()

@@ -6,6 +6,7 @@ Cerbos policies, and Factoryboy factories from a LinkML schema.
 import logging
 import os
 
+import jinja2.ext
 from jinja2 import Environment, FileSystemLoader
 from linkml_runtime.utils.schemaview import SchemaView
 
@@ -130,7 +131,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     template_paths.append(
         os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates/"),
     )  # default template path
-    environment = Environment(loader=FileSystemLoader(template_paths))
+    environment = Environment(loader=FileSystemLoader(template_paths), extensions=[jinja2.ext.loopcontrols])
     view = SchemaView(schemafile)
     view.imports_closure()
     wrapped_view = ViewWrapper(view)

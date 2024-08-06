@@ -1,14 +1,18 @@
 import datetime
 import uuid
 from typing import ClassVar
+from sqlalchemy import cast
+from sqlalchemy.dialects.postgresql import VARCHAR
 
 import uuid6
 from mypy_boto3_s3.client import S3Client
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, event
+from sqlalchemy import Column, DateTime, Enum, Integer, String, event
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
+from platformics.support import sqlalchemy_helpers
 from sqlalchemy.sql import func
+from sqlalchemy_utils.functions import get_primary_keys
 
 from platformics.database.models.base import Base
 from platformics.settings import APISettings
@@ -44,7 +48,7 @@ class File(Base):
 
     # TODO - the relationship between Entities and Files is currently being
     # configured in both directions: entities have {fieldname}_file_id fields,
-    # *and* files have {entity_id, field_name, entity_class_name} fields to map
+    # *and* files have {entity_id, field_name, entity_table__name} fields to map
     # back to entities. This is necessary to support File objects inheriting the
     # access control properties of the Entity they're associated with.
     entity_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -76,7 +80,6 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
     make sure to scrub the foreign keys in the Entity it's associated with.
     """
     table_files = target.__table__
-    table_entity = target.entity.__table__
     settings = File.get_settings()
     s3_client = File.get_s3_client()
 
@@ -97,9 +100,13 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
             if response["ResponseMetadata"]["HTTPStatusCode"] != 204:
                 raise Exception("Failed to delete file from S3")
 
+    related_class = sqlalchemy_helpers.get_orm_class_by_name(file.entity_class_name)
+    table_entity = related_class.__table__
+    _, pk_col = sqlalchemy_helpers.get_primary_key(table_entity)
+
     # Finally, scrub the foreign keys in the related Entity
     values = {f"{target.entity_field_name}_id": None}
     # Modifying the target.entity directly does not save changes, we need to use `connection`
     connection.execute(
-        table_entity.update().where(table_entity.c.entity_id == target.entity_id).values(**values),  # type: ignore
+        table_entity.update().where(cast(pk_col, VARCHAR) == target.entity_id).values(**values),  # type: ignore
     )

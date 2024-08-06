@@ -9,8 +9,9 @@ Make changes to the template codegen/templates/test_infra/factories/class_name.p
 
 import random
 import factory
+import uuid6
 from database.models import {{ cls.name }}
-from platformics.test_infra.factories.base import FileFactory
+from platformics.test_infra.factories.base import FileFactory, CommonFactory
 {%- for field in cls.related_fields %}
     {%- if field.inverse and not field.multivalued%}
 from test_infra.factories.{{ field.related_class.snake_name }} import {{ field.related_class.name }}Factory
@@ -29,16 +30,28 @@ Faker.add_provider(Organ)
 Faker.add_provider(EnumProvider)
 
 
-class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}factory.alchemy.SQLAlchemyModelFactory{%- endif %}):
+class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}CommonFactory{%- endif %}):
     class Meta:
         sqlalchemy_session = None  # workaround for a bug in factoryboy
         model = {{ cls.name }}
+        {% if cls.is_a %}
         # Match entity_id with existing db rows to determine whether we should
         # create a new row or not.
-        sqlalchemy_get_or_create = ("entity_id",)
+        sqlalchemy_get_or_create = ("{{ cls.parent_key.name }}",)
+        {% else %}
+        sqlalchemy_get_or_create = ("{{ cls.identifier.name }}",)
+        {% endif %}
     {% for field in cls.owned_fields %}
-        {%- if field.type != "uuid" %}
-            {%- if field.inverse and field.related_class.name != "Entity" %}
+        {#- Type designators should *not* have random values assigned by fixtures! #}
+        {%- if field.type_designator %}
+          {%- continue %}
+        {%- endif %}
+        {%- if field.type == "uuid" %}
+            {% if field.identifier and not cls.is_abstract %}
+    {{ field.name }} = uuid6.uuid7()
+            {% endif %}
+        {%- else %}
+            {%- if field.inverse %}
             {#- If the field is a one-to-one relationship, avoid circular imports by only defining the SubFactory on the child #}
                 {%- if not field.multivalued and not field.is_virtual_relationship %}
     {{ field.name }} = factory.SubFactory(
@@ -54,13 +67,16 @@ class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}fa
     {{ field.name }} = factory.RelatedFactory(
         FileFactory,
         factory_related_name="entity",
+        entity_id=factory.SelfAttribute("..{{ cls.identifier.name }}"),
+        entity_class_name="{{ cls.name }}",
         entity_field_name="{{ field.name }}",
         file_format="{{ field.factory_type }}",
     )
                 {%- else %}
     {{ field.name }} = factory.RelatedFactory(
         FileFactory,
-        factory_related_name="entity",
+        entity_id=factory.SelfAttribute("..{{ cls.identifier.name }}"),
+        entity_class_name="{{ cls.name }}",
         entity_field_name="{{ field.name }}",
         file_format="fastq",
     )

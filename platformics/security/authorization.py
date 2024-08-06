@@ -1,17 +1,15 @@
 import typing
 from enum import Enum
-from sqlalchemy import inspect
 
 from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import ResourceDesc
 from cerbos.sdk.model import Principal as CerbosPrincipal
+from cerbos.sdk.model import Resource, ResourceDesc
 from sqlalchemy.sql import Select
 
 import platformics.database.models as db
+from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
 from platformics.thirdparty.cerbos_sqlalchemy.query import get_query
-from cerbos.sdk.model import Resource
-from platformics.security.token_auth import get_token_claims
 
 
 class AuthzAction(str, Enum):
@@ -20,10 +18,12 @@ class AuthzAction(str, Enum):
     UPDATE = "update"
     DELETE = "delete"
 
+
 # TODO - right now this is an unmodified alias of Cerbos' principal, but we can extend it in the future
 # if need be. The properties/methods of this class are *only* referenced in this file!
 class Principal(CerbosPrincipal):
     pass
+
 
 def hydrate_auth_principal(
     settings: APISettings,
@@ -62,11 +62,12 @@ def hydrate_auth_principal(
         },
     )
 
+
 class AuthzClient:
     def __init__(self, settings: APISettings):
         self.settings = settings
         self.client = CerbosClient(host=settings.CERBOS_URL)
-    
+
     # Convert a model object to a dictionary
     def _obj_to_dict(self, obj):
         mydict = {}
@@ -100,7 +101,7 @@ class AuthzClient:
         if self.client.is_allowed(AuthzAction.CREATE, principal, resource):
             return True
         return False
-    
+
     def can_update(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
         attr = self._obj_to_dict(resource)
@@ -113,6 +114,7 @@ class AuthzClient:
             return True
         return False
 
+    # Get a SQLAlchemy model with authz filters already applied
     def get_resource_query(
         self,
         principal: Principal,
@@ -122,14 +124,12 @@ class AuthzClient:
     ) -> Select:
         rd = ResourceDesc(model_cls.__tablename__)
         plan = self.client.plan_resources(action, principal, rd)
-        print("----")
-        if relationship:
-            print(f"parent_cls is {relationship.parent}")
-        print("----")
 
         attr_map = {}
         joins = []
         if model_cls == db.File:  # type: ignore
+            if not relationship:
+                raise Exception("Relationship is required for File queries")
             parent = relationship.parent.entity
             joins = [(parent, relationship.primaryjoin)]
 
@@ -146,3 +146,13 @@ class AuthzClient:
             joins,  # type: ignore
         )
         return query
+
+    # An opportunity to modify SQL WHERE clauses before they get sent to the DB.
+    def modify_where_clause(
+        self,
+        principal: Principal,
+        action: AuthzAction,
+        model_cls: type[db.Base],  # type: ignore
+        where_clauses: dict[str, typing.Any],
+    ):
+        pass

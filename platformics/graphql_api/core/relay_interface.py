@@ -4,6 +4,7 @@ import strawberry
 from strawberry.types import Info
 
 from strawberry import relay
+from platformics.support import sqlalchemy_helpers
 
 
 @strawberry.interface
@@ -16,17 +17,15 @@ class EntityInterface(relay.Node):
     @classmethod
     async def resolve_nodes(cls, *, info: Info, node_ids: Iterable[str], required: bool = False) -> list:
         dataloader = info.context["sqlalchemy_loader"]
-        db_module = info.context["db_module"]
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
-        sql_model = getattr(db_module, gql_type)
+        sql_model = sqlalchemy_helpers.get_orm_class_by_name(gql_type)
         return await dataloader.resolve_nodes(sql_model, node_ids)
 
     @classmethod
     async def resolve_node(cls, node_id: str, info: Info, required: bool = False) -> Any:
         dataloader = info.context["sqlalchemy_loader"]
-        db_module = info.context["db_module"]
         gql_type: str = cls.__strawberry_definition__.name  # type: ignore
-        sql_model = getattr(db_module, gql_type)
+        sql_model = sqlalchemy_helpers.get_orm_class_by_name(gql_type)
         res = await dataloader.resolve_nodes(sql_model, [node_id])
         if res:
             return res[0]
