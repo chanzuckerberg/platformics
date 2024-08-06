@@ -43,6 +43,8 @@ classes:
         identifier: true
         range: uuid
         required: true
+        annotations:
+          indexed: true
       # This file's ID is stored in the entity column <entity_field_name>_id
       entity_field_name:
         range: string
@@ -55,6 +57,8 @@ classes:
       entity_id:
         range: string
         required: true
+        annotations:
+          indexed: true
       status:
         range: FileStatus
         required: true
