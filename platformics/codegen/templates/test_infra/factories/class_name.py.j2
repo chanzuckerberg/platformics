@@ -30,7 +30,7 @@ Faker.add_provider(Organ)
 Faker.add_provider(EnumProvider)
 
 
-class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}CommonFactory{%- endif %}):
+class {{ cls.name }}Factory(CommonFactory):
     class Meta:
         sqlalchemy_session = None  # workaround for a bug in factoryboy
         model = {{ cls.name }}
@@ -41,14 +41,18 @@ class {{ cls.name }}Factory({%- if cls.is_a %}{{ cls.is_a }}Factory{%- else %}Co
         {% else %}
         sqlalchemy_get_or_create = ("{{ cls.identifier.name }}",)
         {% endif %}
-    {% for field in cls.owned_fields %}
+    {% for field in cls.all_fields %}
         {#- Type designators should *not* have random values assigned by fixtures! #}
         {%- if field.type_designator %}
           {%- continue %}
         {%- endif %}
         {%- if field.type == "uuid" %}
-            {% if field.identifier and not cls.is_abstract %}
-    {{ field.name }} = uuid6.uuid7()
+            {% if field.identifier %}
+              {%- if field.name == cls.identifier.name %}
+    {{ field.name }} = factory.Faker("uuid4")
+              {%- else %}
+    {{ field.name }} = factory.SelfAttribute("{{ cls.identifier.name }}")
+              {%- endif %}
             {% endif %}
         {%- else %}
             {%- if field.inverse %}

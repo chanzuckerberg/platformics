@@ -112,7 +112,7 @@ def convert_where_clauses_to_sql(
     for join_field, join_info in all_joins.items():
         relationship = mapper.relationships[join_field]  # type: ignore
         related_cls = relationship.mapper.entity
-        secure_query = authz_client.get_resource_query(principal, action, related_cls, sa_model)
+        secure_query = authz_client.get_resource_query(principal, action, related_cls)
         # Get the subquery, nested order_by fields, and nested group_by fields that need to be applied to the current query
         subquery, subquery_order_by, subquery_group_by = convert_where_clauses_to_sql(
             principal,

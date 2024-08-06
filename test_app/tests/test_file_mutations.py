@@ -139,6 +139,7 @@ async def test_upload_file(
         mutation MyQuery {{
           uploadFile(
             entityId: "{entity_id}",
+            entityClassName: "SequencingRead",
             entityFieldName: "{entity_field}",
             file: {{
                 name: "test.fastq",
@@ -200,6 +201,7 @@ async def test_create_file(
         mutation MyQuery {{
             createFile(
                 entityId: "{entity_id}",
+                entityClassName: "SequencingRead",
                 entityFieldName: "r1_file",
                 file: {{
                     name: "{file_path}",

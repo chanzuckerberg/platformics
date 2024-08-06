@@ -92,14 +92,10 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
             if file.entity_id:
                 related_class = sqlalchemy_helpers.get_orm_class_by_name(file.entity_class_name)
                 table_entity = related_class.__table__
-                table_name = table_entity.key
-                pk_col_name, _ = sqlalchemy_helpers.get_primary_key(table_entity)
-                entity_field_name = file.entity_field_name
-                session.execute(
-                    sa.text(
-                        f"""UPDATE {table_name} SET {entity_field_name}_id = file.id
-                        FROM file WHERE {table_name}.{pk_col_name}::varchar = file.entity_id and file.entity_field_name = :field_name""",
-                    ),
-                    {"field_name": entity_field_name},
-                )
+                _, pk_col = sqlalchemy_helpers.get_primary_key(table_entity)
+                entity_field_name = f"{file.entity_field_name}_id"
+
+                entity = session.query(related_class).filter(pk_col == file.entity_id).first()
+                if entity:
+                    setattr(entity, entity_field_name, file.id)
         session.commit()

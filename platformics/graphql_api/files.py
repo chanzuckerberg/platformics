@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import platformics.database.models as db
 import strawberry
+import sqlalchemy as sa
 import uuid6
 from platformics.security.authorization import AuthzClient, Principal
 from fastapi import Depends
@@ -223,9 +224,9 @@ async def validate_file(
 
         file_size = s3_client.head_object(Bucket=file.namespace, Key=file.path)["ContentLength"]
     except:  # noqa
-        file.status = db.FileStatus.FAILED
+        file.status = FileStatus.FAILED
     else:
-        file.status = db.FileStatus.SUCCESS
+        file.status = FileStatus.SUCCESS
         file.size = file_size
 
     file.updated_at = func.now()
@@ -290,7 +291,14 @@ async def mark_upload_complete(
     Once a file is uploaded, the front-end should make a markUploadComplete mutation
     to mark the file as ready for pipeline analysis.
     """
-    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File)
+
+    # Get the type of entity that the file is related to
+    file_row = (await session.execute(sa.select(db.File).where(db.File.id == file_id))).scalars().one()
+    entity_class = sqlalchemy_helpers.get_orm_class_by_name(file_row.entity_class_name)
+    mapper = inspect(entity_class)
+
+    # See if we actually have access to that file.
+    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File, mapper.relationships.get(file_row.entity_field_name))
     query = query.filter(db.File.id == file_id)
     file = (await session.execute(query)).scalars().one()
     if not file:
@@ -337,7 +345,6 @@ async def create_file(
     )
     assert isinstance(new_file, db.File)  # reassure mypy that we're returning the right type
     return new_file
-
 
 @strawberry.mutation(extensions=[DependencyExtension()])
 async def upload_file(
@@ -411,7 +418,7 @@ async def create_or_upload_file(
         raise Exception(f"This entity does not have a corresponding file of type {entity_field_name}")
 
     # Unlink the File(s) currently connected to this entity (only commit to DB once add the new File below)
-    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File)
+    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File, entity_class)
     query = query.filter(db.File.entity_id == entity_id)
     query = query.filter(db.File.entity_field_name == entity_field_name)
     current_files = (await session.execute(query)).scalars().all()
@@ -440,7 +447,7 @@ async def create_or_upload_file(
         path=file_path,
         file_format=file.file_format,
         compression_type=file.compression_type,
-        status=db.FileStatus.PENDING,
+        status=FileStatus.PENDING,
     )
     # Save file to db first
     session.add(new_file)
@@ -502,7 +509,7 @@ async def concatenate_files(
         raise Exception(f"Cannot concatenate more than {FILE_CONCATENATION_MAX} files")
 
     # Get files in question if have access to them
-    where = {"id": {"_in": ids}, "status": {"_eq": db.FileStatus.SUCCESS}}
+    where = {"id": {"_in": ids}, "status": {"_eq": FileStatus.SUCCESS}}
     files = await get_db_rows(db.File, session, authz_client, principal, where, [])
     if len(files) < 2:
         raise Exception("Need at least 2 valid files to concatenate")
