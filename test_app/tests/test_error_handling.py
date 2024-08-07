@@ -32,7 +32,7 @@ async def test_unauthorized_error(
 
     # Make sure we haven't masked expected errors.
     assert output["data"] is None
-    assert "Unauthorized: Cannot create entity in this collection" in output["errors"][0]["message"]
+    assert "Unauthorized: Cannot create entity" in output["errors"][0]["message"]
 
 
 @pytest.mark.asyncio

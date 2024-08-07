@@ -7,7 +7,6 @@ import uvicorn
 from platformics.graphql_api.setup import get_app, get_strawberry_config
 from platformics.graphql_api.core.error_handler import HandleErrors
 from platformics.settings import APISettings
-from database import models
 
 from graphql_api.mutations import Mutation
 from graphql_api.queries import Query
@@ -17,7 +16,7 @@ schema = strawberry.Schema(query=Query, mutation=Mutation, config=get_strawberry
 
 
 # Create and run app
-app = get_app(settings, schema, models)
+app = get_app(settings, schema)
 
 if __name__ == "__main__":
     config = uvicorn.Config("main:app", host="0.0.0.0", port=9008, log_level="info")

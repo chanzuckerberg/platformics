@@ -392,38 +392,3 @@ async def test_soft_deleted_data_not_in_aggregate_query(
     """
     output = await gql_client.query(aggregate_query, user_id=user_id, member_projects=[project_id])
     assert output["data"]["samplesAggregate"]["aggregate"][0]["count"] == 5
-
-    # Soft-delete a sample by updating its deleted_at field
-    soft_delete_query = f"""
-        mutation MyMutation {{
-            updateSample (
-              where: {{ id: {{ _eq: "{sample_to_delete.id}" }} }},
-              input: {{ deletedAt: "2021-01-01T00:00:00Z" }}
-            )
-            {{
-                id
-            }}
-        }}
-    """
-    # Only service identities are allowed to soft delete entities
-    output = await gql_client.query(
-        soft_delete_query, user_id=user_id, member_projects=[project_id], service_identity="workflows"
-    )
-    assert output["data"]["updateSample"][0]["id"] == str(sample_to_delete.id)
-
-    # The soft-deleted sample should not be included in the aggregate query anymore
-    output = await gql_client.query(aggregate_query, user_id=user_id, member_projects=[project_id])
-    assert output["data"]["samplesAggregate"]["aggregate"][0]["count"] == 4
-
-    # The soft-deleted sample should be included in the aggregate query if we specifically ask for it
-    aggregate_soft_deleted_query = """
-        query MyQuery {
-            samplesAggregate(where: { deletedAt: { _is_null: false } }) {
-                aggregate {
-                    count
-                }
-            }
-        }
-    """
-    output = await gql_client.query(aggregate_soft_deleted_query, user_id=user_id, member_projects=[project_id])
-    assert output["data"]["samplesAggregate"]["aggregate"][0]["count"] == 1

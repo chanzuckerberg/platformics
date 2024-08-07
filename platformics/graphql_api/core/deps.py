@@ -2,23 +2,16 @@ import typing
 
 import boto3
 from botocore.client import Config
-from platformics.security.authorization import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from platformics.graphql_api.core.error_handler import PlatformicsError
 from platformics.database.connect import AsyncDB, init_async_db
-from platformics.security.token_auth import get_token_claims
+from platformics.graphql_api.core.error_handler import PlatformicsError
+from platformics.security.authorization import AuthzClient, Principal, hydrate_auth_principal
 from platformics.settings import APISettings
-from platformics.security.authorization import AuthzClient, hydrate_auth_principal
-
-
-def get_db_module(request: Request) -> typing.Any:
-    """Get the DB module from our app state"""
-    return request.app.state.db_module
 
 
 def get_settings(request: Request) -> APISettings:

@@ -204,7 +204,11 @@ We can extend that list as we gather more use cases from the FE team.
 """
 @strawberry.input
 class {{ cls.name }}WhereClauseMutations(TypedDict):
-    {{ cls.identifier.name }}: {{ getComparators(cls.identifier) }} | None
+    {%- for attr in cls.visible_fields %}
+        {%- if attr.identifier %}
+    {{ attr.name }}: {{ getComparators(attr) }} | None
+        {%- endif %}
+    {%- endfor %}
 
 
 """
@@ -632,7 +636,7 @@ async def update_{{ cls.snake_name }}(
 async def delete_{{ cls.snake_name }}(
     where: {{ cls.name }}WhereClauseMutations,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    authz_cient: AuthzClient = Depends(get_authz_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
 ) -> Sequence[db.{{ cls.name }}]:
     """

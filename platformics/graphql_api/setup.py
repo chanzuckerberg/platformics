@@ -9,18 +9,15 @@ from fastapi import Depends, FastAPI
 from strawberry.fastapi import GraphQLRouter
 from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
-from platformics.security.authorization import AuthzClient, Principal
 
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.deps import (
     get_auth_principal,
     get_authz_client,
-    get_db_module,
     get_engine,
 )
 from platformics.graphql_api.core.gql_loaders import EntityLoader
-
-from platformics.database.models.file import File
+from platformics.security.authorization import AuthzClient, Principal
 from platformics.settings import APISettings
 
 # ------------------------------------------------------------------------------
@@ -30,7 +27,6 @@ from platformics.settings import APISettings
 
 def get_context(
     engine: AsyncDB = Depends(get_engine),
-    db_module: AsyncDB = Depends(get_db_module),
     authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(get_auth_principal),
 ) -> dict[str, typing.Any]:
@@ -41,7 +37,6 @@ def get_context(
         "sqlalchemy_loader": EntityLoader(engine=engine, authz_client=authz_client, principal=principal),
         # This is entirely to support automatically resolving Relay Nodes in the EntityInterface
         # and identifying File rows based on entity type, ID and field name
-        "db_module": db_module,
     }
 
 
@@ -56,7 +51,7 @@ class CustomNameConverter(NameConverter):
         return super().get_graphql_name(obj)
 
 
-def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any) -> FastAPI:
+def get_app(settings: APISettings, schema: strawberry.Schema) -> FastAPI:
     """
     Make sure tests can get their own instances of the app.
     """
@@ -70,7 +65,6 @@ def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.
     _app.include_router(graphql_app, prefix="/graphql")
     # Add a global settings object to the app that we can use as a dependency
     _app.state.settings = settings
-    _app.state.db_module = db_module
 
     return _app
 

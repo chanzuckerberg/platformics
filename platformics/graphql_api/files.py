@@ -9,22 +9,20 @@ import typing
 import uuid
 from dataclasses import dataclass
 
-import platformics.database.models as db
-import strawberry
 import sqlalchemy as sa
+import strawberry
 import uuid6
-from platformics.security.authorization import AuthzClient, Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy_utils.functions import get_primary_keys
 from sqlalchemy.sql import func
 from strawberry.scalars import JSON
 from strawberry.types import Info
 from typing_extensions import TypedDict
 
+import platformics.database.models as db
 from platformics.graphql_api.core.deps import (
     get_authz_client,
     get_db_session,
@@ -42,9 +40,9 @@ from platformics.graphql_api.core.query_input_types import (
     UUIDComparators,
 )
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
-from platformics.security.authorization import AuthzAction
-from platformics.support import sqlalchemy_helpers
+from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 from platformics.settings import APISettings
+from platformics.support import sqlalchemy_helpers
 from platformics.support.file_enums import FileAccessProtocol, FileStatus
 from platformics.support.format_handlers import get_validator
 
@@ -298,7 +296,12 @@ async def mark_upload_complete(
     mapper = inspect(entity_class)
 
     # See if we actually have access to that file.
-    query = authz_client.get_resource_query(principal, AuthzAction.UPDATE, db.File, mapper.relationships.get(file_row.entity_field_name))
+    query = authz_client.get_resource_query(
+        principal,
+        AuthzAction.UPDATE,
+        db.File,
+        mapper.relationships.get(file_row.entity_field_name),
+    )
     query = query.filter(db.File.id == file_id)
     file = (await session.execute(query)).scalars().one()
     if not file:
@@ -330,7 +333,6 @@ async def create_file(
     # Since user can specify an arbitrary path, make sure only a system user can do this.
     require_system_user(principal)
     new_file = await create_or_upload_file(
-        info.context["db_module"],
         entity_id,
         entity_field_name,
         entity_class_name,
@@ -345,6 +347,7 @@ async def create_file(
     )
     assert isinstance(new_file, db.File)  # reassure mypy that we're returning the right type
     return new_file
+
 
 @strawberry.mutation(extensions=[DependencyExtension()])
 async def upload_file(
@@ -365,7 +368,6 @@ async def upload_file(
     Create a file object and generate an STS token for multipart upload.
     """
     response = await create_or_upload_file(
-        info.context["db_module"],
         entity_id,
         entity_field_name,
         entity_class_name,
@@ -383,7 +385,6 @@ async def upload_file(
 
 
 async def create_or_upload_file(
-    db_module: typing.Any,
     entity_id: strawberry.ID,
     entity_field_name: str,
     entity_class_name: str,

@@ -43,10 +43,12 @@ class SessionStorage:
     def get_session(cls) -> sa.orm.Session | None:
         return cls.session
 
+
 class CommonFactory(factory.alchemy.SQLAlchemyModelFactory):
     """
     Base class for all factories
     """
+
     class Meta:
         sqlalchemy_session_factory = SessionStorage.get_session
         sqlalchemy_session_persistence = "commit"
@@ -57,6 +59,7 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
     """
     Factory for generating files
     """
+
     class Meta:
         sqlalchemy_session_factory = SessionStorage.get_session
         sqlalchemy_session_persistence = "commit"

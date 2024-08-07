@@ -33,7 +33,6 @@ from pytest_postgresql.janitor import DatabaseJanitor
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from platformics.settings import APISettings
-from database import models
 from platformics.graphql_api.setup import get_strawberry_config
 from graphql_api.mutations import Mutation
 from graphql_api.queries import Query
@@ -249,6 +248,6 @@ async def api_test_schema(async_db: AsyncDB) -> FastAPI:
     settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
     strawberry_config = get_strawberry_config()
     schema = strawberry.Schema(query=MyQuery, mutation=Mutation, config=strawberry_config, extensions=[HandleErrors()])
-    api = get_app(settings, schema, models)
+    api = get_app(settings, schema)
     overwrite_api(api, async_db)
     return api
