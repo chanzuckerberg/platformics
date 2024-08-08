@@ -73,7 +73,7 @@ jobs:
   
   manifest:
     name: Create and push multi-architecture manifest
-    needs: get-release-tag, build-and-push
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
