@@ -5,6 +5,7 @@ Cerbos policies, and Factoryboy factories from a LinkML schema.
 
 import logging
 import os
+import re
 
 import jinja2.ext
 from jinja2 import Environment, FileSystemLoader
@@ -101,7 +102,6 @@ def generate_entity_import_files(
     import_templates = [
         "cerbos/config.yaml",
         "cerbos/policies/file.yaml",
-        "cerbos/policies/entity.yaml",
         "cerbos/policies/derived_roles_common.yaml",
         "cerbos/policies/_schemas/principal.json",
         "database/models/__init__.py",
@@ -123,6 +123,16 @@ def generate_entity_import_files(
             print(f"... wrote {filename}")
 
 
+def regex_replace(txt, rgx, val, ignorecase=False, multiline=False):
+    flag = 0
+    if ignorecase:
+        flag |= re.I
+    if multiline:
+        flag |= re.M
+    compiled_rgx = re.compile(rgx, flag)
+    return compiled_rgx.sub(val, txt)
+
+
 def generate(schemafile: str, output_prefix: str, render_files: bool, template_override_paths: tuple[str]) -> None:
     """
     Launch code generation
@@ -132,6 +142,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
         os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates/"),
     )  # default template path
     environment = Environment(loader=FileSystemLoader(template_paths), extensions=[jinja2.ext.loopcontrols])
+    environment.filters["regex_replace"] = regex_replace
     view = SchemaView(schemafile)
     view.imports_closure()
     wrapped_view = ViewWrapper(view)

@@ -5,10 +5,10 @@ The wrapper classes in this module are entirely centered around providing conven
 functions to keep complicated LinkML-specific logic out of our Jinja2 templates.
 """
 
+import contextlib
 from functools import cached_property
 
 import strcase
-import contextlib
 from linkml_runtime.linkml_model.meta import ClassDefinition, EnumDefinition, SlotDefinition
 from linkml_runtime.utils.schemaview import SchemaView
 
@@ -35,6 +35,11 @@ class FieldWrapper:
     @cached_property
     def name(self) -> str:
         return self.wrapped_field.name.replace(" ", "_")
+
+    @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_field.description)
 
     @cached_property
     def camel_name(self) -> str:
@@ -73,12 +78,15 @@ class FieldWrapper:
 
     @cached_property
     def default_value(self) -> str | None:
-        if self.wrapped_field.ifabsent is not None:
-            default_value = self.wrapped_field.ifabsent
-            # Make sure to quote this so it's safe!
-            return repr(default_value.value)
-        if "default_sa_function" in self.wrapped_field.annotations:
-            return "func.{func}".format(func=self.wrapped_field.annotations["default_sa_function"].value)
+        try:
+            if self.wrapped_field.ifabsent is not None:
+                default_value = self.wrapped_field.ifabsent
+                # Make sure to quote this so it's safe!
+                return repr(default_value.value)
+            if "default_sa_function" in self.wrapped_field.annotations:
+                return "func.{func}".format(func=self.wrapped_field.annotations["default_sa_function"].value)
+        except AttributeError:
+            pass
         return None
 
     @cached_property
@@ -255,6 +263,11 @@ class EntityWrapper:
     # Blow up if a property doesn't exist
     def __getattr__(self, attr: str) -> str:
         raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
+
+    @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_class.description)
 
     @cached_property
     def is_abstract(self) -> str:
@@ -434,6 +447,5 @@ class ViewWrapper:
             # Mixins don't get represented in the outputted schemas
             if cls.mixin:
                 continue
-            print("Adding class: ", cls.name)
             classes.append(EntityWrapper(self.view, cls))
         return classes

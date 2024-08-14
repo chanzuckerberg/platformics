@@ -1,5 +1,6 @@
 from sqlalchemy.orm import ColumnProperty
 from sqlalchemy_utils import get_primary_keys
+
 from platformics.database.models.base import Base
 
 
