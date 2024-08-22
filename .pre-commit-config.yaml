@@ -1,11 +1,8 @@
 repos:
-- repo: https://github.com/psf/black-pre-commit-mirror
-  rev: "24.4.2"
-  hooks:
-  - id: black
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: "v0.4.8"
+  rev: "v0.6.0"
   hooks:
+  - id: ruff-format
   - id: ruff
     args:
     - --fix
@@ -13,6 +10,9 @@ repos:
   rev: "v1.10.0"
   hooks:
   - id: mypy
+    args:
+      - --namespace-packages
+      - --explicit-package-bases
     exclude: "platformics/thirdparty|platformics/graphql_api/relay"
     additional_dependencies: ["types-PyYAML", "types-dateparser", "types-requests"]
 - repo: https://github.com/pre-commit/pre-commit-hooks

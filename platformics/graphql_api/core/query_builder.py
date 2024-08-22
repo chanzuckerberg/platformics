@@ -17,9 +17,9 @@ from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
 
 import platformics.database.models as db
+from platformics.database.models.base import Base
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_input_types import aggregator_map, operator_map, orderBy
-from platformics.database.models.base import Base
 from platformics.security.authorization import CerbosAction, get_resource_query
 
 E = typing.TypeVar("E", db.File, db.Entity)

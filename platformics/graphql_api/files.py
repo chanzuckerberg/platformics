@@ -34,7 +34,12 @@ from platformics.graphql_api.core.deps import (
     require_system_user,
 )
 from platformics.graphql_api.core.query_builder import get_db_rows
-from platformics.graphql_api.core.query_input_types import EnumComparators, IntComparators, StrComparators, UUIDComparators
+from platformics.graphql_api.core.query_input_types import (
+    EnumComparators,
+    IntComparators,
+    StrComparators,
+    UUIDComparators,
+)
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
 from platformics.graphql_api.types.entities import Entity
 from platformics.security.authorization import CerbosAction, get_resource_query

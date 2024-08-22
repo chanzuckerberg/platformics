@@ -10,8 +10,8 @@ from mypy_boto3_sts.client import STSClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from platformics.graphql_api.core.error_handler import PlatformicsError
 from platformics.database.connect import AsyncDB, init_async_db
+from platformics.graphql_api.core.error_handler import PlatformicsError
 from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
 
