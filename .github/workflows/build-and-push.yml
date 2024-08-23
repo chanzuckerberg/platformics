@@ -4,9 +4,6 @@ on:
   release:
     types: 
       - published
-  push:
-    branches:
-      - ninabernick/package
   workflow_dispatch:
 
 jobs:
@@ -47,14 +44,14 @@ jobs:
     - name: Build with Poetry
       run: make build-wheel
 
-    # - name: Build and push Docker image
-    #   uses: docker/build-push-action@v6
-    #   with:
-    #     context: .
-    #     push: true
-    #     tags: |
-    #       ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
-    #       ghcr.io/${{ github.repository }}:latest
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
+          ghcr.io/${{ github.repository }}:latest
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
