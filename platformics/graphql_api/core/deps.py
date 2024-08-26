@@ -2,17 +2,15 @@ import typing
 
 import boto3
 from botocore.client import Config
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from platformics.graphql_api.core.error_handler import PlatformicsError
 from platformics.database.connect import AsyncDB, init_async_db
-from platformics.security.token_auth import get_token_claims
+from platformics.graphql_api.core.error_handler import PlatformicsError
+from platformics.security.authorization import AuthzClient, Principal, hydrate_auth_principal
 from platformics.settings import APISettings
 
 
@@ -30,7 +28,7 @@ async def get_engine(
     settings: APISettings = Depends(get_settings),
 ) -> typing.AsyncGenerator[AsyncDB, None]:
     """Wrap resolvers in a DB engine"""
-    engine = init_async_db(settings.DB_URI, echo=settings.DB_ECHO)
+    engine = init_async_db(settings.DB_URI, echo=settings.DB_ECHO)  # type: ignore
     try:
         yield engine
     finally:
@@ -48,8 +46,8 @@ async def get_db_session(
         await session.close()  # type: ignore
 
 
-def get_cerbos_client(settings: APISettings = Depends(get_settings)) -> CerbosClient:
-    return CerbosClient(host=settings.CERBOS_URL)
+def get_authz_client(settings: APISettings = Depends(get_settings)) -> AuthzClient:
+    return AuthzClient(settings=settings)
 
 
 def get_user_token(request: Request) -> typing.Optional[str]:
@@ -70,38 +68,11 @@ def get_auth_principal(
     settings: APISettings = Depends(get_settings),
     user_token: typing.Optional[str] = Depends(get_user_token),
 ) -> typing.Optional[Principal]:
-    if not user_token:
-        return None
     try:
-        claims = get_token_claims(settings.JWK_PRIVATE_KEY, user_token)
+        principal = hydrate_auth_principal(settings, user_token)
     except:  # noqa
-        return None
-
-    if "project_roles" not in claims:
-        raise PlatformicsError("Unauthorized")
-
-    project_claims = claims["project_roles"]
-
-    try:
-        for role, project_ids in project_claims.items():
-            assert role in ["member", "owner", "viewer"]
-            assert isinstance(project_ids, list)
-            for item in project_ids:
-                assert int(item)
-    except Exception:
         raise PlatformicsError("Unauthorized") from None
-
-    return Principal(
-        claims["sub"],
-        roles=["user"],
-        attr={
-            "user_id": int(claims["sub"]),
-            "owner_projects": project_claims.get("owner", []),
-            "member_projects": project_claims.get("member", []),
-            "viewer_projects": project_claims.get("viewer", []),
-            "service_identity": claims["service_identity"],
-        },
-    )
+    return principal
 
 
 def require_auth_principal(

@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     DEFAULT_UPLOAD_PROTOCOL: str
     BOTO_ENDPOINT_URL: typing.Optional[str] = None
     AWS_REGION: str
-    DB_ECHO: bool = False
 
     ############################################################################
     # Computed properties

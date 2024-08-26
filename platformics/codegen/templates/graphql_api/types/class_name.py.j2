@@ -34,14 +34,12 @@ from platformics.graphql_api.types.entities import EntityInterface
 from graphql_api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}Aggregate, format_{{related_field.related_class.snake_name}}_aggregate_output)
     {%- endif %}
 {%- endfor %}
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal, Resource
 from fastapi import Depends
 from platformics.graphql_api.core.errors import PlatformicsError
-from platformics.graphql_api.core.deps import get_cerbos_client, get_db_session, require_auth_principal, is_system_user
+from platformics.graphql_api.core.deps import get_authz_client, get_db_session, require_auth_principal, is_system_user
 from platformics.graphql_api.core.query_input_types import aggregator_map, orderBy, EnumComparators, DatetimeComparators, IntComparators, FloatComparators, StrComparators, UUIDComparators, BoolComparators
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
-from platformics.security.authorization import CerbosAction, get_resource_query
+from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -413,7 +411,7 @@ Utilities
 @strawberry.field(extensions=[DependencyExtension()])
 async def resolve_{{ cls.plural_snake_name }}(
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     where: Optional[{{ cls.name }}WhereClause] = None,
     order_by: Optional[list[{{ cls.name }}OrderByClause]] = [],
@@ -426,7 +424,7 @@ async def resolve_{{ cls.plural_snake_name }}(
     offset = limit_offset["offset"] if limit_offset and "offset" in limit_offset else None
     if offset and not limit:
         raise PlatformicsError("Cannot use offset without limit")
-    return await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, order_by, CerbosAction.VIEW, limit, offset)  # type: ignore
+    return await get_db_rows(db.{{ cls.name }}, session, authz_client, principal, where, order_by, AuthzAction.VIEW, limit, offset)  # type: ignore
 
 
 def format_{{ cls.snake_name }}_aggregate_output(query_results: Sequence[RowMapping] | RowMapping) -> {{ cls.name }}Aggregate:
@@ -477,7 +475,7 @@ def format_{{ cls.snake_name }}_aggregate_row(row: RowMapping) -> {{ cls.name }}
 async def resolve_{{ cls.plural_snake_name }}_aggregate(
     info: Info,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     where: Optional[{{ cls.name }}WhereClause] = None,
     # TODO: add support for groupby, limit/offset
@@ -495,7 +493,7 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
     if not aggregate_selections:
         raise PlatformicsError("No aggregate functions selected")
 
-    rows = await get_aggregate_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, aggregate_selections, [], groupby_selections)  # type: ignore
+    rows = await get_aggregate_db_rows(db.{{ cls.name }}, session, authz_client, principal, where, aggregate_selections, [], groupby_selections)  # type: ignore
     aggregate_output = format_{{ cls.snake_name }}_aggregate_output(rows)
     return aggregate_output
 
@@ -504,7 +502,7 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
 async def create_{{ cls.snake_name }}(
     input: {{ cls.name }}CreateInput,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     is_system_user: bool = Depends(is_system_user),
 ) -> db.{{ cls.name }}:
@@ -527,23 +525,12 @@ async def create_{{ cls.snake_name }}(
         {%- endif %}
     {%- endif %}
 
-
-    {%- for field in cls.create_fields %}
-        {%- if field.name == "collection_id" %}
-    # Validate that the user can create entities in this collection
-    attr = {"collection_id": validated.collection_id, "owner_user_id": int(principal.id)}
-    resource = Resource(id="NEW_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
-    if not cerbos_client.is_allowed("create", principal, resource):
-        raise PlatformicsError("Unauthorized: Cannot create entity in this collection")
-        {%- endif %}
-    {%- endfor %}
-
     # Validate that the user can read all of the entities they're linking to.
     {%- for field in cls.create_fields %}
         {%- if field.is_entity and not field.is_virtual_relationship %}
     # Check that {{field.name}} relationship is accessible.
     if validated.{{field.name}}_id:
-        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
+        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, authz_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], AuthzAction.VIEW)
         if not {{field.name}}:
             raise PlatformicsError("Unauthorized: {{field.name}} does not exist")
         {%- endif %}
@@ -552,6 +539,11 @@ async def create_{{ cls.snake_name }}(
     # Save to DB
     params["owner_user_id"] = int(principal.id)
     new_entity = db.{{ cls.name }}(**params)
+
+    # Are we actually allowed to create this entity?
+    if not authz_client.can_create(new_entity, principal):
+        raise PlatformicsError("Unauthorized: Cannot create entity")
+
     session.add(new_entity)
     await session.commit()
     return new_entity
@@ -564,7 +556,7 @@ async def update_{{ cls.snake_name }}(
     input: {{ cls.name }}UpdateInput,
     where: {{ cls.name }}WhereClauseMutations,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     is_system_user: bool = Depends(is_system_user),
 ) -> Sequence[db.{{ cls.name }}]:
@@ -584,7 +576,7 @@ async def update_{{ cls.snake_name }}(
         {%- if field.is_entity and not field.is_virtual_relationship %}
     # Check that {{field.name}} relationship is accessible.
     if validated.{{field.name}}_id:
-        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, cerbos_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], CerbosAction.VIEW)
+        {{field.name}} = await get_db_rows(db.{{ field.related_class.name }}, session, authz_client, principal, {"id": {"_eq": validated.{{field.name}}_id } }, [], AuthzAction.VIEW)
         if not {{field.name}}:
             raise PlatformicsError("Unauthorized: {{field.name}} does not exist")
             {%- if field.type != cls.name %}
@@ -607,20 +599,9 @@ async def update_{{ cls.snake_name }}(
     {%- endif %}
 
     # Fetch entities for update, if we have access to them
-    entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.UPDATE)
+    entities = await get_db_rows(db.{{ cls.name }}, session, authz_client, principal, where, [], AuthzAction.UPDATE)
     if len(entities) == 0:
         raise PlatformicsError("Unauthorized: Cannot update entities")
-
-    {%- for field in self.mutable_fields %}
-        {%- if field.name == "collection_id" %}
-    # Validate that the user has access to the new collection ID
-    if validated.collection_id:
-        attr = {"collection_id": validated.collection_id}
-        resource = Resource(id="SOME_ID", kind=db.{{ cls.name }}.__tablename__, attr=attr)
-        if not cerbos_client.is_allowed(CerbosAction.UPDATE, principal, resource):
-            raise PlatformicsError("Unauthorized: Cannot access new collection")
-        {%- endif %}
-    {%- endfor %}
 
     # Update DB
     updated_at = datetime.datetime.now()
@@ -629,6 +610,10 @@ async def update_{{ cls.snake_name }}(
         for key in params:
             if params[key] is not None:
                 setattr(entity, key, params[key])
+
+    if not authz_client.can_update(entity, principal):
+        raise PlatformicsError("Unauthorized: Cannot access new collection")
+
     await session.commit()
     return entities
 {%- endif %}
@@ -638,14 +623,14 @@ async def update_{{ cls.snake_name }}(
 async def delete_{{ cls.snake_name }}(
     where: {{ cls.name }}WhereClauseMutations,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
 ) -> Sequence[db.{{ cls.name }}]:
     """
     Delete {{ cls.name }} objects. Used for mutations (see graphql_api/mutations.py).
     """
     # Fetch entities for deletion, if we have access to them
-    entities = await get_db_rows(db.{{ cls.name }}, session, cerbos_client, principal, where, [], CerbosAction.DELETE)
+    entities = await get_db_rows(db.{{ cls.name }}, session, authz_client, principal, where, [], AuthzAction.DELETE)
     if len(entities) == 0:
         raise PlatformicsError("Unauthorized: Cannot delete entities")
 

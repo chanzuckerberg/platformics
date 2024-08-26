@@ -60,6 +60,7 @@ clean: ## Remove all codegen'd artifacts.
 	rm -rf cerbos
 	rm -rf support
 	rm -rf database
+	rm -rf validators
 	rm -rf .moto_recording
 	rm -rf test_infra
 	$(docker_compose) --profile '*' down
