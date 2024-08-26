@@ -1,12 +1,21 @@
 [tool.poetry]
 name = "platformics"
 # placeholder version that will be replace by poetry-dynamic-versioning
-version = "0.1.1"
-description = "Platformics bio entities framework"
-authors = ["CZI Infectious Disease Team <help@czid.org>"]
+version = "0.1.1" 
+description = "Codegen Python GraphQL Entity Framework"
+authors = ["CZI Team <opensource@chanzuckerberg.com>"]
 license = "MIT License"
 readme = "README.md"
 packages = [{include = "platformics"}]
+keywords = ["graphql", "codegen"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Code Generators",
+    "Programming Language :: Python :: 3.12",
+]
+repository = "https://github.com/chanzuckerberg/platformics"
 
 [tool.poetry.scripts]
 platformics = 'platformics.cli.main:cli'
@@ -30,9 +39,8 @@ httpx = "^0.24.1"
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.110.0"
-# biopython 1.83 fails installation on m1 macs. The issue is fixed upstream so we're pinning to a specific commit until the next release.
-biopython = { git = "https://github.com/biopython/biopython.git", rev = "e0731edc892b653dee10b1f68acf795086e6f3f0" }
-asyncpg = "^0.28.0"
+biopython = "^1.84"
+asyncpg = "^0.29.0"
 alembic = "^1.11.1"
 sgqlc = "^16.3"
 psycopg-binary = "^3.1.9"

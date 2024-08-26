@@ -1,4 +1,4 @@
-name: Build and push docker image
+name: Build and push docker image and package
 
 on:
   release:
@@ -10,7 +10,11 @@ jobs:
   build-and-push:
     name: Build and push docker image
     runs-on: ubuntu-latest
-
+    environment:
+      name: pypi
+      url: https://pypi.org/p/${{ github.repository }}
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
     - name: checkout code
       uses: actions/checkout@v4
@@ -48,3 +52,7 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
           ghcr.io/${{ github.repository }}:latest
+
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
