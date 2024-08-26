@@ -5,6 +5,17 @@ from sqlalchemy_utils import get_primary_keys
 from platformics.database.models.base import Base
 
 
+def model_class_cols(model_cls):
+    cols = []
+    relationships = model_cls.__mapper__.relationships
+    for col in model_cls.__mapper__.all_orm_descriptors:
+        # Don't send related fields to cerbos for authz checks
+        if col.key in relationships:
+            continue
+        cols.append(col)
+    return cols
+
+
 def get_primary_key(model) -> tuple[str, ColumnProperty]:
     pks = get_primary_keys(model)
     if len(pks) != 1:

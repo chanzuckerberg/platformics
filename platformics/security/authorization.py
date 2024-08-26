@@ -9,6 +9,7 @@ from sqlalchemy.sql import Select
 import platformics.database.models as db
 from platformics.security.token_auth import get_token_claims
 from platformics.settings import APISettings
+from platformics.support import sqlalchemy_helpers
 from platformics.thirdparty.cerbos_sqlalchemy.query import get_query
 
 
@@ -83,17 +84,6 @@ class AuthzClient:
             mydict[col.key] = value
         return mydict
 
-    # get a list of non-relationship cols for a model class
-    def _model_class_cols(self, cls):
-        cols = []
-        relationships = cls.__mapper__.relationships
-        for col in cls.__mapper__.all_orm_descriptors:
-            # Don't send related fields to cerbos for authz checks
-            if col.key in relationships:
-                continue
-            cols.append(col)
-        return cols
-
     def can_create(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
         attr = self._obj_to_dict(resource)
@@ -127,12 +117,12 @@ class AuthzClient:
         attr_map = {}
         joins = []
         if model_cls == db.File:  # type: ignore
-            for col in self._model_class_cols(db.Entity):
+            for col in sqlalchemy_helpers.model_class_cols(db.Entity):
                 attr_map[f"request.resource.attr.{col.key}"] = getattr(db.Entity, col.key)
             joins = [(db.Entity, db.File.entity_id == db.Entity.id)]  # type: ignore
         else:
             # Send all non-relationship columns to cerbos to make decisions
-            for col in self._model_class_cols(model_cls):
+            for col in sqlalchemy_helpers.model_class_cols(model_cls):
                 attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)
         query = get_query(
             plan,
