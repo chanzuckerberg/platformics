@@ -4,14 +4,15 @@ from typing import ClassVar
 
 import uuid6
 from mypy_boto3_s3.client import S3Client
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, event
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime, Enum, Integer, String, cast, event
+from sqlalchemy.dialects.postgresql import UUID, VARCHAR
 from sqlalchemy.engine import Connection
-from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Mapper, mapped_column
 from sqlalchemy.sql import func
 
-from platformics.database.models.base import Base, Entity
+from platformics.database.models.base import Base
 from platformics.settings import APISettings
+from platformics.support import sqlalchemy_helpers
 from platformics.support.file_enums import FileAccessProtocol, FileStatus, FileUploadClient
 
 
@@ -44,13 +45,12 @@ class File(Base):
 
     # TODO - the relationship between Entities and Files is currently being
     # configured in both directions: entities have {fieldname}_file_id fields,
-    # *and* files have {entity_id, field_name} fields to map back to
-    # entities. We'll probably deprecate one side of this relationship in
-    # the future, but I'm not sure yet which one is going to prove to be
-    # more useful.
-    entity_id = mapped_column(ForeignKey("entity.id"))
+    # *and* files have {entity_id, field_name, entity_table__name} fields to map
+    # back to entities. This is necessary to support File objects inheriting the
+    # access control properties of the Entity they're associated with.
+    entity_id: Mapped[str] = mapped_column(String, nullable=False)
     entity_field_name: Mapped[str] = mapped_column(String, nullable=False)
-    entity: Mapped[Entity] = relationship(Entity, foreign_keys=entity_id)
+    entity_class_name: Mapped[str] = mapped_column(String, nullable=False)
 
     # TODO: Changes here need to be reflected in graphql_api/files.py
     status: Mapped[FileStatus] = mapped_column(Enum(FileStatus, native_enum=False), nullable=False)
@@ -98,9 +98,13 @@ def before_delete(mapper: Mapper, connection: Connection, target: File) -> None:
             if response["ResponseMetadata"]["HTTPStatusCode"] != 204:
                 raise Exception("Failed to delete file from S3")
 
+    related_class = sqlalchemy_helpers.get_orm_class_by_name(target.entity_class_name)
+    table_entity = related_class.__table__
+    _, pk_col = sqlalchemy_helpers.get_primary_key(table_entity)
+
     # Finally, scrub the foreign keys in the related Entity
     values = {f"{target.entity_field_name}_id": None}
     # Modifying the target.entity directly does not save changes, we need to use `connection`
     connection.execute(
-        table_entity.update().where(table_entity.c.entity_id == target.entity_id).values(**values),  # type: ignore
+        table_entity.update().where(cast(pk_col, VARCHAR) == target.entity_id).values(**values),  # type: ignore
     )

@@ -41,7 +41,6 @@ from platformics.graphql_api.core.query_input_types import (
     UUIDComparators,
 )
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
-from platformics.graphql_api.types.entities import Entity
 from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 from platformics.settings import APISettings
 from platformics.support import sqlalchemy_helpers
@@ -116,42 +115,10 @@ class FileCreate:
     namespace: str
     path: str
 
-
-# ------------------------------------------------------------------------------
-# Data loader for fetching a File's related entity
-# ------------------------------------------------------------------------------
-
-
-@strawberry.input
-class EntityWhereClause(TypedDict):
-    """
-    Supported where clause fields for the Entity type.
-    """
-
-    id: UUIDComparators | None
-    entity_id: typing.Optional[UUIDComparators] | None
-    producing_run_id: IntComparators | None
-    owner_user_id: IntComparators | None
-    collection_id: IntComparators | None
-
-
-@strawberry.field(extensions=[DependencyExtension()])
-async def load_entities(
-    root: "File",
-    info: Info,
-    where: EntityWhereClause | None = None,
-) -> typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.graphql_api.types.entities")]]:
-    """
-    Dataloader to fetch related entities, given file IDs.
-    """
-    dataloader = info.context["sqlalchemy_loader"]
-    relationship = sqlalchemy_helpers.get_relationship(db.File, "entity")
-    return await dataloader.loader_for(relationship, where).load(root.entity_id)  # type:ignore
-
-
 # ------------------------------------------------------------------------------
 # Main types/inputs
 # ------------------------------------------------------------------------------
+
 
 
 @strawberry.type
@@ -163,9 +130,7 @@ class File:
     id: strawberry.ID
     entity_id: strawberry.ID
     entity_field_name: str
-    entity: typing.Optional[typing.Annotated["Entity", strawberry.lazy("platformics.graphql_api.types.entities")]] = (
-        load_entities
-    )
+    entity_class_name: str
     status: FileStatus
     protocol: FileAccessProtocol
     namespace: str
@@ -227,6 +192,7 @@ class FileWhereClause(TypedDict):
     id: typing.Optional[UUIDComparators]
     entity_id: typing.Optional[UUIDComparators]
     entity_field_name: typing.Optional[StrComparators]
+    entity_class_name: typing.Optional[StrComparators]
     status: typing.Optional[EnumComparators[FileStatus]]
     protocol: typing.Optional[StrComparators]
     namespace: typing.Optional[StrComparators]
@@ -234,20 +200,6 @@ class FileWhereClause(TypedDict):
     file_format: typing.Optional[StrComparators]
     compression_type: typing.Optional[StrComparators]
     size: typing.Optional[IntComparators]
-
-
-@strawberry.field(extensions=[DependencyExtension()])
-async def resolve_files(
-    session: AsyncSession = Depends(get_db_session, use_cache=False),
-    authz_client: AuthzClient = Depends(get_authz_client),
-    principal: Principal = Depends(require_auth_principal),
-    where: typing.Optional[FileWhereClause] = None,
-) -> typing.Sequence[File]:
-    """
-    Handles files {} GraphQL queries.
-    """
-    rows = await get_db_rows(db.File, session, authz_client, principal, where)
-    return rows  # type: ignore
 
 
 # ------------------------------------------------------------------------------
@@ -359,6 +311,7 @@ async def mark_upload_complete(
         principal,
         AuthzAction.UPDATE,
         db.File,
+        mapper.relationships.get(file_row.entity_field_name),
     )
     query = query.filter(db.File.id == file_id)
     file = (await session.execute(query)).scalars().one()
@@ -375,6 +328,7 @@ async def mark_upload_complete(
 async def create_file(
     entity_id: strawberry.ID,
     entity_field_name: str,
+    entity_class_name: str,
     file: FileCreate,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
     authz_client: AuthzClient = Depends(get_authz_client),
@@ -391,6 +345,7 @@ async def create_file(
     new_file = await create_or_upload_file(
         entity_id,
         entity_field_name,
+        entity_class_name,
         file,
         -1,
         session,
@@ -408,6 +363,7 @@ async def create_file(
 async def upload_file(
     entity_id: strawberry.ID,
     entity_field_name: str,
+    entity_class_name: str,
     file: FileUpload,
     expiration: int = 3600,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
@@ -423,6 +379,7 @@ async def upload_file(
     response = await create_or_upload_file(
         entity_id,
         entity_field_name,
+        entity_class_name,
         file,
         expiration,
         session,
@@ -436,32 +393,10 @@ async def upload_file(
     return response
 
 
-async def get_entity_by_id(
-    session: AsyncSession,
-    authz_client: AuthzClient,
-    principal: Principal,
-    action: AuthzAction,
-    entity_id: strawberry.ID,
-) -> tuple[typing.Type[db.Base], db.Base]:
-    # Fetch the entity if have access to it
-    try:
-        entity_row = (await session.execute(sa.select(db.Entity).where(db.Entity.id == entity_id))).scalars().one()
-        entity_class = sqlalchemy_helpers.get_orm_class_by_name(type(entity_row).__name__)
-    except NoResultFound:
-        raise PlatformicsError("Unauthorized: cannot create file") from None
-
-    query = authz_client.get_resource_query(principal, action, entity_class)
-    query = query.filter(entity_class.entity_id == entity_id)
-    try:
-        entity = (await session.execute(query)).scalars().one()
-    except NoResultFound:
-        raise PlatformicsError("Unauthorized: cannot create file") from None
-    return entity_class, entity
-
-
 async def create_or_upload_file(
     entity_id: strawberry.ID,
     entity_field_name: str,
+    entity_class_name: str,
     file: FileCreate | FileUpload,
     expiration: int = 3600,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
@@ -515,6 +450,7 @@ async def create_or_upload_file(
         id=file_id,
         entity_id=entity_id,
         entity_field_name=entity_field_name,
+        entity_class_name=entity_class_name,
         protocol=file_protocol,
         namespace=file_namespace,
         path=file_path,

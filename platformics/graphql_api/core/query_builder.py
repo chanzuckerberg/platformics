@@ -14,13 +14,12 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
 
-import platformics.database.models as db
 from platformics.database.models.base import Base
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_input_types import aggregator_map, operator_map, orderBy
 from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 
-E = typing.TypeVar("E", db.File, db.Entity)
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 
@@ -97,11 +96,7 @@ def convert_where_clauses_to_sql(
             all_joins[col]["where"] = v
         else:
             local_where_clauses[col] = v
-    # Unless deleted_at is explicitly set in the where clause OR we are performing a DELETE action,
-    # we should only return rows where deleted_at is null. This is to ensure that we don't return soft-deleted rows.
-    # Don't do this for files, since they don't have a deleted_at field.
-    if "deleted_at" not in local_where_clauses and action != AuthzAction.DELETE and sa_model.__name__ != "File":
-        local_where_clauses["deleted_at"] = {"_is_null": True}
+    authz_client.modify_where_clause(principal, action, sa_model, local_where_clauses)
     for group in group_by:  # type: ignore
         col = strcase.to_snake(group.name)
         if col in mapper.relationships:  # type: ignore
@@ -187,12 +182,13 @@ def get_db_query(
     # so that these type checks could be smarter, but TypedDict doesn't support type checks like that
     where: dict[str, Any],
     order_by: Optional[list[dict[str, Any]]] = None,
+    relationship: Optional[Any] = None,
 ) -> Select:
     """
     Given a model class and a where clause, return a SQLAlchemy query that is limited
     based on the where clause, and which entities the user has access to.
     """
-    query = authz_client.get_resource_query(principal, action, model_cls)
+    query = authz_client.get_resource_query(principal, action, model_cls, relationship)
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []

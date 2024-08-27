@@ -403,10 +403,11 @@ class EntityWrapper:
 
     @cached_property
     def owned_fields(self) -> list[FieldWrapper]:
+        domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         return [
             FieldWrapper(self.view, item)
             for item in self.view.class_induced_slots(self.name)
-            if "Entity" not in item.domain_of
+            if domains_owned_by_this_class.intersection(set(item.domain_of))
         ]
 
     @cached_property
@@ -453,9 +454,6 @@ class ViewWrapper:
                 continue
             # Mixins don't get represented in the outputted schemas
             if cls.mixin:
-                continue
-            # If this class doesn't descend from Entity, skip it.
-            if cls.is_a != "Entity":
                 continue
             classes.append(EntityWrapper(self.view, cls))
         return classes

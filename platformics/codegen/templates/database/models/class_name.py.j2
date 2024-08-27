@@ -6,13 +6,14 @@ Make changes to the template codegen/templates/database/models/class_name.py.j2 
 """
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 import uuid
+import uuid6
 import datetime
 from typing import TYPE_CHECKING
 
-from platformics.database.models.base import Entity
+from platformics.database.models.base import Base
 from sqlalchemy import ForeignKey, String, Float, Integer, Enum, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,14 +26,19 @@ from support.enums import
     {{- field.type}}
     {{- "," if not loop.last else "" }}
 {%- endfor %}
+{%- if cls.is_a %}
+from database.models.{{cls.is_a_snake}} import {{cls.is_a}}
+{%- endif %}
+from platformics.database.models.file import File
 
 if TYPE_CHECKING:
-    from database.models.file import File
+    from platformics.database.models.file import File
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}
         {%- endif %}
     {%- endfor %}
+    ...
 else:
     File = "File"
     {%- for related_field in related_fields %}
@@ -40,11 +46,12 @@ else:
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
         {%- endif %}
     {%- endfor %}
+    ...
 
 
-class {{cls.name}}(Entity):
+class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
     __tablename__ = "{{ cls.snake_name }}"
-    __mapper_args__ = {"polymorphic_identity": __tablename__, "polymorphic_load": "inline"}
+    __mapper_args__ = {"polymorphic_identity": __tablename__, {%- if cls.type_designator %}"polymorphic_on": "{{cls.type_designator.name}}"{%- else %}"polymorphic_load": "inline"{%- endif %}}
 
 {% macro getStandardParameters(field) -%}
     nullable={{ "False" if field.required else "True"}}
@@ -113,7 +120,6 @@ class {{cls.name}}(Entity):
         ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier.name}}"),
         {{ getStandardParameters(attr) }}
     )
-              {%- if attr.type != "Entity" %}
     {{attr.name}}: Mapped["{{attr.type}}"] = relationship(
         "{{attr.type}}",
         foreign_keys={{attr.name}}_id,
@@ -122,7 +128,6 @@ class {{cls.name}}(Entity):
         {%- endif %}
         {{cascade}}
     )
-              {%- endif %}
             {%- endif %}
         {%- endif %}
     {%- endfor %}

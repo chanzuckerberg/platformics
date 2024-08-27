@@ -90,7 +90,7 @@ Make changes to the template codegen/templates/graphql_api/types/class_name.py.j
 {%- endmacro %}
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 import typing
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
@@ -110,7 +110,7 @@ from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
 from platformics.graphql_api.files import File, FileWhereClause
 {%- endif %}
 from graphql_api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
-from platformics.graphql_api.types.entities import EntityInterface
+from platformics.graphql_api.core.relay_interface import EntityInterface
 {%- for related_field in related_fields %}
     {%- if related_field.related_class.name not in ignored_fields and related_field.multivalued %}
 from graphql_api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}Aggregate, format_{{related_field.related_class.snake_name}}_aggregate_output)
@@ -141,8 +141,7 @@ from support.enums import
     {{- "," if not loop.last else "" }}
 {%- endfor %}
 
-
-E = typing.TypeVar("E", base_db.File, db.{{ cls.name }})
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
@@ -304,7 +303,7 @@ class {{ cls.name }}OrderByClause(TypedDict):
 """
 Define {{ cls.name }} type
 """
-@strawberry.type
+@strawberry.type(description={{ cls.description }})
 class {{ cls.name }}(EntityInterface):
     {%- for attr in cls.visible_fields %}
         {%- if attr.is_enum %}

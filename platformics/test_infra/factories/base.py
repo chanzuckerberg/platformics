@@ -5,13 +5,13 @@ File factory
 import factory
 import faker
 import sqlalchemy as sa
-import uuid6
 from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
 
-from platformics.database.models import Entity, File, FileStatus
+from platformics.database.models.file import File, FileStatus
+from platformics.support import sqlalchemy_helpers
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -45,10 +45,6 @@ class CommonFactory(factory.alchemy.SQLAlchemyModelFactory):
     """
     Base class for all factories
     """
-
-    owner_user_id = fuzzy.FuzzyInteger(1, 1000)
-    collection_id = fuzzy.FuzzyInteger(1, 1000)
-    entity_id = uuid6.uuid7()  # needed so we can set `sqlalchemy_get_or_create` = entity_id in other factories
 
     class Meta:
         sqlalchemy_session_factory = SessionStorage.get_session
@@ -91,17 +87,15 @@ class FileFactory(factory.alchemy.SQLAlchemyModelFactory):
         # For each file, find the entity associated with it
         # and update the file_id for that entity.
         files = session.query(File).all()
+
         for file in files:
             if file.entity_id:
-                entity_field_name = file.entity_field_name
-                entity = session.query(Entity).filter(Entity.id == file.entity_id).first()
+                related_class = sqlalchemy_helpers.get_orm_class_by_name(file.entity_class_name)
+                table_entity = related_class.__table__
+                _, pk_col = sqlalchemy_helpers.get_primary_key(table_entity)
+                entity_field_name = f"{file.entity_field_name}_id"
+
+                entity = session.query(related_class).filter(pk_col == file.entity_id).first()
                 if entity:
-                    entity_name = entity.type
-                    session.execute(
-                        sa.text(
-                            f"""UPDATE {entity_name} SET {entity_field_name}_id = file.id
-                            FROM file WHERE {entity_name}.entity_id = file.entity_id and file.entity_field_name = :field_name""",
-                        ),
-                        {"field_name": entity_field_name},
-                    )
+                    setattr(entity, entity_field_name, file.id)
         session.commit()

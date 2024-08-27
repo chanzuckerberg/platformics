@@ -1,37 +1,16 @@
-id: https://czid.org/entities/schema/platformics
-title: CZID Platformics Bio-Entities Schema
-name: platformics
+id: https://github.com/chanzuckerberg/platformics/test_app
+title: Test App Schema
+name: test_app
 default_range: string
-
-types:
-  string:
-    uri: xsd:string
-    base: str
-    description: A character string
-
-  integer:
-    uri: xsd:integer
-    base: int
-    description: An integer
-
-  uuid:
-    uri: xsd:string
-    typeof: str
-    base: str
-    description: A UUID
+prefixes:
+  linkml: https://w3id.org/linkml/
+  platformics: https://raw.githubusercontent.com/chanzuckerberg/platformics/jgadling/gen-entities/platformics/schema/
+  # platformics: ../platformics/schema/
+imports:
+  - linkml:types
+  - platformics:base_types
 
 enums:
-  FileStatus:
-    permissible_values:
-      SUCCESS:
-      FAILED:
-      PENDING:
-  FileAccessProtocol:
-    permissible_values:
-      s3:
-        description: This file is accessible via the (AWS) S3 protocol
-      https:
-        description: This file is accessible via the HTTPS protocol
   NucleicAcid:
     permissible_values:
       RNA:
@@ -54,11 +33,15 @@ classes:
         range: uuid
         readonly: true # The API handles generating the values for these fields
         required: true
+        annotations:
+          default_value_callable: uuid6.uuid7
       type:
         range: string
         designates_type: true
+        required: true
         annotations:
           hidden: true
+          indexed: true
       producing_run_id:
         range: uuid
         annotations:
@@ -69,17 +52,25 @@ classes:
         minimum_value: 0
         required: true
         readonly: true
+        annotations:
+          indexed: true
       collection_id:
         range: integer
         minimum_value: 0
         required: True
+        annotations:
+          indexed: true
       created_at:
         range: date
         required: true
         readonly: true
+        annotations:
+          default_sa_function: now()
       updated_at:
         range: date
         readonly: true
+        annotations:
+          onupdate_sa_function: now()
       deleted_at:
         range: date
         annotations:
@@ -87,55 +78,6 @@ classes:
           system_writable_only: True
     annotations:
       plural: Entities
-
-  File:
-    attributes:
-      id:
-        identifier: true
-        range: uuid
-        required: true
-      # This file's ID is stored in the entity column <entity_field_name>_id
-      entity_field_name:
-        range: string
-        required: true
-      # Which entity this file is connected to
-      entity:
-        range: Entity
-        required: true
-      status:
-        range: FileStatus
-        required: true
-      protocol:
-        range: FileAccessProtocol
-        required: true
-      # Bucket name
-      namespace:
-        range: string
-        required: true
-      # Prefix (does not start with /)
-      path:
-        range: string
-        required: true
-      file_format:
-        range: string
-        required: true
-      compression_type:
-        range: string
-      size:
-        range: integer
-        minimum_value: 0
-      # Information about file upload (optional)
-      upload_client:
-        range: FileUploadClient
-      upload_error:
-        range: string
-      created_at:
-        range: date
-        required: true
-        readonly: true
-      updated_at:
-        range: date
-        readonly: true
 
   Sample:
     is_a: Entity

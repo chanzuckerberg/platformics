@@ -5,13 +5,13 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
-import platformics.database.models as db
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.security.authorization import AuthzAction, AuthzClient, Principal
+from platformics.support import sqlalchemy_helpers
 
-E = typing.TypeVar("E", db.File, db.Entity)  # type: ignore
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 
@@ -48,7 +48,12 @@ class EntityLoader:
         Given a list of node IDs from a Relay `node()` query, return corresponding entities
         """
         db_session = self.engine.session()
-        where = {"entity_id": {"_in": node_ids}}
+        # What's the class identifier?
+
+        pk_col_name, _ = sqlalchemy_helpers.get_primary_key(cls)
+        if pk_col_name is None:
+            raise Exception("Primary keys are required for each class")
+        where = {pk_col_name: {"_in": node_ids}}
         rows = await get_db_rows(cls, db_session, self.authz_client, self.principal, where)
         await db_session.close()
         return rows
@@ -91,6 +96,7 @@ class EntityLoader:
                     self.principal,
                     where,
                     order_by,  # type: ignore
+                    relationship,  # type: ignore
                 )
                 for item in filters:
                     query = query.where(item)
