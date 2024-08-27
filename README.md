@@ -5,7 +5,7 @@ Platformics is a GraphQL API framework that relies on code generation to impleme
 The libraries and tools that make Platformics work:
 
 ![image](docs/images/platformics_libs.svg)
- 
+
 ### Links to these tools/libraries
  - [LinkML](https://linkml.io/) - Schema modeling language
  - [FastAPI](https://fastapi.tiangolo.com/) - Async HTTP router
