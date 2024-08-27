@@ -348,3 +348,42 @@ classes:
     annotations:
       mutable: false
       plural: ImmutableTypes
+
+  AutoUpdatedType:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      auto_inc_field:
+        range: integer
+        annotations:
+          auto_increment: true
+      default_value:
+        range: string
+        ifabsent: "ifabsent_value"
+      default_sa_func:
+        range: date
+        annotations:
+          default_sa_function: now()
+      default_callable:
+        range: date
+        annotations:
+          default_value_callable: datetime.datetime.now
+      onupdate_callable:
+        range: date
+        annotations:
+          onupdate: datetime.datetime.now
+      onupdate_sa_func:
+        range: date
+        annotations:
+          onupdate_sa_function: now()
+      combo_field:
+        range: date
+        annotations:
+          default_sa_function: now()
+          onupdate_sa_function: now()
+    annotations:
+      plural: AutoUpdatedTypes
