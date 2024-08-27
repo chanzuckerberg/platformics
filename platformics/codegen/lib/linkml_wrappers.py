@@ -5,6 +5,7 @@ The wrapper classes in this module are entirely centered around providing conven
 functions to keep complicated LinkML-specific logic out of our Jinja2 templates.
 """
 
+import contextlib
 from functools import cached_property
 
 import strcase
@@ -36,8 +37,19 @@ class FieldWrapper:
         return self.wrapped_field.name.replace(" ", "_")
 
     @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_field.description)
+
+    @cached_property
     def camel_name(self) -> str:
         return strcase.to_lower_camel(self.name)
+
+    @cached_property
+    def type_designator(self) -> bool:
+        if self.wrapped_field.designates_type:
+            return True
+        return False
 
     @cached_property
     def multivalued(self) -> str:
@@ -46,6 +58,10 @@ class FieldWrapper:
     @cached_property
     def required(self) -> bool:
         return self.wrapped_field.required or False
+
+    @cached_property
+    def designates_type(self) -> bool:
+        return self.wrapped_field.designates_type
 
     # Validation attributes
     @cached_property
@@ -61,9 +77,54 @@ class FieldWrapper:
         return None
 
     @cached_property
+    def default_value(self) -> str | None:
+        try:
+            if self.wrapped_field.ifabsent is not None:
+                default_value = self.wrapped_field.ifabsent
+                # Make sure to quote this so it's safe!
+                return repr(default_value)
+        except AttributeError:
+            pass
+        return None
+
+    @cached_property
+    def server_default(self) -> str | None:
+        try:
+            if "default_sa_function" in self.wrapped_field.annotations:
+                return "func.{func}".format(func=self.wrapped_field.annotations["default_sa_function"].value)
+        except AttributeError:
+            pass
+        return None
+
+    @cached_property
+    def default_callable(self) -> str | None:
+        if "default_value_callable" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["default_value_callable"].value
+        return None
+
+    @cached_property
+    def auto_increment(self) -> bool:
+        if "auto_increment" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["auto_increment"].value
+        return False
+
+    @cached_property
+    def onupdate(self) -> str | None:
+        if "onupdate" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["onupdate"].value
+        if "onupdate_sa_function" in self.wrapped_field.annotations:
+            return "func.{func}".format(func=self.wrapped_field.annotations["onupdate_sa_function"].value)
+        return None
+
+    @cached_property
     def indexed(self) -> bool:
         if "indexed" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["indexed"].value
+        if self.identifier:
+            return True
+        with contextlib.suppress(NotImplementedError, AttributeError, ValueError):
+            if self.related_class.identifier:
+                return True
         return False
 
     @cached_property
@@ -210,6 +271,39 @@ class EntityWrapper:
         raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
 
     @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_class.description)
+
+    @cached_property
+    def is_abstract(self) -> str:
+        return self.wrapped_class.abstract
+
+    @cached_property
+    def is_a(self) -> str:
+        return self.wrapped_class.is_a
+
+    @cached_property
+    def is_a_snake(self) -> str:
+        return strcase.to_snake(self.is_a)
+
+    @cached_property
+    def parent_key(self) -> FieldWrapper | None:
+        if not self.is_a:
+            return None
+        for field in self.all_fields:
+            if field.inverse and field.inverse.split(".")[0] == self.is_a_snake:
+                return field
+        return None
+
+    @cached_property
+    def type_designator(self) -> FieldWrapper | None:
+        for field in self.all_fields:
+            if field.designates_type:
+                return field
+        return None
+
+    @cached_property
     def name(self) -> str:
         return self.wrapped_class.name
 
@@ -234,15 +328,15 @@ class EntityWrapper:
         return [FieldWrapper(self.view, item) for item in self.view.class_induced_slots(self.name) if not item.readonly]
 
     @cached_property
-    def identifier(self) -> str:
-        # Prioritize sending back identifiers from the entity mixin instead of inherited fields.
+    def identifier(self) -> FieldWrapper:
+        # Prioritize sending back identifiers from the current class and mixins instead of inherited fields.
+        domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         for field in self.all_fields:
-            # FIXME, the entity.id / entity_id relationship is a little brittle right now :(
-            if field.identifier and "EntityMixin" in field.wrapped_field.domain_of:
-                return field.name
+            if field.identifier and domains_owned_by_this_class.intersection(set(field.wrapped_field.domain_of)):
+                return field
         for field in self.all_fields:
-            if field.identifier:
-                return field.name
+            if field.identifier and self.name in field.wrapped_field.domain_of:
+                return field
         raise Exception("No identifier found")
 
     @cached_property
@@ -343,6 +437,9 @@ class ViewWrapper:
         enums = []
         for enum_name in self.view.all_enums():
             enum = self.view.get_element(enum_name)
+            # Don't codegen stuff that users asked us not to.
+            if enum.annotations.get("skip_codegen") and enum.annotations["skip_codegen"].value:
+                continue
             enums.append(EnumWrapper(self.view, enum))
         return enums
 
@@ -351,6 +448,10 @@ class ViewWrapper:
         classes = []
         for class_name in self.view.all_classes():
             cls = self.view.get_element(class_name)
+            # Don't codegen stuff that users asked us not to.
+            if cls.annotations.get("skip_codegen") and cls.annotations["skip_codegen"].value:
+                continue
+            # Mixins don't get represented in the outputted schemas
             if cls.mixin:
                 continue
             # If this class doesn't descend from Entity, skip it.
