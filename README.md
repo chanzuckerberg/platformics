@@ -56,6 +56,7 @@ Right now, platformics is used in downstream applications by using the platformi
 - [Work with platformics](docs/HOWTO-working-with-platformics.md)
 - [Extend the generated API](docs/HOWTO-extend-generated-api.md)
 - [Customize Codegen templates](docs/HOWTO-customize-templates.md)
+- [Override Default Authorization Behaviors](docs/HOWTO-override-authorization.md)
 
 ## Contributing
 This project adheres to the Contributor Covenant code of conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
