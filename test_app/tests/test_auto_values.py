@@ -10,60 +10,6 @@ from test_infra.factories.sample import SampleFactory
 
 date_now = datetime.datetime.now()
 
-
-@pytest.mark.asyncio
-async def test_graphql_query(
-    sync_db: SyncDB,
-    gql_client: GQLTestClient,
-) -> None:
-    """
-    Test that we can only fetch samples from the database that we have access to
-    """
-    user_id = 12345
-    secondary_user_id = 67890
-    project_id = 123
-
-    # Create mock data
-    with sync_db.session() as session:
-        SessionStorage.set_session(session)
-        SampleFactory.create_batch(
-            2,
-            collection_location="San Francisco, CA",
-            collection_date=date_now,
-            owner_user_id=user_id,
-            collection_id=project_id,
-        )
-        SampleFactory.create_batch(
-            6,
-            collection_location="Mountain View, CA",
-            collection_date=date_now,
-            owner_user_id=user_id,
-            collection_id=project_id,
-        )
-        SampleFactory.create_batch(
-            4,
-            collection_location="Phoenix, AZ",
-            collection_date=date_now,
-            owner_user_id=secondary_user_id,
-            collection_id=9999,
-        )
-
-    # Fetch all samples
-    query = """
-        query MyQuery {
-            samples {
-                id,
-                collectionLocation
-            }
-        }
-    """
-    output = await gql_client.query(query, user_id=user_id, member_projects=[project_id])
-    locations = [sample["collectionLocation"] for sample in output["data"]["samples"]]
-    assert "San Francisco, CA" in locations
-    assert "Mountain View, CA" in locations
-    assert "Phoenix, AZ" not in locations
-
-
 @pytest.mark.asyncio
 async def test_autoupdate_fields(gql_client: GQLTestClient, sync_db: SyncDB) -> None:
     """

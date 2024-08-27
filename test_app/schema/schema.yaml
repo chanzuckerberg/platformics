@@ -355,6 +355,7 @@ classes:
       - EntityMixin
     attributes:
       name:
+        description: This is a field description
         range: string
         required: true
       auto_inc_field:
