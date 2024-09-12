@@ -1,0 +1,20 @@
+name: Python Linting
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pre_commit_checks:
+    name: pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: disable pre-commit validation
+        run: echo "SKIP=dataset-config-validation" >> $GITHUB_ENV
+      - name: check backend
+        uses: pre-commit/action@v3.0.0
