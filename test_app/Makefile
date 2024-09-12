@@ -41,8 +41,8 @@ init:
 	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile /app/schema/schema.yaml --output-prefix /app
 	$(MAKE) alembic-autogenerate
 	$(MAKE) alembic-upgrade-head
-	$(docker_compose_run) $(APP_CONTAINER) black .
-	# $(docker_compose_run) $(CONTAINER) ruff check --fix .
+	$(docker_compose_run) $(APP_CONTAINER) ruff check --fix .
+	$(docker_compose_run) $(APP_CONTAINER) ruff format .
 	$(docker_compose_run) $(APP_CONTAINER) sh -c 'strawberry export-schema main:schema > /app/graphql_api/schema.graphql'
 	docker compose up -d
 	$(MAKE) seed-moto

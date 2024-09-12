@@ -7,7 +7,6 @@ license = "MIT License"
 readme = "README.md"
 
 [tool.poetry.dev-dependencies]
-black = "^24.4.0"
 uvicorn = "^0.23.1"
 gunicorn = "^22.0.0"
 pytest = "^7.4.0"
@@ -16,7 +15,7 @@ factory-boy = "^3.3.0"
 pytest-asyncio = "^0.21.1"
 mypy = "^1.5.1"
 moto = "^4.2.3"
-ruff = "^0.0.278"
+ruff = "^0.6.0"
 isort = "^5.12.0"
 faker-enum = "^0.0.2"
 faker-biology = "^0.6.0"
@@ -30,21 +29,13 @@ rich = "^13.7.0"
 typer = "^0.9.0"
 libcst = "^1.1.0"
 
-
-[tool.black]
-line-length = 120
-
 [tool.mypy]
 explicit_package_bases = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 
 [tool.ruff]
-# Same as Black.
 line-length = 120
-
-# Assume Python 3.12.
-target-version = "py312"
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
