@@ -56,7 +56,6 @@ def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.
     """
     File.set_settings(settings)
     File.set_s3_client(get_s3_client(settings))
-    settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
 
     title = settings.SERVICE_NAME
     graphql_app: GraphQLRouter = GraphQLRouter(schema, context_getter=get_context)
