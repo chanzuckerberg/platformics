@@ -50,7 +50,7 @@ class CustomNameConverter(NameConverter):
         return super().get_graphql_name(obj)
 
 
-def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any, dependencies: typing.Optional[typing.Sequence[Depends]]) -> FastAPI:
+def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any, dependencies: typing.Optional[typing.Sequence[Depends]] = []) -> FastAPI:
     """
     Make sure tests can get their own instances of the app.
     """
