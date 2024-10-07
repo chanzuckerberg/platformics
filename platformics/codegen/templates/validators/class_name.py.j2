@@ -67,6 +67,8 @@ from typing_extensions import Annotated
     {{ attr.name }}: Annotated[{{ getTypeValidation(action, "float", attr.required) }}, Field({{getNumericConstraints(attr)}})]
         {%- elif attr.type == "Array2dFloat" %}
     {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[list[float]]", attr.required) }}, Field()]
+        {%- elif attr.type == "List1dString" %}
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[str]", attr.required) }}, Field()]
         {%- elif attr.is_enum %}
     {{ attr.name }}: Annotated[{{ getTypeValidation(action, attr.type, attr.required) }}, Field()]
         {%- elif attr.type == "boolean" %}
