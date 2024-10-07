@@ -50,7 +50,7 @@ class CustomNameConverter(NameConverter):
         return super().get_graphql_name(obj)
 
 
-def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any) -> FastAPI:
+def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.Any, dependencies: typing.Optional[typing.Sequence[Depends]] = []) -> FastAPI:
     """
     Make sure tests can get their own instances of the app.
     """
@@ -59,7 +59,7 @@ def get_app(settings: APISettings, schema: strawberry.Schema, db_module: typing.
 
     title = settings.SERVICE_NAME
     graphql_app: GraphQLRouter = GraphQLRouter(schema, context_getter=get_context)
-    _app = FastAPI(title=title, debug=settings.DEBUG)
+    _app = FastAPI(title=title, debug=settings.DEBUG, dependencies=dependencies)
     _app.include_router(graphql_app, prefix="/graphql")
     # Add a global settings object to the app that we can use as a dependency
     _app.state.settings = settings
