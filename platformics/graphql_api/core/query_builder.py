@@ -7,8 +7,6 @@ from collections import defaultdict
 from typing import Any, Optional, Sequence, Tuple
 
 import strcase
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal
 from sqlalchemy import ColumnElement, and_, distinct, inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,10 +15,10 @@ from sqlalchemy.sql import Select
 from typing_extensions import TypedDict
 
 import platformics.database.models as db
+from platformics.database.models.base import Base
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_input_types import aggregator_map, operator_map, orderBy
-from platformics.database.models.base import Base
-from platformics.security.authorization import CerbosAction, get_resource_query
+from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 
 E = typing.TypeVar("E", db.File, db.Entity)
 T = typing.TypeVar("T")
@@ -51,8 +49,8 @@ class IndexedOrderByClause(TypedDict):
 
 def convert_where_clauses_to_sql(
     principal: Principal,
-    cerbos_client: CerbosClient,
-    action: CerbosAction,
+    authz_client: AuthzClient,
+    action: AuthzAction,
     query: Select,
     sa_model: Base,
     where_clause: dict[str, Any],
@@ -102,7 +100,7 @@ def convert_where_clauses_to_sql(
     # Unless deleted_at is explicitly set in the where clause OR we are performing a DELETE action,
     # we should only return rows where deleted_at is null. This is to ensure that we don't return soft-deleted rows.
     # Don't do this for files, since they don't have a deleted_at field.
-    if "deleted_at" not in local_where_clauses and action != CerbosAction.DELETE and sa_model.__name__ != "File":
+    if "deleted_at" not in local_where_clauses and action != AuthzAction.DELETE and sa_model.__name__ != "File":
         local_where_clauses["deleted_at"] = {"_is_null": True}
     for group in group_by:  # type: ignore
         col = strcase.to_snake(group.name)
@@ -119,13 +117,13 @@ def convert_where_clauses_to_sql(
     for join_field, join_info in all_joins.items():
         relationship = mapper.relationships[join_field]  # type: ignore
         related_cls = relationship.mapper.entity
-        cerbos_query = get_resource_query(principal, cerbos_client, action, related_cls)
+        secure_query = authz_client.get_resource_query(principal, action, related_cls)
         # Get the subquery, nested order_by fields, and nested group_by fields that need to be applied to the current query
         subquery, subquery_order_by, subquery_group_by = convert_where_clauses_to_sql(
             principal,
-            cerbos_client,
+            authz_client,
             action,
-            cerbos_query,
+            secure_query,
             related_cls,
             join_info.get("where"),  # type: ignore
             join_info.get("order_by"),
@@ -182,8 +180,8 @@ def convert_where_clauses_to_sql(
 
 def get_db_query(
     model_cls: type[E],
-    action: CerbosAction,
-    cerbos_client: CerbosClient,
+    action: AuthzAction,
+    authz_client: AuthzClient,
     principal: Principal,
     # TODO it would be nicer if we could have the WhereClause classes inherit from a BaseWhereClause
     # so that these type checks could be smarter, but TypedDict doesn't support type checks like that
@@ -194,14 +192,14 @@ def get_db_query(
     Given a model class and a where clause, return a SQLAlchemy query that is limited
     based on the where clause, and which entities the user has access to.
     """
-    query = get_resource_query(principal, cerbos_client, action, model_cls)
+    query = authz_client.get_resource_query(principal, action, model_cls)
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []
     order_by = [IndexedOrderByClause({"field": x, "index": i}) for i, x in enumerate(order_by)]  # type: ignore
     query, order_by, _group_by = convert_where_clauses_to_sql(
         principal,
-        cerbos_client,
+        authz_client,
         action,
         query,
         model_cls,  # type: ignore
@@ -220,11 +218,11 @@ def get_db_query(
 async def get_db_rows(
     model_cls: type[E],  # type: ignore
     session: AsyncSession,
-    cerbos_client: CerbosClient,
+    authz_client: AuthzClient,
     principal: Principal,
     where: Any,
     order_by: Optional[list[dict[str, Any]]] = None,
-    action: CerbosAction = CerbosAction.VIEW,
+    action: AuthzAction = AuthzAction.VIEW,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
 ) -> typing.Sequence[E]:
@@ -233,7 +231,7 @@ async def get_db_rows(
     """
     if order_by is None:
         order_by = []
-    query = get_db_query(model_cls, action, cerbos_client, principal, where, order_by)
+    query = get_db_query(model_cls, action, authz_client, principal, where, order_by)
     if limit:
         query = query.limit(limit)
         if offset:
@@ -244,8 +242,8 @@ async def get_db_rows(
 
 def get_aggregate_db_query(
     model_cls: type[E],
-    action: CerbosAction,
-    cerbos_client: CerbosClient,
+    action: AuthzAction,
+    authz_client: AuthzClient,
     principal: Principal,
     where: dict[str, Any],
     aggregate: Any,
@@ -264,7 +262,7 @@ def get_aggregate_db_query(
     # TODO, this may need to be adjusted, 5 just seemed like a reasonable starting point
     if depth >= 5:
         raise Exception("Max filter depth exceeded")
-    query = get_resource_query(principal, cerbos_client, action, model_cls)
+    query = authz_client.get_resource_query(principal, action, model_cls)
     # Deconstruct the aggregate dict and build mappings for the query
     aggregate_query_fields = []
     if remote is not None:
@@ -291,7 +289,7 @@ def get_aggregate_db_query(
     query = query.with_only_columns(*aggregate_query_fields)
     query, _order_by, group_by = convert_where_clauses_to_sql(
         principal,
-        cerbos_client,
+        authz_client,
         action,
         query,
         model_cls,  # type: ignore
@@ -308,18 +306,18 @@ def get_aggregate_db_query(
 async def get_aggregate_db_rows(
     model_cls: type[E],  # type: ignore
     session: AsyncSession,
-    cerbos_client: CerbosClient,
+    authz_client: AuthzClient,
     principal: Principal,
     where: Any,
     aggregate: Any,
     order_by: Optional[list[tuple[ColumnElement[Any], ...]]] = None,
     group_by: Optional[ColumnElement[Any]] | Optional[list[Any]] = None,
-    action: CerbosAction = CerbosAction.VIEW,
+    action: AuthzAction = AuthzAction.VIEW,
 ) -> Sequence[RowMapping]:
     """
     Retrieve aggregate rows from the database, filtered by the where clause and the user's permissions.
     """
-    query, group_by = get_aggregate_db_query(model_cls, action, cerbos_client, principal, where, aggregate, group_by)
+    query, group_by = get_aggregate_db_query(model_cls, action, authz_client, principal, where, aggregate, group_by)
     if group_by:
         query = query.group_by(*group_by)  # type: ignore
     result = await session.execute(query)
