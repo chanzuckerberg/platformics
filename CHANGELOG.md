@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/chanzuckerberg/platformics/compare/v0.1.1...v0.2.0) (2024-10-07)
+
+
+### Features
+
+* allow ability to add global dependencies ([#110](https://github.com/chanzuckerberg/platformics/issues/110)) ([90bb9b6](https://github.com/chanzuckerberg/platformics/commit/90bb9b6611867c31839fa5b0766739ea65767526))
+
+
+### Bug Fixes
+
+* update import in env.py ([#107](https://github.com/chanzuckerberg/platformics/issues/107)) ([791d439](https://github.com/chanzuckerberg/platformics/commit/791d43942f756bbb70f8358206b9990f50a0c6da))
+
 ## [0.1.1](https://github.com/chanzuckerberg/platformics/compare/v0.1.0...v0.1.1) (2024-08-01)
 
 
