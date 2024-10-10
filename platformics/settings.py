@@ -26,43 +26,14 @@ class Settings(BaseSettings):
     # manager, disk, etc) but we don't need that just yet.
 
     # Properties usually read from env vars
-    CERBOS_URL: str
     PLATFORMICS_DATABASE_HOST: str
     PLATFORMICS_DATABASE_PORT: str
     PLATFORMICS_DATABASE_USER: str
     PLATFORMICS_DATABASE_PASSWORD: str
     PLATFORMICS_DATABASE_NAME: str
-    OUTPUT_S3_PREFIX: typing.Optional[str] = None
-    JWK_PUBLIC_KEY_FILE: str
-    JWK_PRIVATE_KEY_FILE: str
-    DEFAULT_UPLOAD_BUCKET: str
-    DEFAULT_UPLOAD_PROTOCOL: str
-    BOTO_ENDPOINT_URL: typing.Optional[str] = None
-    AWS_REGION: str
-    DB_ECHO: bool = False
 
     ############################################################################
     # Computed properties
-
-    @cached_property
-    def JWK_PRIVATE_KEY(self) -> jwk.JWK:  # noqa: N802
-        key = None
-        if not self.JWK_PRIVATE_KEY_FILE:
-            raise Exception("JWK_PRIVATE_KEY_FILE not set")
-        with open(self.JWK_PRIVATE_KEY_FILE) as fh:
-            key = fh.read().strip()
-        private_key = jwk.JWK.from_pem(key.encode("utf-8"))
-        return private_key
-
-    @cached_property
-    def JWK_PUBLIC_KEY(self) -> jwk.JWK:  # noqa: N802
-        key = None
-        if not self.JWK_PUBLIC_KEY_FILE:
-            raise Exception("JWK_PUBLIC_KEY_FILE not set")
-        with open(self.JWK_PUBLIC_KEY_FILE) as fh:
-            key = fh.read().strip()
-        public_key = jwk.JWK.from_pem(key.encode("utf-8"))
-        return public_key
 
     @cached_property
     def DB_URI(self) -> str:  # noqa: N802
@@ -88,7 +59,35 @@ class Settings(BaseSettings):
         return db_uri
 
 
-class APISettings(Settings): ...
+class APISettings(Settings):
+    CERBOS_URL: str
+    OUTPUT_S3_PREFIX: typing.Optional[str] = None
+    JWK_PUBLIC_KEY_FILE: str
+    JWK_PRIVATE_KEY_FILE: str
+    DEFAULT_UPLOAD_BUCKET: str
+    DEFAULT_UPLOAD_PROTOCOL: str
+    BOTO_ENDPOINT_URL: typing.Optional[str] = None
+    AWS_REGION: str
+
+    @cached_property
+    def JWK_PRIVATE_KEY(self) -> jwk.JWK:  # noqa: N802
+        key = None
+        if not self.JWK_PRIVATE_KEY_FILE:
+            raise Exception("JWK_PRIVATE_KEY_FILE not set")
+        with open(self.JWK_PRIVATE_KEY_FILE) as fh:
+            key = fh.read().strip()
+        private_key = jwk.JWK.from_pem(key.encode("utf-8"))
+        return private_key
+
+    @cached_property
+    def JWK_PUBLIC_KEY(self) -> jwk.JWK:  # noqa: N802
+        key = None
+        if not self.JWK_PUBLIC_KEY_FILE:
+            raise Exception("JWK_PUBLIC_KEY_FILE not set")
+        with open(self.JWK_PUBLIC_KEY_FILE) as fh:
+            key = fh.read().strip()
+        public_key = jwk.JWK.from_pem(key.encode("utf-8"))
+        return public_key
 
 
 class CLISettings(Settings): ...
