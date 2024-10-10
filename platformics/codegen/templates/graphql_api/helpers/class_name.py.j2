@@ -53,6 +53,8 @@ class {{ cls.name }}GroupByOptions:
     {{ attr.name }}: Optional[uuid.UUID] = None
             {%- elif attr.type == "Array2dFloat" %}
     {{ attr.name }}: Optional[list[list[float]]] = None
+            {%- elif attr.type == "List1dString" %}
+    {{ attr.name }}: Optional[list[str]] = None
             {%- else %}
     {{ attr.name }}: Optional[{{ attr.type }}] = None
             {%- endif %}
