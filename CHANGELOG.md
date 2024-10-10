@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/chanzuckerberg/platformics/compare/v0.2.0...v0.3.0) (2024-10-10)
+
+
+### Features
+
+* add list 1d string column ([#111](https://github.com/chanzuckerberg/platformics/issues/111)) ([8b9b9a5](https://github.com/chanzuckerberg/platformics/commit/8b9b9a569fe9d9abfea631f5bedc3e24d7cdc840))
+* revert meta import ([#114](https://github.com/chanzuckerberg/platformics/issues/114)) ([d56a097](https://github.com/chanzuckerberg/platformics/commit/d56a0973bc70daf6612877f087c6ff495e462ef8))
+
 ## [0.2.0](https://github.com/chanzuckerberg/platformics/compare/v0.1.1...v0.2.0) (2024-10-07)
 
 
