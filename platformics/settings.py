@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 0
     DB_ECHO: bool = False
     DEBUG: bool = False
+    BOTO_ENDPOINT_URL: typing.Optional[str] = None
+    AWS_REGION: str
 
     # Pydantic automatically tries to load settings with matching names from
     # the environment if available.
@@ -66,8 +68,7 @@ class APISettings(Settings):
     JWK_PRIVATE_KEY_FILE: str
     DEFAULT_UPLOAD_BUCKET: str
     DEFAULT_UPLOAD_PROTOCOL: str
-    BOTO_ENDPOINT_URL: typing.Optional[str] = None
-    AWS_REGION: str
+
 
     @cached_property
     def JWK_PRIVATE_KEY(self) -> jwk.JWK:  # noqa: N802
