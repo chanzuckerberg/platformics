@@ -19,8 +19,6 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 0
     DB_ECHO: bool = False
     DEBUG: bool = False
-    BOTO_ENDPOINT_URL: typing.Optional[str] = None
-    AWS_REGION: str
 
     # Pydantic automatically tries to load settings with matching names from
     # the environment if available.
@@ -33,6 +31,8 @@ class Settings(BaseSettings):
     PLATFORMICS_DATABASE_USER: str
     PLATFORMICS_DATABASE_PASSWORD: str
     PLATFORMICS_DATABASE_NAME: str
+    BOTO_ENDPOINT_URL: typing.Optional[str] = None
+    AWS_REGION: str
 
     ############################################################################
     # Computed properties
