@@ -33,6 +33,11 @@ from typing_extensions import Annotated
     {%- endif %}
 {%- endmacro %}
 
+{% macro defaultNoneValue(action, required) -%}
+    {%- if action != "Create" or not required %} = None
+    {%- endif %}
+{%- endmacro %}
+
 {% macro getStringConstraints(attr) -%}
     strip_whitespace=True,
     {%- if attr.pattern %}
@@ -58,27 +63,27 @@ from typing_extensions import Annotated
 {% macro getInputFields(action, fields) -%}
     {%- for attr in fields %}
         {%- if attr.type == "uuid" %} {# Don't allow setting UUID fields #}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "string" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "str", attr.required) }}, StringConstraints({{ getStringConstraints(attr) }})]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "str", attr.required) }}, StringConstraints({{ getStringConstraints(attr) }})] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "integer" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "int", attr.required) }}, Field({{getNumericConstraints(attr)}})]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "int", attr.required) }}, Field({{getNumericConstraints(attr)}})] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "float" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "float", attr.required) }}, Field({{getNumericConstraints(attr)}})]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "float", attr.required) }}, Field({{getNumericConstraints(attr)}})] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "Array2dFloat" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[list[float]]", attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[list[float]]", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "List1dString" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[str]", attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "list[str]", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.is_enum %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, attr.type, attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, attr.type, attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "boolean" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "bool", attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "bool", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "date" %}
-    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "datetime.datetime", attr.required) }}, Field()]
+    {{ attr.name }}: Annotated[{{ getTypeValidation(action, "datetime.datetime", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.type == "File" %}
-    {{ attr.name }}_id: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()]
+    {{ attr.name }}_id: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- elif attr.is_entity and not attr.is_virtual_relationship %} {# Don't include multivalued fields, only fields where we can update an ID #}
-    {{ attr.name }}_id: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()]
+    {{ attr.name }}_id: Annotated[{{ getTypeValidation(action, "uuid.UUID", attr.required) }}, Field()] {{ defaultNoneValue(action, attr.required) }}
         {%- endif %}
     {%- endfor %}
 {%- endmacro %}
