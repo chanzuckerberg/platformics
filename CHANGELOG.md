@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/chanzuckerberg/platformics/compare/v0.3.0...v0.4.0) (2024-10-18)
+
+
+### Features
+
+* add default none to pydantic validators ([#116](https://github.com/chanzuckerberg/platformics/issues/116)) ([1af830c](https://github.com/chanzuckerberg/platformics/commit/1af830ce8d760b33cce270b6b7349536e9707670))
+
 ## [0.3.0](https://github.com/chanzuckerberg/platformics/compare/v0.2.0...v0.3.0) (2024-10-10)
 
 
