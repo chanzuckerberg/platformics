@@ -2,7 +2,7 @@ name: Build and push docker image and package
 
 on:
   release:
-    types: 
+    types:
       - published
   workflow_dispatch:
 
