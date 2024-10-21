@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/chanzuckerberg/platformics/compare/v0.4.0...v0.4.1) (2024-10-21)
+
+
+### Bug Fixes
+
+* Don't create migration if there are no schema changes ([#118](https://github.com/chanzuckerberg/platformics/issues/118)) ([979518b](https://github.com/chanzuckerberg/platformics/commit/979518b76f79894ee1d798b966d0279f04d292ab))
+
 ## [0.4.0](https://github.com/chanzuckerberg/platformics/compare/v0.3.0...v0.4.0) (2024-10-18)
 
 
