@@ -9,23 +9,22 @@ import typing
 import uuid
 from dataclasses import dataclass
 
-import database.models as db
+import sqlalchemy as sa
 import strawberry
 import uuid6
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal
 from fastapi import Depends
 from mypy_boto3_s3.client import S3Client
 from mypy_boto3_sts.client import STSClient
-from sqlalchemy import inspect
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 from strawberry.scalars import JSON
 from strawberry.types import Info
 from typing_extensions import TypedDict
 
+import platformics.database.models as db
 from platformics.graphql_api.core.deps import (
-    get_cerbos_client,
+    get_authz_client,
     get_db_session,
     get_s3_client,
     get_settings,
@@ -33,12 +32,19 @@ from platformics.graphql_api.core.deps import (
     require_auth_principal,
     require_system_user,
 )
+from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_db_rows
-from platformics.graphql_api.core.query_input_types import EnumComparators, IntComparators, StrComparators, UUIDComparators
+from platformics.graphql_api.core.query_input_types import (
+    EnumComparators,
+    IntComparators,
+    StrComparators,
+    UUIDComparators,
+)
 from platformics.graphql_api.core.strawberry_extensions import DependencyExtension
 from platformics.graphql_api.types.entities import Entity
-from platformics.security.authorization import CerbosAction, get_resource_query
+from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 from platformics.settings import APISettings
+from platformics.support import sqlalchemy_helpers
 from platformics.support.file_enums import FileAccessProtocol, FileStatus
 from platformics.support.format_handlers import get_validator
 
@@ -139,8 +145,7 @@ async def load_entities(
     Dataloader to fetch related entities, given file IDs.
     """
     dataloader = info.context["sqlalchemy_loader"]
-    mapper = inspect(db.File)
-    relationship = mapper.relationships["entity"]
+    relationship = sqlalchemy_helpers.get_relationship(db.File, "entity")
     return await dataloader.loader_for(relationship, where).load(root.entity_id)  # type:ignore
 
 
@@ -234,14 +239,14 @@ class FileWhereClause(TypedDict):
 @strawberry.field(extensions=[DependencyExtension()])
 async def resolve_files(
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     where: typing.Optional[FileWhereClause] = None,
 ) -> typing.Sequence[File]:
     """
     Handles files {} GraphQL queries.
     """
-    rows = await get_db_rows(db.File, session, cerbos_client, principal, where, [])
+    rows = await get_db_rows(db.File, session, authz_client, principal, where)
     return rows  # type: ignore
 
 
@@ -266,9 +271,9 @@ async def validate_file(
 
         file_size = s3_client.head_object(Bucket=file.namespace, Key=file.path)["ContentLength"]
     except:  # noqa
-        file.status = db.FileStatus.FAILED
+        file.status = FileStatus.FAILED
     else:
-        file.status = db.FileStatus.SUCCESS
+        file.status = FileStatus.SUCCESS
         file.size = file_size
 
     file.updated_at = func.now()
@@ -325,7 +330,7 @@ def generate_multipart_upload_token(
 async def mark_upload_complete(
     file_id: strawberry.ID,
     principal: Principal = Depends(require_auth_principal),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     session: AsyncSession = Depends(get_db_session, use_cache=False),
     s3_client: S3Client = Depends(get_s3_client),
 ) -> db.File:
@@ -333,7 +338,28 @@ async def mark_upload_complete(
     Once a file is uploaded, the front-end should make a markUploadComplete mutation
     to mark the file as ready for pipeline analysis.
     """
-    query = get_resource_query(principal, cerbos_client, CerbosAction.UPDATE, db.File)
+
+    # Get the type of entity that the file is related to
+    try:
+        file_row = (await session.execute(sa.select(db.File).where(db.File.id == file_id))).scalars().one()
+    except NoResultFound:
+        raise PlatformicsError("Unauthorized: cannot update file") from None
+
+    # Fetch the entity if have access to it
+    entity_class, entity = await get_entity_by_id(
+        session,
+        authz_client,
+        principal,
+        AuthzAction.UPDATE,
+        file_row.entity_id,
+    )
+
+    # See if we actually have access to that file.
+    query = authz_client.get_resource_query(
+        principal,
+        AuthzAction.UPDATE,
+        db.File,
+    )
     query = query.filter(db.File.id == file_id)
     file = (await session.execute(query)).scalars().one()
     if not file:
@@ -351,7 +377,7 @@ async def create_file(
     entity_field_name: str,
     file: FileCreate,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     s3_client: S3Client = Depends(get_s3_client),
     sts_client: STSClient = Depends(get_sts_client),
@@ -368,7 +394,7 @@ async def create_file(
         file,
         -1,
         session,
-        cerbos_client,
+        authz_client,
         principal,
         s3_client,
         sts_client,
@@ -385,7 +411,7 @@ async def upload_file(
     file: FileUpload,
     expiration: int = 3600,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     s3_client: S3Client = Depends(get_s3_client),
     sts_client: STSClient = Depends(get_sts_client),
@@ -400,7 +426,7 @@ async def upload_file(
         file,
         expiration,
         session,
-        cerbos_client,
+        authz_client,
         principal,
         s3_client,
         sts_client,
@@ -410,13 +436,36 @@ async def upload_file(
     return response
 
 
+async def get_entity_by_id(
+    session: AsyncSession,
+    authz_client: AuthzClient,
+    principal: Principal,
+    action: AuthzAction,
+    entity_id: strawberry.ID,
+) -> tuple[typing.Type[db.Base], db.Base]:
+    # Fetch the entity if have access to it
+    try:
+        entity_row = (await session.execute(sa.select(db.Entity).where(db.Entity.id == entity_id))).scalars().one()
+        entity_class = sqlalchemy_helpers.get_orm_class_by_name(type(entity_row).__name__)
+    except NoResultFound:
+        raise PlatformicsError("Unauthorized: cannot create file") from None
+
+    query = authz_client.get_resource_query(principal, action, entity_class)
+    query = query.filter(entity_class.entity_id == entity_id)
+    try:
+        entity = (await session.execute(query)).scalars().one()
+    except NoResultFound:
+        raise PlatformicsError("Unauthorized: cannot create file") from None
+    return entity_class, entity
+
+
 async def create_or_upload_file(
     entity_id: strawberry.ID,
     entity_field_name: str,
     file: FileCreate | FileUpload,
     expiration: int = 3600,
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     s3_client: S3Client = Depends(get_s3_client),
     sts_client: STSClient = Depends(get_sts_client),
@@ -430,11 +479,7 @@ async def create_or_upload_file(
         raise Exception("File name should not contain /")
 
     # Fetch the entity if have access to it
-    query = get_resource_query(principal, cerbos_client, CerbosAction.UPDATE, db.Entity)
-    query = query.filter(db.Entity.id == entity_id)
-    entity = (await session.execute(query)).scalars().one()
-    if not entity:
-        raise Exception("Entity not found")
+    entity_class, entity = await get_entity_by_id(session, authz_client, principal, AuthzAction.UPDATE, entity_id)
 
     # Does that entity type have a column for storing a file ID?
     entity_property_name = f"{entity_field_name}_id"
@@ -442,12 +487,17 @@ async def create_or_upload_file(
         raise Exception(f"This entity does not have a corresponding file of type {entity_field_name}")
 
     # Unlink the File(s) currently connected to this entity (only commit to DB once add the new File below)
-    query = get_resource_query(principal, cerbos_client, CerbosAction.UPDATE, db.File)
-    query = query.filter(db.File.entity_id == entity_id)
-    query = query.filter(db.File.entity_field_name == entity_field_name)
-    current_files = (await session.execute(query)).scalars().all()
-    for current_file in current_files:
-        current_file.entity_id = None
+    if getattr(entity, entity_property_name):
+        query = authz_client.get_resource_query(
+            principal,
+            AuthzAction.UPDATE,
+            db.File,
+        )
+        query = query.filter(db.File.entity_id == entity_id)
+        query = query.filter(db.File.entity_field_name == entity_field_name)
+        current_files = (await session.execute(query)).scalars().all()
+        for current_file in current_files:
+            current_file.entity_id = None
 
     # Set file parameters based on user inputs
     file_id = uuid6.uuid7()
@@ -470,7 +520,7 @@ async def create_or_upload_file(
         path=file_path,
         file_format=file.file_format,
         compression_type=file.compression_type,
-        status=db.FileStatus.PENDING,
+        status=FileStatus.PENDING,
     )
     # Save file to db first
     session.add(new_file)
@@ -517,7 +567,7 @@ async def upload_temporary_file(
 async def concatenate_files(
     ids: typing.Sequence[uuid.UUID],
     session: AsyncSession = Depends(get_db_session, use_cache=False),
-    cerbos_client: CerbosClient = Depends(get_cerbos_client),
+    authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(require_auth_principal),
     s3_client: S3Client = Depends(get_s3_client),
     settings: APISettings = Depends(get_settings),
@@ -532,8 +582,8 @@ async def concatenate_files(
         raise Exception(f"Cannot concatenate more than {FILE_CONCATENATION_MAX} files")
 
     # Get files in question if have access to them
-    where = {"id": {"_in": ids}, "status": {"_eq": db.FileStatus.SUCCESS}}
-    files = await get_db_rows(db.File, session, cerbos_client, principal, where, [])
+    where = {"id": {"_in": ids}, "status": {"_eq": FileStatus.SUCCESS}}
+    files = await get_db_rows(db.File, session, authz_client, principal, where)
     if len(files) < 2:
         raise Exception("Need at least 2 valid files to concatenate")
     for file in files:

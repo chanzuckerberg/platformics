@@ -5,7 +5,7 @@ Platformics is a GraphQL API framework that relies on code generation to impleme
 The libraries and tools that make Platformics work:
 
 ![image](docs/images/platformics_libs.svg)
- 
+
 ### Links to these tools/libraries
  - [LinkML](https://linkml.io/) - Schema modeling language
  - [FastAPI](https://fastapi.tiangolo.com/) - Async HTTP router
@@ -60,6 +60,7 @@ The version in `pyproject.toml` is managed using [poetry-dynamic-versioning](htt
 - [Work with platformics](docs/HOWTO-working-with-platformics.md)
 - [Extend the generated API](docs/HOWTO-extend-generated-api.md)
 - [Customize Codegen templates](docs/HOWTO-customize-templates.md)
+- [Override Default Authorization Behaviors](docs/HOWTO-override-authorization.md)
 
 ## Contributing
 This project adheres to the Contributor Covenant code of conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
