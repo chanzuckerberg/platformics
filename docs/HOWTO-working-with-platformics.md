@@ -15,7 +15,7 @@ Notable files and subdirectories:
   * `files.py` - GQL types, mutations, queries for files
 * `codegen/`
   * `lib/linkml_wrappers.py` - convenience functions for converting LinkML to generated code
-  * `templates/` - all Jinja templates for codegen. Entity-related templates can be overridden with [custom templates](https://github.com/chanzuckerberg/platformics/tree/main/platformics/docs/HOWTO-customize-templates.md). 
+  * `templates/` - all Jinja templates for codegen. Entity-related templates can be overridden with [custom templates](https://github.com/chanzuckerberg/platformics/tree/main/platformics/docs/HOWTO-customize-templates.md).
   * `generator.py` - script handling all logic of applying Jinja templates to LinkML schema to generate code
 * `database/`
   * `models/`
@@ -31,7 +31,7 @@ Notable files and subdirectories:
 Notable files and subdirectories:
 * `api/` - entrypoint for GQL API service
   * `helpers/` - generated GQL types and helper functions for GROUPBY queries
-  * `types/` - generated GQL types 
+  * `types/` - generated GQL types
   * `mutations.py` - generated mutations (create, update, delete) for each entity type
   * `queries.py` - generated queries (list and aggregate) for each entity type
   * `schema.graphql` - GQL format schema
@@ -40,7 +40,7 @@ Notable files and subdirectories:
 * `cerbos/` - generated access policies for user actions for each entity type
 * `database/` - code related to establishing DB connections / sessions
   * `migrations/` - alembic migrations
-  * `models/` - generated SQLAlchemy models 
+  * `models/` - generated SQLAlchemy models
 * `schema/`
   * `schema.yaml` - LinkML schema used to codegen entity-related files
 * `test_infra/`
@@ -59,7 +59,7 @@ Containers (`test_app/docker-compose.yml`)
 * `platformics-db`: Postgres database
 * `graphql-api`: API
 
-When developing on `platformics` itself, running `make dev` will start all of the above containers, then stop the `graphql-api` container and start a new `dev-app` compose service. 
+When developing on `platformics` itself, running `make dev` will start all of the above containers, then stop the `graphql-api` container and start a new `dev-app` compose service.
 The compose service called `dev-app` has the `platformics` directory in this repo mounted inside the `test_app` application as a sub-module, so it can be edited directly and be debugged via the VSCode debugger.
 `graphql-api` and `dev-app` share a port, so the `graphql-api` container is stopped before starting the `dev-app` container.
 
