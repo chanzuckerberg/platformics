@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/chanzuckerberg/platformics/compare/v0.4.1...v0.5.0) (2024-11-25)
+
+
+### Features
+
+* Make authorization code pluggable ([#102](https://github.com/chanzuckerberg/platformics/issues/102)) ([09218c4](https://github.com/chanzuckerberg/platformics/commit/09218c460a8c11d813f3ca8e9c22744931453792))
+
+
+### Bug Fixes
+
+* faker generation ([#120](https://github.com/chanzuckerberg/platformics/issues/120)) ([189c558](https://github.com/chanzuckerberg/platformics/commit/189c5586094d6a3c6f111c3be8268b6e7ededc52))
+
 ## [0.4.1](https://github.com/chanzuckerberg/platformics/compare/v0.4.0...v0.4.1) (2024-10-21)
 
 
