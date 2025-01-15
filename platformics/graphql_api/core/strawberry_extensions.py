@@ -8,8 +8,8 @@ from fastapi.dependencies import utils as deputils
 from fastapi.dependencies.models import Dependant
 from fastapi.params import Depends as DependsClass
 from strawberry.extensions import FieldExtension
-from strawberry.field import StrawberryField
 from strawberry.types import Info
+from strawberry.types.field import StrawberryField
 
 
 def get_func_with_only_deps(func: typing.Callable[..., typing.Any]) -> typing.Callable[..., typing.Any]:
