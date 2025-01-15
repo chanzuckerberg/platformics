@@ -45,7 +45,7 @@ The libraries and tools that make Platformics work:
 5. Run `make token` to generate an authorization token that you can use to interact with the API. The `make` target copies the necessary headers to the system clipboard. Paste the token into the `headers` section at the bottom of the GraphQL explorer API
 
 ## Versioning platformics
-Platformics can be used in downstream applications by 
+Platformics can be used in downstream applications by
 1) using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image
 2) installing as a dependency, `pip install platformics`.
 

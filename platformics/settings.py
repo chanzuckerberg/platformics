@@ -69,7 +69,6 @@ class APISettings(Settings):
     DEFAULT_UPLOAD_BUCKET: str
     DEFAULT_UPLOAD_PROTOCOL: str
 
-
     @cached_property
     def JWK_PRIVATE_KEY(self) -> jwk.JWK:  # noqa: N802
         key = None
