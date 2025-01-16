@@ -4,7 +4,7 @@ import logging
 import click
 
 from platformics.security.token_auth import create_token
-from platformics.settings import Settings
+from platformics.settings import APISettings
 
 
 @click.group()
@@ -47,7 +47,7 @@ def auth() -> None:
 )
 @click.pass_context
 def generate_token(ctx: click.Context, userid: int, project: list[str], expiration: int) -> None:
-    settings = Settings.model_validate({})
+    settings = APISettings.model_validate({})
     private_key = settings.JWK_PRIVATE_KEY
 
     project_roles: dict[str, list[int]] = {"member": [], "owner": [], "viewer": []}

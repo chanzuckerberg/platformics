@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "platformics"
 # placeholder version that will be replace by poetry-dynamic-versioning
-version = "0.4.1" 
+version = "0.4.1"
 description = "Codegen Python GraphQL Entity Framework"
 authors = ["CZI Team <opensource@chanzuckerberg.com>"]
 license = "MIT License"
@@ -38,7 +38,7 @@ httpx = "^0.24.1"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.110.0"
+fastapi = "^0.115.0"
 biopython = "^1.84"
 asyncpg = "^0.29.0"
 alembic = "^1.11.1"
@@ -57,7 +57,7 @@ linkml = "^1.5.7"
 strcase = "^1.0.0"
 linkml-runtime = "^1.6.0"
 sqlalchemy_utils = "^0.41.1"
-strawberry-graphql = "^0.217.0"
+strawberry-graphql = "0.257.0"
 
 [build-system]
 requires = ["poetry-core", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]

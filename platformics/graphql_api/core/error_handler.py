@@ -45,6 +45,11 @@ class DefaultExceptionHandler(ExceptionHandler):
     error_message: str = "Unexpected error."
 
     def convert_exception(self, err: Any) -> list[GraphQLError]:
+        try:
+            if isinstance(err, GraphQLError) and not err.original_error:
+                return [err]
+        except AttributeError:
+            pass
         return [
             GraphQLError(
                 message=self.error_message,

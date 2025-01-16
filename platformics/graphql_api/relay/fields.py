@@ -25,16 +25,16 @@ from typing import (
 
 import strawberry
 from strawberry.annotation import StrawberryAnnotation
-from strawberry.arguments import StrawberryArgument, argument
 from strawberry.extensions.field_extension import (
     AsyncExtensionResolver,
     FieldExtension,
     SyncExtensionResolver,
 )
-from strawberry.field import _RESOLVER_TYPE, StrawberryField, field
-from strawberry.lazy_type import LazyType
-from strawberry.type import StrawberryList, StrawberryOptional
+from strawberry.types.arguments import StrawberryArgument, argument
+from strawberry.types.base import StrawberryList, StrawberryOptional
+from strawberry.types.field import _RESOLVER_TYPE, StrawberryField, field
 from strawberry.types.fields.resolver import StrawberryResolver
+from strawberry.types.lazy_type import LazyType
 from strawberry.utils.aio import asyncgen_to_list
 from strawberry.utils.typing import eval_type
 from typing_extensions import Annotated, get_origin
