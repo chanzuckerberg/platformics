@@ -43,20 +43,18 @@ def api() -> None:
 @api.command("generate")
 @click.option("--schemafile", type=str, required=True)
 @click.option("--output-prefix", type=str, required=True)
-@click.option("--render-files/--skip-render-files", type=bool, default=True, show_default=True)
 @click.option("--template-override-paths", type=str, multiple=True)
 @click.pass_context
 def api_generate(
     ctx: click.Context,
     schemafile: str,
     output_prefix: str,
-    render_files: bool,
     template_override_paths: tuple[str],
 ) -> None:
     """
     Launch code generation
     """
-    generate(schemafile, output_prefix, render_files, template_override_paths)
+    generate(schemafile, output_prefix, template_override_paths)
 
 
 @cli.group()

@@ -5,7 +5,7 @@ Auto-gereanted by running 'make codegen'. Do not edit.
 Make changes to the template codegen/templates/graphql_api/groupby_helpers.py.j2 instead.
 """
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = ["Entity", cls.name] %}
 
 from typing import Any, Optional
 import strawberry
@@ -35,8 +35,8 @@ These are only used in aggregate queries.
 @strawberry.type
 class {{ cls.name }}GroupByOptions:
 {%- for attr in cls.visible_fields %}
-    {%- if attr.type != "File" and not attr.multivalued and not attr.is_virtual_relationship %}
-        {%- if attr.inverse %}
+    {%- if not attr.multivalued and not attr.is_virtual_relationship %}
+        {%- if attr.is_entity %}
     {{ attr.name }}: Optional[{{ attr.related_class.name }}GroupByOptions] = None
         {%- elif attr.type == cls.name %}
     {{ attr.name }}: Optional["{{ cls.name }}GroupByOptions"] = None
@@ -78,7 +78,7 @@ def build_{{ cls.snake_name }}_groupby_output(
     key = keys.pop(0)
     match key:
 {%- for attr in cls.visible_fields %}
-    {%- if attr.type != "File" and not attr.multivalued and not attr.is_virtual_relationship %}
+    {%- if not attr.multivalued and not attr.is_virtual_relationship %}
         {%- if attr.inverse %}
         case "{{ attr.related_class.snake_name }}":
             if getattr(group_object, key):

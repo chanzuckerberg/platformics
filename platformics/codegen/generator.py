@@ -62,7 +62,6 @@ def generate_entity_subclass_files(
     template_filename: str,
     environment: Environment,
     view: ViewWrapper,
-    render_files: bool,
 ) -> None:
     """
     Code generation for SQLAlchemy models, GraphQL types, Cerbos policies, and Factoryboy factories
@@ -76,13 +75,11 @@ def generate_entity_subclass_files(
             override_template = environment.get_template(f"{dest_filename}.j2")
             content = override_template.render(
                 cls=entity,
-                render_files=render_files,
                 view=view,
             )
         else:
             content = template.render(
                 cls=entity,
-                render_files=render_files,
                 view=view,
             )
         with open(os.path.join(output_prefix, dest_filename), mode="w", encoding="utf-8") as outfile:
@@ -94,7 +91,6 @@ def generate_entity_import_files(
     output_prefix: str,
     environment: Environment,
     view: ViewWrapper,
-    render_files: bool,
 ) -> None:
     """
     Code generation for database model imports, and GraphQL queries/mutations
@@ -116,7 +112,6 @@ def generate_entity_import_files(
         import_template = environment.get_template(f"{filename}.j2")
         content = import_template.render(
             classes=classes,
-            render_files=render_files,
             view=view,
         )
         with open(os.path.join(output_prefix, filename), mode="w", encoding="utf-8") as outfile:
@@ -134,7 +129,7 @@ def regex_replace(txt, rgx, val, ignorecase=False, multiline=False):
     return compiled_rgx.sub(val, txt)
 
 
-def generate(schemafile: str, output_prefix: str, render_files: bool, template_override_paths: tuple[str]) -> None:
+def generate(schemafile: str, output_prefix: str, template_override_paths: tuple[str]) -> None:
     """
     Launch code generation
     """
@@ -157,7 +152,7 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
     # Generate enums and import files
     generate_enums(output_prefix, environment, wrapped_view)
     generate_limit_offset_type(output_prefix, environment)
-    generate_entity_import_files(output_prefix, environment, wrapped_view, render_files=render_files)
+    generate_entity_import_files(output_prefix, environment, wrapped_view)
 
     # Generate database models, GraphQL types, Cerbos policies, and Factoryboy factories
     generate_entity_subclass_files(
@@ -165,40 +160,34 @@ def generate(schemafile: str, output_prefix: str, render_files: bool, template_o
         "database/models/class_name.py",
         environment,
         wrapped_view,
-        render_files=render_files,
     )
     generate_entity_subclass_files(
         output_prefix,
         "graphql_api/types/class_name.py",
         environment,
         wrapped_view,
-        render_files=render_files,
     )
     generate_entity_subclass_files(
         output_prefix,
         "validators/class_name.py",
         environment,
         wrapped_view,
-        render_files=render_files,
     )
     generate_entity_subclass_files(
         output_prefix,
         "cerbos/policies/class_name.yaml",
         environment,
         wrapped_view,
-        render_files=render_files,
     )
     generate_entity_subclass_files(
         output_prefix,
         "test_infra/factories/class_name.py",
         environment,
         wrapped_view,
-        render_files=render_files,
     )
     generate_entity_subclass_files(
         output_prefix,
         "graphql_api/helpers/class_name.py",
         environment,
         wrapped_view,
-        render_files=render_files,
     )

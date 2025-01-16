@@ -4,7 +4,7 @@ Test cascade deletion
 
 import pytest
 from platformics.database.connect import SyncDB
-from conftest import SessionStorage, GQLTestClient, FileFactory
+from conftest import SessionStorage, GQLTestClient
 from test_infra.factories.sequencing_read import SequencingReadFactory
 
 
@@ -25,7 +25,6 @@ async def test_cascade_delete(
         sequencing_reads = SequencingReadFactory.create_batch(
             2, technology="Illumina", owner_user_id=user_id, collection_id=project_id
         )
-        FileFactory.update_file_ids()
 
     # Delete the first Sample
     query = f"""
@@ -63,7 +62,7 @@ async def test_cascade_delete(
     # Files from the first SequencingRead should be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ entityId: {{ _eq: "{sequencing_reads[0].entity_id}" }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[0].r1_file.id}", "{sequencing_reads[0].r2_file.id}", "{sequencing_reads[0].primer_file.id}"] }} }}) {{
             id
         }}
       }}
@@ -74,7 +73,7 @@ async def test_cascade_delete(
     # Files from the second SequencingRead should NOT be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ entityId: {{ _eq: "{sequencing_reads[1].entity_id}" }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[1].r1_file.id}", "{sequencing_reads[1].r2_file.id}", "{sequencing_reads[1].primer_file.id}"] }} }}) {{
             id
         }}
       }}

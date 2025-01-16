@@ -5,7 +5,7 @@ Populate the database with mock data for local development
 import factory.random
 from platformics.database.connect import init_sync_db
 from platformics.settings import CLISettings
-from platformics.test_infra.factories.base import FileFactory, SessionStorage
+from platformics.test_infra.factories.base import SessionStorage
 from test_infra.factories.sample import SampleFactory
 from test_infra.factories.sequencing_read import SequencingReadFactory
 
@@ -28,8 +28,6 @@ def use_factoryboy() -> None:
     SequencingReadFactory.create_batch(3, sample=sa1, owner_user_id=sa1.owner_user_id, collection_id=sa1.collection_id)
     SequencingReadFactory.create_batch(2, sample=sa2, owner_user_id=sa2.owner_user_id, collection_id=sa2.collection_id)
     SequencingReadFactory.create_batch(3, sample=sa3, owner_user_id=sa3.owner_user_id, collection_id=sa3.collection_id)
-
-    FileFactory.update_file_ids()
 
     session.commit()
 

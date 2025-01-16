@@ -26,7 +26,7 @@ from platformics.graphql_api.core.deps import (
 from platformics.graphql_api.setup import get_app
 from platformics.database.connect import AsyncDB, SyncDB, init_async_db, init_sync_db
 from platformics.database.models.base import Base
-from platformics.test_infra.factories.base import FileFactory, SessionStorage
+from platformics.test_infra.factories.base import SessionStorage
 from pytest_postgresql import factories
 from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
@@ -44,7 +44,6 @@ __all__ = [
     "moto_client",
     "GQLTestClient",
     "SessionStorage",
-    "FileFactory",
 ]  # needed by tests
 
 

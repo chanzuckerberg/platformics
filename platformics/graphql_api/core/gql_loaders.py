@@ -11,7 +11,7 @@ from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.security.authorization import AuthzAction, AuthzClient, Principal
 
-E = typing.TypeVar("E", db.File, db.Entity)  # type: ignore
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 

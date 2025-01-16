@@ -5,6 +5,7 @@ The wrapper classes in this module are entirely centered around providing conven
 functions to keep complicated LinkML-specific logic out of our Jinja2 templates.
 """
 
+import contextlib
 from functools import cached_property
 
 import strcase
@@ -36,8 +37,17 @@ class FieldWrapper:
         return self.wrapped_field.name.replace(" ", "_")
 
     @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_field.description)
+
+    @cached_property
     def camel_name(self) -> str:
         return strcase.to_lower_camel(self.name)
+
+    @cached_property
+    def type_designator(self) -> bool:
+        return bool(self.wrapped_field.designates_type)
 
     @cached_property
     def multivalued(self) -> str:
@@ -46,6 +56,10 @@ class FieldWrapper:
     @cached_property
     def required(self) -> bool:
         return self.wrapped_field.required or False
+
+    @cached_property
+    def designates_type(self) -> bool:
+        return self.wrapped_field.designates_type
 
     # Validation attributes
     @cached_property
@@ -64,6 +78,11 @@ class FieldWrapper:
     def indexed(self) -> bool:
         if "indexed" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["indexed"].value
+        if self.identifier:
+            return True
+        with contextlib.suppress(NotImplementedError, AttributeError, ValueError):
+            if self.related_class.identifier:
+                return True
         return False
 
     @cached_property
@@ -94,9 +113,7 @@ class FieldWrapper:
     @cached_property
     def readonly(self) -> bool:
         is_readonly = self.wrapped_field.readonly
-        if is_readonly:
-            return True
-        return False
+        return bool(is_readonly)
 
     # Whether these fields should be available to change via an `Update` mutation
     # All fields are mutable by default, so long as they're not marked as readonly
@@ -138,16 +155,12 @@ class FieldWrapper:
     @cached_property
     def is_enum(self) -> bool:
         field = self.view.get_element(self.wrapped_field.range)
-        if isinstance(field, EnumDefinition):
-            return True
-        return False
+        return bool(isinstance(field, EnumDefinition))
 
     @cached_property
     def is_entity(self) -> bool:
         field = self.view.get_element(self.wrapped_field.range)
-        if isinstance(field, ClassDefinition):
-            return True
-        return False
+        return bool(isinstance(field, ClassDefinition))
 
     @property
     def related_class(self) -> "EntityWrapper":
@@ -162,6 +175,17 @@ class FieldWrapper:
         if "factory_type" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["factory_type"].value
         return None
+
+    @cached_property
+    def is_single_parent(self) -> bool:
+        # TODO, this parameter probably needs a better name. It's entirely SA specific right now.
+        # Basically we need it to tell SQLAlchemy that we have a 1:many relationship without a backref.
+        # Normally that's fine on its own, but if SQLALchemy will not allow us to enable cascading
+        # deletes unless we promise it (with this flag) that a given "child" object has only one parent,
+        # thereby making it safe to delete when the parent is deleted
+        if "single_parent" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["single_parent"].value
+        return False
 
     @cached_property
     def is_cascade_delete(self) -> bool:
@@ -234,15 +258,15 @@ class EntityWrapper:
         return [FieldWrapper(self.view, item) for item in self.view.class_induced_slots(self.name) if not item.readonly]
 
     @cached_property
-    def identifier(self) -> str:
-        # Prioritize sending back identifiers from the entity mixin instead of inherited fields.
+    def identifier(self) -> FieldWrapper:
+        # Prioritize sending back identifiers from the current class and mixins instead of inherited fields.
+        domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         for field in self.all_fields:
-            # FIXME, the entity.id / entity_id relationship is a little brittle right now :(
-            if field.identifier and "EntityMixin" in field.wrapped_field.domain_of:
-                return field.name
+            if field.identifier and domains_owned_by_this_class.intersection(set(field.wrapped_field.domain_of)):
+                return field
         for field in self.all_fields:
-            if field.identifier:
-                return field.name
+            if field.identifier and self.name in field.wrapped_field.domain_of:
+                return field
         raise Exception("No identifier found")
 
     @cached_property
@@ -343,6 +367,9 @@ class ViewWrapper:
         enums = []
         for enum_name in self.view.all_enums():
             enum = self.view.get_element(enum_name)
+            # Don't codegen stuff that users asked us not to.
+            if enum.annotations.get("skip_codegen") and enum.annotations["skip_codegen"].value:
+                continue
             enums.append(EnumWrapper(self.view, enum))
         return enums
 

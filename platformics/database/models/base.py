@@ -8,11 +8,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 
-if TYPE_CHECKING:
-    from platformics.database.models.file import File
-else:
-    File = "File"
-
 meta = MetaData(
     naming_convention={
         "ix": "ix_%(column_0_label)s",
