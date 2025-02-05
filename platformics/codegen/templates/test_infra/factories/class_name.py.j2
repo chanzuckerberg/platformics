@@ -10,9 +10,9 @@ Make changes to the template codegen/templates/test_infra/factories/class_name.p
 import random
 import factory
 from database.models import {{ cls.name }}
-from platformics.test_infra.factories.base import CommonFactory, FileFactory
+from platformics.test_infra.factories.base import CommonFactory
 {%- for field in cls.related_fields %}
-    {%- if field.inverse and field.related_class.name != "Entity" and not field.multivalued%}
+    {%- if field.related_class.name != "Entity" and not field.multivalued%}
 from test_infra.factories.{{ field.related_class.snake_name }} import {{ field.related_class.name }}Factory
     {%- endif %}
 {%- endfor %}
@@ -27,7 +27,7 @@ Faker.add_provider(EnumProvider)
 
 
 class {{ cls.name }}Factory(CommonFactory):
-{%- if cls.name not in ["Entity", "File"] %}
+{%- if cls.name not in ["Entity"] %}
     class Meta:
         sqlalchemy_session = None  # workaround for a bug in factoryboy
         model = {{ cls.name }}
@@ -36,31 +36,13 @@ class {{ cls.name }}Factory(CommonFactory):
         sqlalchemy_get_or_create = ("entity_id",)
     {% for field in cls.owned_fields %}
         {%- if field.type != "uuid" %}
-            {%- if field.inverse and field.related_class.name != "Entity" %}
+            {%- if field.is_entity and field.related_class.name != "Entity" %}
             {#- If the field is a one-to-one relationship, avoid circular imports by only defining the SubFactory on the child #}
                 {%- if not field.multivalued and not field.is_virtual_relationship %}
     {{ field.name }} = factory.SubFactory(
         {{ field.related_class.name }}Factory,
         owner_user_id=factory.SelfAttribute("..owner_user_id"),
         collection_id=factory.SelfAttribute("..collection_id"),
-    )
-                {%- endif %}
-            {%- elif field.type == "File" %}
-                {#- If the schema specifies what file_type to use, use that. #}
-                {#- Otherwise, default to fastq.}} #}
-                {%- if field.factory_type is not none %}
-    {{ field.name }} = factory.RelatedFactory(
-        FileFactory,
-        factory_related_name="entity",
-        entity_field_name="{{ field.name }}",
-        file_format="{{ field.factory_type }}",
-    )
-                {%- else %}
-    {{ field.name }} = factory.RelatedFactory(
-        FileFactory,
-        factory_related_name="entity",
-        entity_field_name="{{ field.name }}",
-        file_format="fastq",
     )
                 {%- endif %}
             {%- elif field.is_enum %}

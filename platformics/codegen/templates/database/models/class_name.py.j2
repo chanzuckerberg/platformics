@@ -6,7 +6,7 @@ Make changes to the template codegen/templates/database/models/class_name.py.j2 
 """
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = ["Entity", cls.name] %}
 
 import uuid
 import datetime
@@ -26,19 +26,19 @@ from support.enums import
 {%- endfor %}
 
 if TYPE_CHECKING:
-    from database.models.file import File
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}
         {%- endif %}
     {%- endfor %}
+    pass
 else:
-    File = "File"
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
         {%- endif %}
     {%- endfor %}
+    pass
 
 
 class {{cls.name}}(Entity):
@@ -65,12 +65,13 @@ class {{cls.name}}(Entity):
         {%- elif attr.type == "date" %}
     {{attr.name}}: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
         {%- else %}
+            {%- if attr.is_single_parent -%}
+                {% set single_parent = 'single_parent=True,' %}
+            {%- else -%}
+                {% set single_parent = "" %}
+            {%- endif -%}
             {%- if attr.is_cascade_delete -%}
-                {%- if attr.type == "File" -%}
-                    {% set cascade = 'cascade="all, delete-orphan", single_parent=True, post_update=True' %}
-                {%- else -%}
-                    {% set cascade = 'cascade="all, delete-orphan"' %}
-                {%- endif -%}
+                {% set cascade = 'cascade="all, delete-orphan",' %}
             {%- else -%}
                 {% set cascade = "" %}
             {%- endif -%}
@@ -83,11 +84,12 @@ class {{cls.name}}(Entity):
         uselist=True,
         foreign_keys="{{attr.type}}.{{attr.inverse_field}}_id",
         {{cascade}}
+        {{single_parent}}
     )
             {%- else %}
     {{attr.name}}_id: Mapped[uuid.UUID] = mapped_column(
         UUID,
-        ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier}}"),
+        ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier.name}}"),
         nullable={{"False" if attr.required else "True"}},
         {%- if attr.identifier %}
         primary_key=True,
@@ -103,6 +105,7 @@ class {{cls.name}}(Entity):
         back_populates="{{attr.inverse_field}}",
         {%- endif %}
         {{cascade}}
+        {{single_parent}}
     )
               {%- endif %}
             {%- endif %}

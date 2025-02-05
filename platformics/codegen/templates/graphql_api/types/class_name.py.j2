@@ -7,8 +7,23 @@ Make changes to the template codegen/templates/graphql_api/types/class_name.py.j
 
 # ruff: noqa: E501 Line too long
 
+{%- set type_map = {
+    "uuid": "strawberry.ID",
+    "string": "str",
+    "Array2dFloat": "List[List[float]]",
+    "integer": "int",
+    "float": "float",
+    "boolean": "bool",
+    "date": "datetime.datetime",
+} %}
+{% macro getType(type, required) -%}
+    {%- if required %} {{ type }}
+    {%- else %} Optional[{{ type }}]
+    {%- endif %}
+{%- endmacro %}
+
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["File", "Entity", cls.name] %}
+{% set ignored_fields = ["Entity", cls.name] %}
 
 import typing
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
@@ -23,9 +38,6 @@ from validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 {%- endif %}
 {%- if cls.mutable_fields %}
 from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
-{%- endif %}
-{%- if render_files %}
-from platformics.graphql_api.files import File, FileWhereClause
 {%- endif %}
 from graphql_api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
 from platformics.graphql_api.types.entities import EntityInterface
@@ -59,7 +71,7 @@ from support.enums import
 {%- endfor %}
 
 
-E = typing.TypeVar("E", base_db.File, db.{{ cls.name }})
+E = typing.TypeVar("E")
 T = typing.TypeVar("T")
 
 if TYPE_CHECKING:
@@ -88,7 +100,7 @@ These are batching functions for loading related objects to avoid N+1 queries.
 """
 
 {%- for related_field in related_fields %}
-    {%- if related_field.inverse and related_field.related_class.name not in ignored_fields %}
+    {%- if related_field.is_entity and related_field.related_class.name not in ignored_fields %}
         {%- if related_field.multivalued %}
 @relay.connection(
         relay.ListConnection[Annotated["{{ related_field.type }}", strawberry.lazy("graphql_api.types.{{ related_field.related_class.snake_name }}")]]  # type:ignore
@@ -144,31 +156,6 @@ async def load_{{ related_field.related_class.snake_name }}_aggregate_rows(
 {%- endfor %}
 
 
-{%- if cls.owned_fields | map(attribute="type") | select("equalto", "File") | list | length > 0 %}
-"""
-------------------------------------------------------------------------------
-Dataloader for File object
-------------------------------------------------------------------------------
-"""
-
-def load_files_from(attr_name: str) -> Callable:
-    @strawberry.field
-    async def load_files(
-        root: "{{ cls.name }}",
-        info: Info,
-        where: Annotated["FileWhereClause", strawberry.lazy("platformics.graphql_api.files")] | None = None,
-    ) -> Optional[Annotated["File", strawberry.lazy("platformics.graphql_api.files")]]:
-        """
-        Given a list of {{ cls.name }} IDs for a certain file type, return related Files
-        """
-        dataloader = info.context["sqlalchemy_loader"]
-        mapper = inspect(db.{{ cls.name }})
-        relationship = mapper.relationships[attr_name]
-        return await dataloader.loader_for(relationship, where).load(getattr(root, f"{attr_name}_id"))  # type:ignore
-
-    return load_files
-{%- endif %}
-
 """
 ------------------------------------------------------------------------------
 Define Strawberry GQL types
@@ -204,7 +191,7 @@ class {{ cls.name }}WhereClause(TypedDict):
     {{ attr.name }}: Optional[BoolComparators] | None
         {%- elif attr.type == "date" %}
     {{ attr.name }}: Optional[DatetimeComparators] | None
-        {%- elif attr.inverse %}
+        {%- elif attr.is_entity %}
     {{ attr.name }}: Optional[Annotated["{{ attr.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] | None
         {%- elif attr.type == cls.name %}
     {{ attr.name }}_id: Optional[UUIDComparators] | None
@@ -217,8 +204,8 @@ Supported ORDER BY clause attributes
 @strawberry.input
 class {{ cls.name }}OrderByClause(TypedDict):
     {%- for attr in cls.visible_fields %}
-        {%- if attr.type != "File" and not attr.multivalued %}
-            {%- if attr.inverse %}
+        {%- if not attr.multivalued %}
+            {%- if attr.is_entity %}
     {{ attr.name }}: Optional[Annotated["{{ attr.type }}OrderByClause", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] | None
             {%- else %}
     {{ attr.name }}: Optional[orderBy] | None
@@ -257,16 +244,17 @@ class {{ cls.name }}(EntityInterface):
     {{ attr.name }}: {{ getType("bool", attr.required) }}
         {%- elif attr.type == "date" %}
     {{ attr.name }}: {{ getType("datetime.datetime", attr.required) }}
-        {%- elif attr.type == "File" %}
-    {{ attr.name }}_id: Optional[strawberry.ID]
-    {{ attr.name }}: Optional[Annotated["File", strawberry.lazy("platformics.graphql_api.files")]] = load_files_from("{{ attr.name }}")  # type: ignore
         {%- elif attr.type == cls.name %}
     {{ attr.name }}_id: Optional[strawberry.ID]
-        {%- elif attr.inverse %}
+        {%- elif attr.is_entity %}
     {{ attr.name }}: {{ "Sequence" if attr.multivalued else "Optional" }}[Annotated["{{ attr.type }}", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] = load_{{ attr.related_class.snake_name }}_rows  # type:ignore
             {%- if attr.multivalued %}
     {{ attr.name }}_aggregate : Optional[Annotated["{{ attr.related_class.name }}Aggregate", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] = load_{{ attr.related_class.snake_name }}_aggregate_rows  # type:ignore
+            {%- else %}
+    {{ attr.name }}_id : {{ getType(type_map[attr.related_class.identifier.type], attr.required) }}
             {%- endif %}
+        {%- else %}
+
         {%- endif %}
     {%- endfor %}
 
@@ -384,8 +372,6 @@ Mutation types
     {{ attr.name }}: {{ getTypeMutation(action, "bool", attr.required) }}
         {%- elif attr.type == "date" %}
     {{ attr.name }}: {{ getTypeMutation(action, "datetime.datetime", attr.required) }}
-        {%- elif attr.type == "File" %}
-    {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
         {%- elif attr.is_entity and not attr.is_virtual_relationship %} {# Don't include multivalued fields, only fields where we can update an ID #}
     {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
         {%- endif %}

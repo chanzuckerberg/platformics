@@ -62,7 +62,7 @@ classes:
       producing_run_id:
         range: uuid
         annotations:
-          mutable: false  # This field can't be modified by an `Update` mutation
+          mutable: false # This field can't be modified by an `Update` mutation
           system_writable_only: True
       owner_user_id:
         range: integer
@@ -89,19 +89,12 @@ classes:
       plural: Entities
 
   File:
+    is_a: Entity
+    mixins:
+      - EntityMixin
+    annotations:
+      plural: Files
     attributes:
-      id:
-        identifier: true
-        range: uuid
-        required: true
-      # This file's ID is stored in the entity column <entity_field_name>_id
-      entity_field_name:
-        range: string
-        required: true
-      # Which entity this file is connected to
-      entity:
-        range: Entity
-        required: true
       status:
         range: FileStatus
         required: true
@@ -126,7 +119,7 @@ classes:
         minimum_value: 0
       # Information about file upload (optional)
       upload_client:
-        range: FileUploadClient
+        range: string
       upload_error:
         range: string
       created_at:
@@ -190,11 +183,13 @@ classes:
         readonly: true
         annotations:
           cascade_delete: true
+          single_parent: true
       r2_file:
         range: File
         readonly: true
         annotations:
           cascade_delete: true
+          single_parent: true
       technology:
         range: SequencingTechnology
         required: true
@@ -226,6 +221,7 @@ classes:
         readonly: true
         annotations:
           cascade_delete: true
+          single_parent: true
       sequencing_reads:
         range: SequencingRead
         inverse: SequencingRead.primer_file

@@ -116,14 +116,9 @@ class AuthzClient:
 
         attr_map = {}
         joins = []
-        if model_cls == db.File:  # type: ignore
-            for col in sqlalchemy_helpers.model_class_cols(db.Entity):
-                attr_map[f"request.resource.attr.{col.key}"] = getattr(db.Entity, col.key)
-            joins = [(db.Entity, db.File.entity_id == db.Entity.id)]  # type: ignore
-        else:
-            # Send all non-relationship columns to cerbos to make decisions
-            for col in sqlalchemy_helpers.model_class_cols(model_cls):
-                attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)
+        # Send all non-relationship columns to cerbos to make decisions
+        for col in sqlalchemy_helpers.model_class_cols(model_cls):
+            attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)
         query = get_query(
             plan,
             model_cls,  # type: ignore

@@ -4,7 +4,7 @@ Test "where" clause capabilities on GQL queries
 
 import pytest
 from platformics.database.connect import SyncDB
-from conftest import GQLTestClient, SessionStorage, FileFactory
+from conftest import GQLTestClient, SessionStorage
 from test_infra.factories.sample import SampleFactory
 from test_infra.factories.sequencing_read import SequencingReadFactory
 from support.enums import SequencingTechnology
@@ -254,7 +254,6 @@ async def test_soft_deleted_objects(sync_db: SyncDB, gql_client: GQLTestClient) 
     By default, soft-deleted objects should not be returned.
     """
     sequencing_reads = generate_sequencing_reads(sync_db)
-    FileFactory.update_file_ids()
     # Soft delete the first 3 sequencing reads by updating the deleted_at field
     deleted_ids = [str(sequencing_reads[0].id), str(sequencing_reads[1].id), str(sequencing_reads[2].id)]
     soft_delete_mutation = f"""

@@ -11,7 +11,6 @@ from strawberry.schema.config import StrawberryConfig
 from strawberry.schema.name_converter import HasGraphQLName, NameConverter
 
 from platformics.database.connect import AsyncDB
-from platformics.database.models.file import File
 from platformics.graphql_api.core.deps import (
     get_auth_principal,
     get_authz_client,
@@ -64,8 +63,6 @@ def get_app(
     """
     Make sure tests can get their own instances of the app.
     """
-    File.set_settings(settings)
-    File.set_s3_client(get_s3_client(settings))
 
     title = settings.SERVICE_NAME
     graphql_app: GraphQLRouter = GraphQLRouter(schema, context_getter=get_context)
