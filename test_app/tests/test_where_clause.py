@@ -22,6 +22,9 @@ def generate_sequencing_reads(sync_db: SyncDB) -> list:
         sequencing_reads = SequencingReadFactory.create_batch(
             5, technology=SequencingTechnology.Illumina, owner_user_id=user_id, collection_id=project_id
         )
+        for sr in sequencing_reads:
+            sr.sample.collection_id = sr.collection_id
+        session.commit()
         return sequencing_reads
 
 

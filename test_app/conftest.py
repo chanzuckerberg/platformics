@@ -11,8 +11,9 @@ from platformics.graphql_api.core.error_handler import HandleErrors
 import boto3
 import pytest
 import pytest_asyncio
-from cerbos.sdk.model import Principal
 from fastapi import FastAPI
+from graphql_api.mutations import Mutation
+from graphql_api.queries import Query
 from httpx import AsyncClient
 from moto import mock_s3
 from mypy_boto3_s3.client import S3Client
@@ -23,6 +24,7 @@ from platformics.graphql_api.core.deps import (
     get_s3_client,
     require_auth_principal,
 )
+from platformics.security.authorization import Principal
 from platformics.graphql_api.setup import get_app
 from platformics.database.connect import AsyncDB, SyncDB, init_async_db, init_sync_db
 from platformics.database.models.base import Base
@@ -33,11 +35,9 @@ from pytest_postgresql.janitor import DatabaseJanitor
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from platformics.settings import APISettings
-from database import models
 from platformics.graphql_api.setup import get_strawberry_config
-from graphql_api.mutations import Mutation
-from graphql_api.queries import Query
 import strawberry
+from database import models
 
 __all__ = [
     "gql_client",
@@ -48,12 +48,12 @@ __all__ = [
 
 
 test_db: NoopExecutor = factories.postgresql_noproc(
-    host=os.getenv("PLATFORMICS_DATABASE_HOST"), password=os.getenv("PLATFORMICS_DATABASE_PASSWORD")
+    host=os.getenv("PLATFORMICS_DATABASE_HOST"),
+    password=os.getenv("PLATFORMICS_DATABASE_PASSWORD"),
 )  # type: ignore
 
 
 def get_db_uri(
-    protocol: typing.Optional[str],
     db_user: typing.Optional[str],
     db_pass: typing.Optional[str],
     db_host: typing.Optional[str],
@@ -63,57 +63,39 @@ def get_db_uri(
     """
     Utility function to generate database URI
     """
-    db_uri = f"{protocol}://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+    db_uri = f"{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
     return db_uri
 
 
 @pytest.fixture()
-def sync_db(test_db: NoopExecutor) -> typing.Generator[SyncDB, None, None]:
+def test_db_uri(test_db: NoopExecutor) -> str:
+    return get_db_uri(
+        db_host=test_db.host,
+        db_port=test_db.port,
+        db_user=test_db.user,
+        db_pass=test_db.password,
+        db_name=test_db.dbname,
+    )
+
+
+@pytest.fixture()
+def sync_db(test_db: NoopExecutor, test_db_uri: str) -> typing.Generator[SyncDB, None, None]:
     """
     Fixture to create a synchronous database connection
     """
-    pg_host = test_db.host
-    pg_port = test_db.port
-    pg_user = test_db.user
-    pg_password = test_db.password
-    pg_db = test_db.dbname
 
-    with DatabaseJanitor(pg_user, pg_host, pg_port, pg_db, test_db.version, pg_password):
-        db: SyncDB = init_sync_db(
-            get_db_uri(
-                "postgresql+psycopg",
-                db_host=pg_host,
-                db_port=pg_port,
-                db_user=pg_user,
-                db_pass=pg_password,
-                db_name=pg_db,
-            )
-        )
+    with DatabaseJanitor(test_db.user, test_db.host, test_db.port, test_db.dbname, test_db.version, test_db.password):
+        db: SyncDB = init_sync_db(f"postgresql+psycopg://{test_db_uri}")
         Base.metadata.create_all(db.engine)
         yield db
 
 
 @pytest_asyncio.fixture()
-async def async_db(sync_db: SyncDB, test_db: NoopExecutor) -> typing.AsyncGenerator[AsyncDB, None]:
+async def async_db(sync_db: SyncDB, test_db: NoopExecutor, test_db_uri: str) -> typing.AsyncGenerator[AsyncDB, None]:
     """
     Fixture to create an asynchronous database connection
     """
-    pg_host = test_db.host
-    pg_port = test_db.port
-    pg_user = test_db.user
-    pg_password = test_db.password
-    pg_db = test_db.dbname
-
-    db = init_async_db(
-        get_db_uri(
-            "postgresql+asyncpg",  # "postgresql+asyncpg
-            db_host=pg_host,
-            db_port=pg_port,
-            db_user=pg_user,
-            db_pass=pg_password,
-            db_name=pg_db,
-        )
-    )
+    db = init_async_db(f"postgresql+asyncpg://{test_db_uri}")
     yield db
 
 

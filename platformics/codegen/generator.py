@@ -70,6 +70,7 @@ def generate_entity_subclass_files(
 
     for entity in view.entities:
         dest_filename = str(template_filename).replace("class_name", entity.snake_name)
+        print(f"writing {dest_filename}", end="")
 
         if f"{dest_filename}.j2" in environment.list_templates():
             override_template = environment.get_template(f"{dest_filename}.j2")
@@ -84,7 +85,7 @@ def generate_entity_subclass_files(
             )
         with open(os.path.join(output_prefix, dest_filename), mode="w", encoding="utf-8") as outfile:
             outfile.write(content)
-            print(f"... wrote {dest_filename}")
+            print("... done")
 
 
 def generate_entity_import_files(
@@ -98,7 +99,6 @@ def generate_entity_import_files(
     import_templates = [
         "cerbos/config.yaml",
         "cerbos/policies/file.yaml",
-        "cerbos/policies/entity.yaml",
         "cerbos/policies/derived_roles_common.yaml",
         "cerbos/policies/_schemas/principal.json",
         "database/models/__init__.py",

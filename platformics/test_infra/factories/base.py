@@ -3,15 +3,11 @@ Test factory bases
 """
 
 import factory
-import faker
 import sqlalchemy as sa
-import uuid6
-from factory import Faker, fuzzy
+from factory import Faker
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
-
-from platformics.database.models import Entity
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -39,10 +35,6 @@ class CommonFactory(factory.alchemy.SQLAlchemyModelFactory):
     """
     Base class for all factories
     """
-
-    owner_user_id = fuzzy.FuzzyInteger(1, 1000)
-    collection_id = fuzzy.FuzzyInteger(1, 1000)
-    entity_id = uuid6.uuid7()  # needed so we can set `sqlalchemy_get_or_create` = entity_id in other factories
 
     class Meta:
         sqlalchemy_session_factory = SessionStorage.get_session

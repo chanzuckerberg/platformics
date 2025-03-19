@@ -5,9 +5,9 @@ Auto-gereanted by running 'make codegen'. Do not edit.
 Make changes to the template codegen/templates/graphql_api/groupby_helpers.py.j2 instead.
 """
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING, Annotated
 import strawberry
 import datetime
 import uuid
@@ -22,10 +22,26 @@ from support.enums import
 {%- endfor %}
 
 {%- for field in cls.related_fields %}
-    {%- if field.related_class.name not in ignored_fields and not field.multivalued and not field.is_virtual_relationship %}
-from graphql_api.helpers.{{ field.related_class.snake_name }} import {{ field.related_class.name }}GroupByOptions, build_{{ field.related_class.snake_name }}_groupby_output
+    {%- if field.related_class.name not in ignored_fields %}
+import graphql_api.helpers.{{ field.related_class.snake_name }} as {{ field.related_class.snake_name }}_helper
     {%- endif %}
 {%- endfor %}
+
+{%- if cls.related_fields | length >= 1 %}
+if TYPE_CHECKING:
+{%- for field in cls.related_fields %}
+    {%- if field.related_class.name not in ignored_fields %}
+    from graphql_api.helpers.{{ field.related_class.snake_name }} import {{ field.related_class.name }}GroupByOptions
+    {%- endif %}
+{%- endfor %}
+else:
+{%- for field in cls.related_fields %}
+    {%- if field.related_class.name not in ignored_fields %}
+    {{ field.related_class.name }}GroupByOptions = "{{ field.related_class.name }}GroupByOptions"
+    {%- endif %}
+{%- endfor %}
+{%- endif %}
+
 
 """
 Define groupby options for {{ cls.name }} type.
@@ -35,29 +51,27 @@ These are only used in aggregate queries.
 @strawberry.type
 class {{ cls.name }}GroupByOptions:
 {%- for attr in cls.visible_fields %}
-    {%- if not attr.multivalued and not attr.is_virtual_relationship %}
-        {%- if attr.is_entity %}
-    {{ attr.name }}: Optional[{{ attr.related_class.name }}GroupByOptions] = None
-        {%- elif attr.type == cls.name %}
-    {{ attr.name }}: Optional["{{ cls.name }}GroupByOptions"] = None
-        {%- else %}
-            {%- if attr.type == "string" %}
+    {%- if attr.is_entity %}
+    {{ attr.name }}: Optional[Annotated["{{ attr.related_class.name }}GroupByOptions", strawberry.lazy("graphql_api.helpers.{{ attr.related_class.snake_name }}")]] = None
+    {%- elif attr.type == cls.name %}
+    {{ attr.name }}: Optional["{{attr.related_class.snake_name}}_helper.{{ cls.name }}GroupByOptions"] = None
+    {%- else %}
+        {%- if attr.type == "string" %}
     {{ attr.name }}: Optional[str] = None
-            {%- elif attr.type == "integer" %}
+        {%- elif attr.type == "integer" %}
     {{ attr.name }}: Optional[int] = None
-            {%- elif attr.type == "date" %}
+        {%- elif attr.type == "date" %}
     {{ attr.name }}: Optional[datetime.datetime] = None
-            {%- elif attr.type == "boolean" %}
+        {%- elif attr.type == "boolean" %}
     {{ attr.name }}: Optional[bool] = None
-            {%- elif attr.type == "uuid" %}
+        {%- elif attr.type == "uuid" %}
     {{ attr.name }}: Optional[uuid.UUID] = None
-            {%- elif attr.type == "Array2dFloat" %}
+        {%- elif attr.type == "Array2dFloat" %}
     {{ attr.name }}: Optional[list[list[float]]] = None
-            {%- elif attr.type == "List1dString" %}
+        {%- elif attr.type == "List1dString" %}
     {{ attr.name }}: Optional[list[str]] = None
-            {%- else %}
+        {%- else %}
     {{ attr.name }}: Optional[{{ attr.type }}] = None
-            {%- endif %}
         {%- endif %}
     {%- endif %}
 {%- endfor %}
@@ -78,22 +92,20 @@ def build_{{ cls.snake_name }}_groupby_output(
     key = keys.pop(0)
     match key:
 {%- for attr in cls.visible_fields %}
-    {%- if not attr.multivalued and not attr.is_virtual_relationship %}
-        {%- if attr.inverse %}
-        case "{{ attr.related_class.snake_name }}":
+    {%- if attr.is_entity %}
+        case "{{ attr.name }}":
             if getattr(group_object, key):
-                value = build_{{ attr.related_class.snake_name }}_groupby_output(
+                value = {{ attr.related_class.snake_name }}_helper.build_{{ attr.related_class.snake_name }}_groupby_output(
                     getattr(group_object, key),
                     keys,
                     value,
                 )
             else:
-                value = build_{{ attr.related_class.snake_name }}_groupby_output(
+                value = {{ attr.related_class.snake_name }}_helper.build_{{ attr.related_class.snake_name }}_groupby_output(
                     None,
                     keys,
                     value,
                 )
-        {%- endif %}
     {%- endif %}
 {%- endfor %}
         case _:

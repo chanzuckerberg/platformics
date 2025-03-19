@@ -9,11 +9,9 @@ Make changes to the template codegen/templates/database/models/__init__.py.j2 in
 
 from sqlalchemy.orm import configure_mappers
 
-from platformics.database.models import Base, meta, Entity # noqa: F401
+from platformics.database.models import Base, meta # noqa: F401
 {%- for class in classes %}
-  {%- if class.snake_name != "Entity" %}
 from database.models.{{ class.snake_name }} import {{ class.name }}  # noqa: F401
-  {%- endif %}
 {%- endfor %}
 
 configure_mappers()

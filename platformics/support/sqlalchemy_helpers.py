@@ -18,10 +18,12 @@ def model_class_cols(model_cls):
 
 def get_primary_key(model) -> tuple[str, ColumnProperty]:
     pks = get_primary_keys(model)
+    # Only use the PK for the leaf table.
+    pks = {k: v for k, v in pks.items() if v.table.name == model.__table__.name}
     if len(pks) != 1:
         raise Exception(f"Expected exactly one primary key for {model.__name__}")
     for k, v in pks.items():
-        return k, v
+        return k, getattr(model, k)
     raise Exception("PK definition missing")
 
 

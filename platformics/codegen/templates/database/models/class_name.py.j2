@@ -6,13 +6,15 @@ Make changes to the template codegen/templates/database/models/class_name.py.j2 
 """
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 import uuid
+import uuid6
 import datetime
+from sqlalchemy.sql import func
 from typing import TYPE_CHECKING
 
-from platformics.database.models.base import Entity
+from platformics.database.models.base import Base
 from sqlalchemy import ForeignKey, String, Float, Integer, Enum, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,6 +26,9 @@ from support.enums import
     {{- field.type}}
     {{- "," if not loop.last else "" }}
 {%- endfor %}
+{%- if cls.is_a %}
+from database.models.{{cls.is_a_snake}} import {{cls.is_a}}
+{%- endif %}
 
 if TYPE_CHECKING:
     {%- for related_field in related_fields %}
@@ -31,39 +36,60 @@ if TYPE_CHECKING:
     from database.models.{{related_field.related_class.snake_name}} import {{related_field.related_class.name}}
         {%- endif %}
     {%- endfor %}
-    pass
+    ...
 else:
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
         {%- endif %}
     {%- endfor %}
-    pass
+    ...
 
 
-class {{cls.name}}(Entity):
+class {{cls.name}}({%- if cls.is_a %}{{cls.is_a}}{%- else %}Base{%- endif %}):
     __tablename__ = "{{ cls.snake_name }}"
-    __mapper_args__ = {"polymorphic_identity": __tablename__, "polymorphic_load": "inline"}
+    __mapper_args__ = {"polymorphic_identity": __tablename__, {%- if cls.type_designator %}"polymorphic_on": "{{cls.type_designator.name}}"{%- else %}"polymorphic_load": "inline"{%- endif %}}
+
+{% macro getStandardParameters(field) -%}
+    nullable={{ "False" if field.required else "True"}}
+    {%- if field.default_value%}, server_default={{field.default_value}}{%- endif %}
+    {%- if field.default_callable%}, default={{field.default_callable}}{%- endif %}
+    {%- if field.indexed%}, index=True{%- endif %}
+    {%- if field.onupdate%}, onupdate={{field.onupdate}}{%- endif %}
+    {%- if field.auto_increment%}, autoincrement=True{%- endif %}
+    {%- if field.identifier %}, primary_key=True{%- endif %}
+{%- endmacro %}
+
+{# Map of LinkML field types to SQLAlchemy and Python types #}
+{%- set type_map = {
+    "uuid": ("UUID", "uuid.UUID"),
+    "string": ("String", "str"),
+    "Array2dFloat": ("JSONB", "JSONB"),
+    "integer": ("Integer", "int"),
+    "float": ("Float", "float"),
+    "boolean": ("Boolean", "bool"),
+    "date": ("DateTime(timezone=True)", "datetime.datetime"),
+} %}
+{%- macro getPyType(field) -%}
+  {%- if field.is_enum -%}
+    {{field.type}}
+  {%- elif field.type in type_map -%}
+    {{ type_map[field.type][1] }}
+  {%- endif -%}
+{%- endmacro %}
+{%- macro getSaType(field) -%}
+  {%- if field.is_enum -%}
+    Enum({{field.type}}, native_enum=False)
+  {%- elif field.type in type_map -%}
+    {{ type_map[field.type][0] }}
+  {%- endif -%}
+{%- endmacro %}
 
     {%- for attr in cls.owned_fields %}
         {%- if attr.type == "uuid" %}
-    {{attr.name}}: Mapped[uuid.UUID] = mapped_column({%- if attr.inverse %}ForeignKey("{{attr.inverse}}"){%- else %}UUID{%- endif %}, nullable={{ "False" if attr.required else "True"}}, primary_key={{ "True" if attr.identifier else "False"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "string" %}
-    {{attr.name}}: Mapped[str] = mapped_column(String, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "Array2dFloat" %}
-    {{attr.name}}: Mapped[JSONB] = mapped_column(JSONB, nullable={{ "False" if attr.required else "True"}})
-        {%- elif attr.type == "List1dString" %}
-    {{attr.name}}: Mapped[JSONB] = mapped_column(JSONB, nullable={{ "False" if attr.required else "True"}})
-        {%- elif attr.type == "integer" %}
-    {{attr.name}}: Mapped[int] = mapped_column(Integer, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "float" %}
-    {{attr.name}}: Mapped[int] = mapped_column(Float, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.is_enum %}
-    {{attr.name}}: Mapped[{{attr.type}}] = mapped_column(Enum({{attr.type}}, native_enum=False), nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "boolean" %}
-    {{attr.name}}: Mapped[bool] = mapped_column(Boolean, nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
-        {%- elif attr.type == "date" %}
-    {{attr.name}}: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable={{ "False" if attr.required else "True"}}{%- if attr.indexed%}, index=True{%- endif %})
+    {{attr.name}}: Mapped[{{ getPyType(attr) }}] = mapped_column({%- if attr.inverse %}ForeignKey("{{attr.inverse}}"){%- else %}UUID{%- endif %}, {{ getStandardParameters(attr) }})
+        {%- elif getSaType(attr) != "" %}
+    {{attr.name}}: Mapped[{{ getPyType(attr) }}] = mapped_column({{ getSaType(attr) }}, {{ getStandardParameters(attr) }})
         {%- else %}
             {%- if attr.is_single_parent -%}
                 {% set single_parent = 'single_parent=True,' %}
@@ -87,17 +113,11 @@ class {{cls.name}}(Entity):
         {{single_parent}}
     )
             {%- else %}
-    {{attr.name}}_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
+    {{attr.name}}_id: Mapped[{{ getPyType(attr.related_class.identifier) }}] = mapped_column(
+        {{ getSaType(attr.related_class.identifier) }},
         ForeignKey("{{attr.related_class.snake_name}}.{{attr.related_class.identifier.name}}"),
-        nullable={{"False" if attr.required else "True"}},
-        {%- if attr.identifier %}
-        primary_key=True,
-        {%- else %}
-        index=True,
-        {%- endif %}
+        {{ getStandardParameters(attr) }}
     )
-              {%- if attr.type != "Entity" %}
     {{attr.name}}: Mapped["{{attr.type}}"] = relationship(
         "{{attr.type}}",
         foreign_keys={{attr.name}}_id,
@@ -107,7 +127,6 @@ class {{cls.name}}(Entity):
         {{cascade}}
         {{single_parent}}
     )
-              {%- endif %}
             {%- endif %}
         {%- endif %}
     {%- endfor %}

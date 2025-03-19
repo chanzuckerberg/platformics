@@ -14,11 +14,6 @@ from platformics.security.authorization import AuthzClient, Principal, hydrate_a
 from platformics.settings import APISettings
 
 
-def get_db_module(request: Request) -> typing.Any:
-    """Get the DB module from our app state"""
-    return request.app.state.db_module
-
-
 def get_settings(request: Request) -> APISettings:
     """Get the settings object from the app state"""
     return request.app.state.settings
@@ -84,9 +79,7 @@ def require_auth_principal(
 
 
 def is_system_user(principal: Principal = Depends(require_auth_principal)) -> bool:
-    if principal.attr.get("service_identity"):
-        return True
-    return False
+    return bool(principal.attr.get("service_identity"))
 
 
 def require_system_user(principal: Principal = Depends(require_auth_principal)) -> None:

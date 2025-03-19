@@ -21,6 +21,10 @@ async def test_nested_query(
     with sync_db.session() as session:
         SessionStorage.set_session(session)
         sequencing_reads = SequencingReadFactory.create_batch(5, owner_user_id=111, collection_id=888)
+        for sr in sequencing_reads:
+            sr.sample.collection_id = sr.collection_id
+            sr.sample.owner_user_id = sr.owner_user_id
+        session.commit()
 
     # Nested query with 1:1 relationship so don't use relay-style edges/node
     query = """

@@ -5,7 +5,6 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
 
-import platformics.database.models as db
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
