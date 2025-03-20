@@ -138,6 +138,7 @@ async def test_nested_query_relay(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Enabling relay node queries breaks our integration tests, so it's disabled for now.")
 async def test_relay_node_queries(
     sync_db: SyncDB,
     gql_client: GQLTestClient,

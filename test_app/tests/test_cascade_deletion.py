@@ -25,6 +25,14 @@ async def test_cascade_delete(
         sequencing_reads = SequencingReadFactory.create_batch(
             2, technology="Illumina", owner_user_id=user_id, collection_id=project_id
         )
+        for sr in sequencing_reads:
+            sr.r1_file.collection_id = project_id
+            sr.r1_file.owner_user_id = user_id
+            sr.r2_file.collection_id = project_id
+            sr.r2_file.owner_user_id = user_id
+            sr.sample.collection_id = project_id
+            sr.sample.owner_user_id = user_id
+        session.commit()
 
     # Delete the first Sample
     query = f"""
