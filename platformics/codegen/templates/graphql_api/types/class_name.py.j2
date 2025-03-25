@@ -17,6 +17,7 @@ Make changes to the template codegen/templates/graphql_api/types/class_name.py.j
     "boolean": "bool",
     "date": "datetime.datetime",
 } %}
+
 {# Macro to print field description argument #}
 {%- macro getDescription(attr, action) -%}
 = strawberry.field(description={{ attr.description }}{%- if action == "Update" or attr.system_writable_only or not attr.required -%}, default=None{%- endif -%})
@@ -52,12 +53,14 @@ Make changes to the template codegen/templates/graphql_api/types/class_name.py.j
     Annotated["{{ field.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ field.related_class.snake_name }}")]
   {%- endif -%}
 {%- endmacro %}
+
 {# Macro to output "X" or "Optional[X]" #}
 {% macro getType(type, required) -%}
     {%- if required %} {{ type }}
     {%- else %} Optional[{{ type }}]
     {%- endif %}
 {%- endmacro %}
+
 {# Macro to output a whole field definition for standard types #}
 {% macro getFieldDef(attr) -%}
     {{ attr.name }}: {% if not attr.required -%}Optional[{%- endif -%}{{ type_map[attr.type] }}{%- if not attr.required -%}]{%- endif %} {{ getDescription(attr, "Create") }}
