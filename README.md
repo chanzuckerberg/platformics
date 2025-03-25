@@ -28,13 +28,12 @@ The libraries and tools that make Platformics work:
 - [x] Generated Test fixtures
 - [x] pytest wiring
 - [x] VSCode debugger integration
-- [x] Authorized S3 file up/downloads
 - [x] Add custom REST endpoints to generated API
 - [x] Add custom GQL queries/mutations to generated API
+- [x] Support arbitrary class inheritance hierarchies (1-level deep)
 
 ## Roadmap
 - [ ] Plugin hooks to add business logic to generated GQL resolvers
-- [ ] Support arbitrary class inheritance hierarchies
 - [ ] Package and publish to PyPI
 
 ## How to set up your own platformics API
