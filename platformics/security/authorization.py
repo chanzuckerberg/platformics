@@ -84,13 +84,22 @@ class AuthzClient:
             mydict[col.key] = value
         return mydict
 
+    # get a list of non-relationship cols for a model class
+    def _model_class_cols(self, cls):
+        cols = []
+        relationships = cls.__mapper__.relationships
+        for col in cls.__mapper__.all_orm_descriptors:
+            # Don't send related fields to cerbos for authz checks
+            if col.key in relationships:
+                continue
+            cols.append(col)
+        return cols
+
     def can_create(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
         attr = self._obj_to_dict(resource)
         resource = Resource(id="NEW_ID", kind=resource_type, attr=attr)
-        if self.client.is_allowed(AuthzAction.CREATE, principal, resource):
-            return True
-        return False
+        return bool(self.client.is_allowed(AuthzAction.CREATE, principal, resource))
 
     def can_update(self, resource, principal: Principal) -> bool:
         resource_type = type(resource).__tablename__
@@ -100,9 +109,7 @@ class AuthzClient:
         # so they cannot be sent in cerbos perms checks, and we need to find/use the table's
         # primary key instead of a hardcoded column name.
         resource = Resource(id="resource_id", kind=resource_type, attr=attr)
-        if self.client.is_allowed(AuthzAction.UPDATE, principal, resource):
-            return True
-        return False
+        return bool(self.client.is_allowed(AuthzAction.UPDATE, principal, resource))
 
     # Get a SQLAlchemy model with authz filters already applied
     def get_resource_query(
@@ -110,12 +117,13 @@ class AuthzClient:
         principal: Principal,
         action: AuthzAction,
         model_cls: type[db.Base],  # type: ignore
+        relationship: typing.Optional[typing.Any] = None,  # type: ignore
     ) -> Select:
         rd = ResourceDesc(model_cls.__tablename__)
         plan = self.client.plan_resources(action, principal, rd)
 
         attr_map = {}
-        joins = []
+        joins = []  # type: ignore
         # Send all non-relationship columns to cerbos to make decisions
         for col in sqlalchemy_helpers.model_class_cols(model_cls):
             attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)

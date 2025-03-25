@@ -11,24 +11,81 @@ Make changes to the template codegen/templates/graphql_api/types/class_name.py.j
     "uuid": "strawberry.ID",
     "string": "str",
     "Array2dFloat": "List[List[float]]",
+    "List1dString": "List[str]",
     "integer": "int",
     "float": "float",
     "boolean": "bool",
     "date": "datetime.datetime",
 } %}
+
+{# Macro to print field description argument #}
+{%- macro getDescription(attr, action) -%}
+= strawberry.field(description={{ attr.description }}{%- if action == "Update" or attr.system_writable_only or not attr.required -%}, default=None{%- endif -%})
+{%- endmacro %}
+
+{# Macro for mutations to output X or Optional[X] #}
+{% macro getTypeMutation(action, type, required) -%}
+    {%- if action == "Create" and required -%}
+      {{ type }}
+    {%- else -%}
+      Optional[{{ type }}]
+    {%- endif -%}
+{%- endmacro %}
+{# Macro to generate comparators for types #}
+{%- macro getComparators(field) -%}
+  {%- if field.type == "uuid" -%}
+    UUIDComparators
+  {%- elif field.type == "string" -%}
+    StrComparators
+  {%- elif field.type == "Array2dFloat" -%}
+    JSONB
+  {%- elif field.type == "integer" -%}
+    IntComparators
+  {%- elif field.type == "float" -%}
+    FloatComparators
+  {%- elif field.is_enum -%}
+    EnumComparators[{{ field.type }}]
+  {%- elif field.type == "boolean" -%}
+    BoolComparators
+  {%- elif field.type == "date" -%}
+    DatetimeComparators
+  {%- elif field.is_entity -%}
+    Annotated["{{ field.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ field.related_class.snake_name }}")]
+  {%- endif -%}
+{%- endmacro %}
+
+{# Macro to output "X" or "Optional[X]" #}
 {% macro getType(type, required) -%}
     {%- if required %} {{ type }}
     {%- else %} Optional[{{ type }}]
     {%- endif %}
 {%- endmacro %}
 
+{# Macro to output a whole field definition for standard types #}
+{% macro getFieldDef(attr) -%}
+    {{ attr.name }}: {% if not attr.required -%}Optional[{%- endif -%}{{ type_map[attr.type] }}{%- if not attr.required -%}]{%- endif %} {{ getDescription(attr, "Create") }}
+{%- endmacro %}
+{# Macro to generate mutation input fields #}
+{% macro getInputFields(action, fields) -%}
+    {%- for attr in fields %}
+        {%- if attr.type in type_map %}
+    {{ attr.name }}: {{ getTypeMutation(action, type_map[attr.type], attr.required) }} {{ getDescription(attr, action) }}
+        {%- elif attr.is_enum %}
+    {{ attr.name }}: {{ getTypeMutation(action, attr.type, attr.required) }} {{ getDescription(attr, action) }}
+        {%- elif attr.is_entity and not attr.is_virtual_relationship %} {# Don't include multivalued fields, only fields where we can update an ID #}
+    {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }} {{ getDescription(attr, action) }}
+        {%- endif %}
+    {%- endfor %}
+{%- endmacro %}
+
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 import typing
 from typing import TYPE_CHECKING, Annotated, Any, Optional, Sequence, Callable, List
 
 import platformics.database.models as base_db
+from platformics.graphql_api.core.strawberry_helpers import get_aggregate_selections, get_nested_selected_fields
 import database.models as db
 import strawberry
 import datetime
@@ -40,7 +97,7 @@ from validators.{{cls.snake_name}} import {{cls.name}}CreateInputValidator
 from validators.{{cls.snake_name}} import {{cls.name}}UpdateInputValidator
 {%- endif %}
 from graphql_api.helpers.{{ cls.snake_name }} import {{ cls.name }}GroupByOptions, build_{{ cls.snake_name }}_groupby_output
-from platformics.graphql_api.types.entities import EntityInterface
+from platformics.graphql_api.core.relay_interface import EntityInterface
 {%- for related_field in related_fields %}
     {%- if related_field.related_class.name not in ignored_fields and related_field.multivalued %}
 from graphql_api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}Aggregate, format_{{related_field.related_class.snake_name}}_aggregate_output)
@@ -55,7 +112,7 @@ from platformics.security.authorization import AuthzAction, AuthzClient, Princip
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
-from platformics.graphql_api import relay
+from strawberry import relay
 from strawberry.types import Info
 from support.limit_offset import LimitOffsetClause
 from typing_extensions import TypedDict
@@ -77,7 +134,7 @@ T = typing.TypeVar("T")
 if TYPE_CHECKING:
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
-    from graphql_api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}OrderByClause, {{related_field.related_class.name}}WhereClause, {{related_field.related_class.name}})
+    from graphql_api.types.{{related_field.related_class.snake_name}} import ({{related_field.related_class.name}}OrderByClause, {{related_field.related_class.name}}AggregateWhereClause, {{related_field.related_class.name}}WhereClause, {{related_field.related_class.name}})
         {%- endif %}
     {%- endfor %}
     pass
@@ -85,6 +142,7 @@ else:
     {%- for related_field in related_fields %}
         {%- if related_field.related_class.name not in ignored_fields %}
     {{related_field.related_class.name}}WhereClause = "{{related_field.related_class.name}}WhereClause"
+    {{related_field.related_class.name}}AggregateWhereClause = "{{related_field.related_class.name}}AggregateWhereClause"
     {{related_field.related_class.name}} = "{{related_field.related_class.name}}"
     {{related_field.related_class.name}}OrderByClause = "{{related_field.related_class.name}}OrderByClause"
         {%- endif %}
@@ -143,7 +201,7 @@ async def load_{{ related_field.related_class.snake_name }}_aggregate_rows(
     info: Info,
     where: Annotated["{{ related_field.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ related_field.related_class.snake_name }}")] | None = None,
 ) -> Optional[Annotated["{{ related_field.related_class.name }}Aggregate", strawberry.lazy("graphql_api.types.{{ related_field.related_class.snake_name }}")]]:
-    selections = info.selected_fields[0].selections[0].selections
+    selections = get_nested_selected_fields(info.selected_fields)
     dataloader = info.context["sqlalchemy_loader"]
     mapper = inspect(db.{{ cls.name }})
     relationship = mapper.relationships["{{ related_field.name }}"]
@@ -168,7 +226,11 @@ We can extend that list as we gather more use cases from the FE team.
 """
 @strawberry.input
 class {{ cls.name }}WhereClauseMutations(TypedDict):
-    id: UUIDComparators | None
+    {%- for attr in cls.visible_fields %}
+        {%- if attr.identifier %}
+    {{ attr.name }}: {{ getComparators(attr) }} | None
+        {%- endif %}
+    {%- endfor %}
 
 
 """
@@ -177,24 +239,17 @@ Supported WHERE clause attributes
 @strawberry.input
 class {{ cls.name }}WhereClause(TypedDict):
     {%- for attr in cls.visible_fields %}
-        {%- if attr.type == "uuid" %}
-    {{ attr.name }}: Optional[UUIDComparators] | None
-        {%- elif attr.type == "string" %}
-    {{ attr.name }}: Optional[StrComparators] | None
-        {%- elif attr.is_enum %}
-    {{ attr.name }}: Optional[EnumComparators[{{ attr.type }}]] | None
-        {%- elif attr.type == "integer" %}
-    {{ attr.name }}: Optional[IntComparators] | None
-        {%- elif attr.type == "float" %}
-    {{ attr.name }}: Optional[FloatComparators] | None
-        {%- elif attr.type == "boolean" %}
-    {{ attr.name }}: Optional[BoolComparators] | None
-        {%- elif attr.type == "date" %}
-    {{ attr.name }}: Optional[DatetimeComparators] | None
-        {%- elif attr.is_entity %}
-    {{ attr.name }}: Optional[Annotated["{{ attr.type }}WhereClause", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] | None
-        {%- elif attr.type == cls.name %}
-    {{ attr.name }}_id: Optional[UUIDComparators] | None
+        {%- if attr.type == cls.name %}
+    {{ attr.name }}_id: Optional[{{ getComparators(attr.related_class.identifier) }}] | None
+        {%- elif attr.type in ["Array2dFloat", "List1dString"] %}
+        {%- else %}
+    {{ attr.name }}: Optional[{{ getComparators(attr) }}] | None
+        {%- endif %}
+        {%- if attr.is_entity and not attr.multivalued %}
+    {{ attr.name }}_id : Optional[{{ getComparators(attr.related_class.identifier) }}] | None
+        {%- endif %}
+        {%- if attr.is_virtual_relationship %}
+    {{ attr.name }}_aggregate : Optional[Annotated["{{ attr.type }}AggregateWhereClause", strawberry.lazy("graphql_api.types.{{ attr.related_class.snake_name }}")]] | None
         {%- endif %}
     {%- endfor %}
 
@@ -213,37 +268,15 @@ class {{ cls.name }}OrderByClause(TypedDict):
         {%- endif %}
     {%- endfor %}
 
-{# Macro to output "X" or "Optional[X]" #}
-{% macro getType(type, required) -%}
-    {%- if required %} {{ type }}
-    {%- else %} Optional[{{ type }}] = None
-    {%- endif %}
-{%- endmacro %}
 
 """
 Define {{ cls.name }} type
 """
-@strawberry.type
+@strawberry.type(description={{ cls.description }})
 class {{ cls.name }}(EntityInterface):
     {%- for attr in cls.visible_fields %}
-        {%- if attr.type == "uuid" %}
-    {{ attr.name }}: {{ getType("strawberry.ID", attr.required) }}
-        {%- elif attr.type == "string" %}
-    {{ attr.name }}: {{ getType("str", attr.required) }}
-        {%- elif attr.type == "Array2dFloat" %}
-    {{ attr.name }}: {{ getType("List[List[float]]", attr.required) }}
-        {%- elif attr.type == "List1dString" %}
-    {{ attr.name }}: {{ getType("List[str]", attr.required) }}
-        {%- elif attr.is_enum %}
-    {{ attr.name }}: {{ getType(attr.type, attr.required) }}
-        {%- elif attr.type == "integer" %}
-    {{ attr.name }}: {{ getType("int", attr.required) }}
-        {%- elif attr.type == "float" %}
-    {{ attr.name }}: {{ getType("float", attr.required) }}
-        {%- elif attr.type == "boolean" %}
-    {{ attr.name }}: {{ getType("bool", attr.required) }}
-        {%- elif attr.type == "date" %}
-    {{ attr.name }}: {{ getType("datetime.datetime", attr.required) }}
+        {%- if attr.is_enum %}
+    {{ attr.name }}: {{ getType(attr.type, attr.required) }} {{ getDescription(attr, "Create") }}
         {%- elif attr.type == cls.name %}
     {{ attr.name }}_id: Optional[strawberry.ID]
         {%- elif attr.is_entity %}
@@ -254,7 +287,7 @@ class {{ cls.name }}(EntityInterface):
     {{ attr.name }}_id : {{ getType(type_map[attr.related_class.identifier.type], attr.required) }}
             {%- endif %}
         {%- else %}
-
+    {{ getFieldDef(attr) }}
         {%- endif %}
     {%- endfor %}
 
@@ -280,9 +313,9 @@ Define columns that support numerical aggregations
 class {{ cls.name }}NumericalColumns:
     {%- for attr in cls.numeric_fields %}
         {%- if attr.type == "integer" %}
-    {{ attr.name }}: {{ getType("int", False) }}
+    {{ attr.name }}: {{ getType("int", False) }} = None
         {%- elif attr.type == "float" %}
-    {{ attr.name }}: {{ getType("float", False) }}
+    {{ attr.name }}: {{ getType("float", False) }} = None
         {%- endif %}
     {%- endfor %}
 {%- endif %}
@@ -294,13 +327,13 @@ Define columns that support min/max aggregations
 class {{ cls.name }}MinMaxColumns:
     {%- for attr in cls.visible_fields %}
         {%- if attr.type == "integer" %}
-    {{ attr.name }}: {{ getType("int", False) }}
+    {{ attr.name }}: {{ getType("int", False) }} = None
         {%- elif attr.type == "float" %}
-    {{ attr.name }}: {{ getType("float", False) }}
+    {{ attr.name }}: {{ getType("float", False) }} = None
         {%- elif attr.type == "string" %}
-    {{ attr.name }}: {{ getType("str", False) }}
+    {{ attr.name }}: {{ getType("str", False) }} = None
         {%- elif attr.type == "date" %}
-    {{ attr.name }}: {{ getType("datetime.datetime", False) }}
+    {{ attr.name }}: {{ getType("datetime.datetime", False) }} = None
         {%- endif %}
     {%- endfor %}
 
@@ -310,8 +343,25 @@ Define enum of all columns to support count and count(distinct) aggregations
 @strawberry.enum
 class {{ cls.name }}CountColumns(enum.Enum):
     {%- for attr in cls.visible_fields %}
+        {%- if not attr.is_entity %}
     {{ attr.camel_name }} = "{{ attr.name }}"
+        {%- endif %}
     {%- endfor %}
+
+"""
+Support *filtering* on aggregates and related aggregates
+"""
+@strawberry.input
+class {{ cls.name }}AggregateWhereClauseCount(TypedDict):
+    arguments: Optional["{{ cls.name }}CountColumns"] | None
+    distinct: Optional[bool] | None
+    filter: Optional[{{ cls.name }}WhereClause] | None
+    predicate: Optional[IntComparators] | None
+
+
+@strawberry.input
+class {{ cls.name }}AggregateWhereClause(TypedDict):
+    count: {{ cls.name }}AggregateWhereClauseCount
 
 """
 All supported aggregation functions
@@ -345,38 +395,6 @@ class {{ cls.name }}Aggregate:
 Mutation types
 ------------------------------------------------------------------------------
 """
-{# Macro for mutations to output X or Optional[X] #}
-{% macro getTypeMutation(action, type, required) -%}
-    {%- if action == "Create" and required %} {{ type }}
-    {%- else %} Optional[{{ type }}] = None
-    {%- endif %}
-{%- endmacro %}
-
-{% macro getInputFields(action, fields) -%}
-    {%- for attr in fields %}
-        {%- if attr.type == "string" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "str", attr.required) }}
-        {%- elif attr.type == "uuid" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
-        {%- elif attr.type == "Array2dFloat" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "List[List[float]]", attr.required) }}
-        {%- elif attr.type == "List1dString" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "List[str]", attr.required) }}
-        {%- elif attr.is_enum %}
-    {{ attr.name }}: {{ getTypeMutation(action, attr.type, attr.required) }}
-        {%- elif attr.type == "integer" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "int", attr.required) }}
-        {%- elif attr.type == "float" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "float", attr.required) }}
-        {%- elif attr.type == "boolean" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "bool", attr.required) }}
-        {%- elif attr.type == "date" %}
-    {{ attr.name }}: {{ getTypeMutation(action, "datetime.datetime", attr.required) }}
-        {%- elif attr.is_entity and not attr.is_virtual_relationship %} {# Don't include multivalued fields, only fields where we can update an ID #}
-    {{ attr.name }}_id: {{ getTypeMutation(action, "strawberry.ID", attr.required) }}
-        {%- endif %}
-    {%- endfor %}
-{%- endmacro %}
 
 {# Generate Create and Update Strawberry input types #}
 {%- if cls.create_fields %}
@@ -474,10 +492,7 @@ async def resolve_{{ cls.plural_snake_name }}_aggregate(
     """
     # Get the selected aggregate functions and columns to operate on, and groupby options if any were provided.
     # TODO: not sure why selected_fields is a list
-    selections = info.selected_fields[0].selections[0].selections
-    aggregate_selections = [selection for selection in selections if getattr(selection, "name") != "groupBy"]
-    groupby_selections = [selection for selection in selections if getattr(selection, "name") == "groupBy"]
-    groupby_selections = groupby_selections[0].selections if groupby_selections else []
+    aggregate_selections, groupby_selections = get_aggregate_selections(info.selected_fields)
 
     if not aggregate_selections:
         raise PlatformicsError("No aggregate functions selected")

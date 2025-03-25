@@ -75,6 +75,46 @@ class FieldWrapper:
         return None
 
     @cached_property
+    def is_list_field(self) -> bool:
+        if self.wrapped_field.multivalued and self.wrapped_field.inlined_as_list is not None:
+            return self.wrapped_field.inlined_as_list
+        return False
+
+    @cached_property
+    def default_value(self) -> str | None:
+        try:
+            if self.wrapped_field.ifabsent is not None:
+                default_value = self.wrapped_field.ifabsent
+                # Make sure to quote this so it's safe!
+                return repr(default_value.value)
+            if "default_sa_function" in self.wrapped_field.annotations:
+                return "func.{func}".format(func=self.wrapped_field.annotations["default_sa_function"].value)
+        except AttributeError:
+            pass
+        return None
+
+    @cached_property
+    def default_callable(self) -> str | None:
+        if "default_value_callable" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["default_value_callable"].value
+        return None
+
+    @cached_property
+    def auto_increment(self) -> bool:
+        if "auto_increment" in self.wrapped_field.annotations:
+            return self.wrapped_field.annotations["auto_increment"].value
+        return False
+
+    @cached_property
+    def onupdate(self) -> str | None:
+        if "onupdate" in self.wrapped_field.annotations:
+            # onupdate should be a callable -- there's minimal use for a literal string value
+            return self.wrapped_field.annotations["onupdate"].value
+        if "onupdate_sa_function" in self.wrapped_field.annotations:
+            return "func.{func}".format(func=self.wrapped_field.annotations["onupdate_sa_function"].value)
+        return None
+
+    @cached_property
     def indexed(self) -> bool:
         if "indexed" in self.wrapped_field.annotations:
             return self.wrapped_field.annotations["indexed"].value
@@ -164,6 +204,10 @@ class FieldWrapper:
 
     @property
     def related_class(self) -> "EntityWrapper":
+        if not self.view.get_element(self.wrapped_field.range):
+            raise ValueError(
+                f"Cannot find class for field {self.wrapped_field.name} of type {self.wrapped_field.range}",
+            )
         return EntityWrapper(self.view, self.view.get_element(self.wrapped_field.range))
 
     @property
@@ -195,7 +239,7 @@ class FieldWrapper:
 
     @cached_property
     def is_virtual_relationship(self) -> bool | None:
-        return self.wrapped_field.inlined or self.multivalued  # type: ignore
+        return bool(self.wrapped_field.range in self.view.all_classes() and self.multivalued)
 
 
 class EnumWrapper:
@@ -232,6 +276,39 @@ class EntityWrapper:
     # Blow up if a property doesn't exist
     def __getattr__(self, attr: str) -> str:
         raise NotImplementedError(f"please define entity property {self.wrapped_class.name}.{attr}")
+
+    @cached_property
+    def description(self) -> str:
+        # Make sure to quote this so it's safe!
+        return repr(self.wrapped_class.description)
+
+    @cached_property
+    def is_abstract(self) -> str:
+        return self.wrapped_class.abstract
+
+    @cached_property
+    def is_a(self) -> str:
+        return self.wrapped_class.is_a
+
+    @cached_property
+    def is_a_snake(self) -> str:
+        return strcase.to_snake(self.is_a)
+
+    @cached_property
+    def parent_key(self) -> FieldWrapper | None:
+        if not self.is_a:
+            return None
+        for field in self.all_fields:
+            if field.inverse and field.inverse.split(".")[0] == self.is_a_snake:
+                return field
+        return None
+
+    @cached_property
+    def type_designator(self) -> FieldWrapper | None:
+        for field in self.all_fields:
+            if field.designates_type:
+                return field
+        return None
 
     @cached_property
     def name(self) -> str:
@@ -333,10 +410,11 @@ class EntityWrapper:
 
     @cached_property
     def owned_fields(self) -> list[FieldWrapper]:
+        domains_owned_by_this_class = set(self.wrapped_class.mixins + [self.name])
         return [
             FieldWrapper(self.view, item)
             for item in self.view.class_induced_slots(self.name)
-            if "Entity" not in item.domain_of
+            if domains_owned_by_this_class.intersection(set(item.domain_of))
         ]
 
     @cached_property
@@ -378,10 +456,11 @@ class ViewWrapper:
         classes = []
         for class_name in self.view.all_classes():
             cls = self.view.get_element(class_name)
-            if cls.mixin:
+            # Don't codegen stuff that users asked us not to.
+            if cls.annotations.get("skip_codegen") and cls.annotations["skip_codegen"].value:
                 continue
-            # If this class doesn't descend from Entity, skip it.
-            if cls.is_a != "Entity":
+            # Mixins don't get represented in the outputted schemas
+            if cls.mixin:
                 continue
             classes.append(EntityWrapper(self.view, cls))
         return classes

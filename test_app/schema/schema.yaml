@@ -1,26 +1,40 @@
 id: https://czid.org/entities/schema/platformics
 title: CZID Platformics Bio-Entities Schema
 name: platformics
-default_range: string
+
+imports:
+  - linkml:types
+prefixes:
+  linkml:
+    prefix_prefix: linkml
+    prefix_reference: https://w3id.org/linkml/
 
 types:
   string:
-    uri: xsd:string
-    base: str
     description: A character string
+    base: string
+    uri: xsd:string
 
   integer:
+    base: integer
     uri: xsd:integer
-    base: int
-    description: An integer
 
   uuid:
     uri: xsd:string
-    typeof: str
-    base: str
+    typeof: string
+    base: string
     description: A UUID
 
 enums:
+  HomeworkScoreType:
+    description: Types of homework scores
+    permissible_values:
+      Penmanship:
+        description: A binary mask volume
+      Composition:
+        description: A series of coordinates and an orientation
+      Content:
+        description: A series of coordinates
   FileStatus:
     permissible_values:
       SUCCESS:
@@ -54,6 +68,8 @@ classes:
         range: uuid
         readonly: true # The API handles generating the values for these fields
         required: true
+        annotations:
+          default_value_callable: uuid6.uuid7
       type:
         range: string
         designates_type: true
@@ -77,9 +93,13 @@ classes:
         range: date
         required: true
         readonly: true
+        annotations:
+          default_sa_function: now()
       updated_at:
         range: date
         readonly: true
+        annotations:
+          onupdate: datetime.datetime.now
       deleted_at:
         range: date
         annotations:
@@ -122,13 +142,6 @@ classes:
         range: string
       upload_error:
         range: string
-      created_at:
-        range: date
-        required: true
-        readonly: true
-      updated_at:
-        range: date
-        readonly: true
 
   Sample:
     is_a: Entity
@@ -239,6 +252,7 @@ classes:
         inverse: SequencingRead.contig
         multivalued: true
       sequence:
+        range: string
         required: true
       upstream_database:
         range: UpstreamDatabase
@@ -248,6 +262,148 @@ classes:
           mutable: false
     annotations:
       plural: Contigs
+
+  Student:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      grade:
+        range: integer
+      school:
+        range: School
+        inverse: School.students
+      homework_assignments:
+        range: HomeworkAssignment
+        inverse: homework_assignments.student
+        multivalued: true
+    annotations:
+      plural: Students
+
+  Teacher:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      subject:
+        range: string
+      school:
+        range: School
+        inverse: School.teachers
+    annotations:
+      plural: Teachers
+
+  School:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      min_grade:
+        range: integer
+      max_grade:
+        range: integer
+      students:
+        description: Students who go to this school
+        multivalued: true
+        inverse: Student.school
+        range: Student
+      teachers:
+        description: Teacher who teach at this school
+        multivalued: true
+        inverse: Teacher.school
+        range: Teacher
+      district:
+        range: District
+        inverse: District.schools
+    annotations:
+      plural: Schools
+
+  HomeworkAssignment:
+    mixins:
+      - IntIDMixin
+    attributes:
+      student:
+        range: Student
+        inverse: Student.homework_assignments
+      name:
+        range: string
+        required: true
+      scores:
+        range: HomeworkScore
+        inverse: HomeworkScore.homework_assignment
+        multivalued: true
+    annotations:
+      plural: HomeworkAssignments
+
+  HomeworkScore:
+    mixins:
+      - IntIDMixin
+    attributes:
+      homework_assignment:
+        range: HomeworkAssignment
+        inverse: HomeworkAssignment.scores
+      score_type:
+        range: HomeworkScoreType
+      score_value:
+        range: integer
+        required: true
+    annotations:
+      plural: HomeworkScores
+
+  District:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      location:
+        range: string
+        required: true
+      schools:
+        description: Schools in the district
+        multivalued: true
+        inverse: Schoool.district
+        range: School
+    annotations:
+      plural: Districts
+
+  NotGenerated:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+    annotations:
+      plural: NotGenerateds
+      skip_codegen: true
+
+  IntIDMixin:
+    mixin: true
+    attributes:
+      id:
+        identifier: true
+        description: Numeric identifier
+        range: integer
+        required: true
+        annotations:
+          auto_increment: true
+      # Just included for auth reasons
+      owner_user_id:
+        range: integer
+        minimum_value: 0
+        required: true
+      collection_id:
+        range: integer
+        minimum_value: 0
+        required: True
 
   EntityMixin:
     mixin: true

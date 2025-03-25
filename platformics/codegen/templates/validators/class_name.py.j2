@@ -8,7 +8,7 @@ Make changes to the template codegen/templates/validators/class_name.py.j2 inste
 # ruff: noqa: E501 Line too long
 
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
-{% set ignored_fields = ["Entity", cls.name] %}
+{% set ignored_fields = [cls.name] %}
 
 {%- for field in cls.enum_fields %}
     {%- if loop.first %}

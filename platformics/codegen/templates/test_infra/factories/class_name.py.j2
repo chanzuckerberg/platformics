@@ -9,10 +9,11 @@ Make changes to the template codegen/templates/test_infra/factories/class_name.p
 
 import random
 import factory
+import uuid6
 from database.models import {{ cls.name }}
 from platformics.test_infra.factories.base import CommonFactory
 {%- for field in cls.related_fields %}
-    {%- if field.related_class.name != "Entity" and not field.multivalued%}
+    {%- if field.is_entity and not field.multivalued%}
 from test_infra.factories.{{ field.related_class.snake_name }} import {{ field.related_class.name }}Factory
     {%- endif %}
 {%- endfor %}
@@ -20,6 +21,9 @@ from factory import Faker, fuzzy
 from faker_biology.bioseq import Bioseq
 from faker_biology.physiology import Organ
 from faker_enum import EnumProvider
+{%- if cls.is_a %}
+from test_infra.factories.{{cls.is_a_snake}} import {{cls.is_a}}Factory
+{%- endif %}
 
 Faker.add_provider(Bioseq)
 Faker.add_provider(Organ)
@@ -27,22 +31,35 @@ Faker.add_provider(EnumProvider)
 
 
 class {{ cls.name }}Factory(CommonFactory):
-{%- if cls.name not in ["Entity"] %}
     class Meta:
         sqlalchemy_session = None  # workaround for a bug in factoryboy
         model = {{ cls.name }}
+        {% if cls.is_a %}
         # Match entity_id with existing db rows to determine whether we should
         # create a new row or not.
-        sqlalchemy_get_or_create = ("entity_id",)
-    {% for field in cls.owned_fields %}
-        {%- if field.type != "uuid" %}
-            {%- if field.is_entity and field.related_class.name != "Entity" %}
+        sqlalchemy_get_or_create = ("{{ cls.parent_key.name }}",)
+        {% else %}
+        sqlalchemy_get_or_create = ("{{ cls.identifier.name }}",)
+        {% endif %}
+    {% for field in cls.all_fields %}
+        {#- Type designators should *not* have random values assigned by fixtures! #}
+        {%- if field.type_designator %}
+          {%- continue %}
+        {%- endif %}
+        {%- if field.type == "uuid" %}
+            {% if field.identifier %}
+              {%- if field.name == cls.identifier.name %}
+    {{ field.name }} = factory.Faker("uuid4")
+              {%- else %}
+    {{ field.name }} = factory.SelfAttribute("{{ cls.identifier.name }}")
+              {%- endif %}
+            {% endif %}
+        {%- else %}
+            {%- if field.is_entity %}
             {#- If the field is a one-to-one relationship, avoid circular imports by only defining the SubFactory on the child #}
-                {%- if not field.multivalued and not field.is_virtual_relationship %}
+                {%- if not field.multivalued %}
     {{ field.name }} = factory.SubFactory(
         {{ field.related_class.name }}Factory,
-        owner_user_id=factory.SelfAttribute("..owner_user_id"),
-        collection_id=factory.SelfAttribute("..collection_id"),
     )
                 {%- endif %}
             {%- elif field.is_enum %}
@@ -64,7 +81,12 @@ class {{ cls.name }}Factory(CommonFactory):
                 {%- elif field.type == "List1dString" %}
     {{ field.name }} = factory.LazyAttribute(lambda o: [ factory.Faker("word").evaluate(o, None, {"locale": "en"}) for _ in range(random.randint(2, 5)) ])
                 {%- elif field.type == "integer" %}
+                    {% if field.identifier %}
+    # Auto increment integer identifiers starting with 1
+    {{ field.name }} = factory.Sequence(lambda n: n + 1)
+                    {% else %}
     {{ field.name }} = fuzzy.FuzzyInteger(1, 1000)
+                    {% endif %}
                 {%- elif field.type == "float" %}
     {{ field.name }} = fuzzy.FuzzyFloat(1, 100)
                 {%- elif field.type == cls.name %}{#
@@ -78,4 +100,3 @@ class {{ cls.name }}Factory(CommonFactory):
             {%- endif %}
         {%- endif %}
     {%- endfor %}
-{%- endif %}

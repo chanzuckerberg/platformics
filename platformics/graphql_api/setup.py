@@ -14,9 +14,7 @@ from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.deps import (
     get_auth_principal,
     get_authz_client,
-    get_db_module,
     get_engine,
-    get_s3_client,
 )
 from platformics.graphql_api.core.gql_loaders import EntityLoader
 from platformics.security.authorization import AuthzClient, Principal
@@ -31,15 +29,12 @@ def get_context(
     engine: AsyncDB = Depends(get_engine),
     authz_client: AuthzClient = Depends(get_authz_client),
     principal: Principal = Depends(get_auth_principal),
-    db_module: AsyncDB = Depends(get_db_module),
 ) -> dict[str, typing.Any]:
     """
     Defines sqlalchemy_loader, used by dataloaders
     """
     return {
         "sqlalchemy_loader": EntityLoader(engine=engine, authz_client=authz_client, principal=principal),
-        # This is entirely to support automatically resolving Relay Nodes in the EntityInterface
-        "db_module": db_module,
     }
 
 

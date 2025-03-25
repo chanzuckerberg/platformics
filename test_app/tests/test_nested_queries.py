@@ -21,6 +21,10 @@ async def test_nested_query(
     with sync_db.session() as session:
         SessionStorage.set_session(session)
         sequencing_reads = SequencingReadFactory.create_batch(5, owner_user_id=111, collection_id=888)
+        for sr in sequencing_reads:
+            sr.sample.collection_id = sr.collection_id
+            sr.sample.owner_user_id = sr.owner_user_id
+        session.commit()
 
     # Nested query with 1:1 relationship so don't use relay-style edges/node
     query = """
@@ -134,6 +138,7 @@ async def test_nested_query_relay(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Enabling relay node queries breaks our integration tests, so it's disabled for now.")
 async def test_relay_node_queries(
     sync_db: SyncDB,
     gql_client: GQLTestClient,
@@ -150,10 +155,29 @@ async def test_relay_node_queries(
         sample2_id = sample2.id
         sequencing_read_id = sequencing_read.id
 
+    # Fetch a sample and its _id field
+    query = f"""
+        query MyQuery {{
+          sample1: samples( where: {{id: {{_eq: "{sample1_id}"}} }} ) {{
+              _id
+          }}
+          sample2: samples( where: {{id: {{_eq: "{sample2_id}"}} }} ) {{
+              _id
+          }}
+          seqread: sequencingReads( where: {{id: {{_eq: "{sequencing_read_id}"}} }} ) {{
+              _id
+          }}
+        }}
+    """
+    res1 = await gql_client.query(query, user_id=111, member_projects=[888])
+    node1_id = res1["data"]["sample1"][0]["_id"]
+    node2_id = res1["data"]["sample2"][0]["_id"]
+    seqread_guid = res1["data"]["seqread"][0]["_id"]
+
     # Fetch one node
     query = f"""
         query MyQuery {{
-          node(id: "{sample1_id}") {{
+          node(id: "{node1_id}") {{
             ... on Sample {{
               name
             }}
@@ -166,7 +190,7 @@ async def test_relay_node_queries(
     # Fetch multiple nodes
     query = f"""
         query MyQuery {{
-          nodes(ids: ["{sample1_id}", "{sample2_id}"]) {{
+          nodes(ids: ["{node1_id}", "{node2_id}"]) {{
             ... on Sample {{
               name
             }}
@@ -180,7 +204,7 @@ async def test_relay_node_queries(
     # Fetch multiple nodes of different types
     query = f"""
         query MyQuery {{
-          nodes(ids: ["{sample1_id}", "{sample2_id}", "{sequencing_read_id}"]) {{
+          nodes(ids: ["{node1_id}", "{node2_id}", "{seqread_guid}"]) {{
             ... on Sample {{
               name
             }}

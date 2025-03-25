@@ -25,6 +25,14 @@ async def test_cascade_delete(
         sequencing_reads = SequencingReadFactory.create_batch(
             2, technology="Illumina", owner_user_id=user_id, collection_id=project_id
         )
+        for sr in sequencing_reads:
+            sr.r1_file.collection_id = project_id
+            sr.r1_file.owner_user_id = user_id
+            sr.r2_file.collection_id = project_id
+            sr.r2_file.owner_user_id = user_id
+            sr.sample.collection_id = project_id
+            sr.sample.owner_user_id = user_id
+        session.commit()
 
     # Delete the first Sample
     query = f"""
@@ -62,7 +70,8 @@ async def test_cascade_delete(
     # Files from the first SequencingRead should be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ id: {{ _in: ["{sequencing_reads[0].r1_file.id}", "{sequencing_reads[0].r2_file.id}", "{sequencing_reads[0].primer_file.id}"] }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[0].r1_file.id}", "{sequencing_reads[0].r2_file.id}",
+                        "{sequencing_reads[0].primer_file.id}"] }} }}) {{
             id
         }}
       }}
@@ -73,7 +82,8 @@ async def test_cascade_delete(
     # Files from the second SequencingRead should NOT be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ id: {{ _in: ["{sequencing_reads[1].r1_file.id}", "{sequencing_reads[1].r2_file.id}", "{sequencing_reads[1].primer_file.id}"] }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[1].r1_file.id}", "{sequencing_reads[1].r2_file.id}",
+                       "{sequencing_reads[1].primer_file.id}"] }} }}) {{
             id
         }}
       }}
