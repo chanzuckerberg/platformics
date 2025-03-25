@@ -103,7 +103,7 @@ def convert_where_clauses_to_sql(
             where_joins[col]["where"] = v
         elif col.removesuffix("_aggregate") in mapper.relationships:
             col_name = col.removesuffix("_aggregate")
-            aggregate_joins[col_name] = v
+            aggregate_joins[col_name] = v  # type: ignore
         else:
             local_where_clauses[col] = v
     authz_client.modify_where_clause(principal, action, sa_model, local_where_clauses)
@@ -252,7 +252,7 @@ def get_db_query(
     Given a model class and a where clause, return a SQLAlchemy query that is limited
     based on the where clause, and which entities the user has access to.
     """
-    query = authz_client.get_resource_query(principal, action, model_cls, relationship)
+    query = authz_client.get_resource_query(principal, action, model_cls, relationship)  # type: ignore
     # Add indices to the order_by fields so that we can preserve the order of the fields
     if order_by is None:
         order_by = []
@@ -273,16 +273,6 @@ def get_db_query(
     for item in order_by:
         query = apply_order_by(item["field"], item["sort"], query)
     return query
-
-
-import asyncio
-
-
-def wait(tasks):
-    loop = asyncio.get_event_loop()
-    loop.set_debug(True)
-    loop.run_until_complete(asyncio.wait(tasks))
-    loop.close()
 
 
 async def get_db_rows(
@@ -333,7 +323,7 @@ def get_aggregate_db_query(
     # TODO, this may need to be adjusted, 5 just seemed like a reasonable starting point
     if depth >= 5:
         raise Exception("Max filter depth exceeded")
-    query = authz_client.get_resource_query(principal, action, model_cls)
+    query = authz_client.get_resource_query(principal, action, model_cls)  # type: ignore
     # Deconstruct the aggregate dict and build mappings for the query
     aggregate_query_fields = []
     if remote is not None:
@@ -355,7 +345,7 @@ def get_aggregate_db_query(
             having = aggregator.arguments.get("having", {})
             for comparator, value in having.items():
                 sa_comparator = operator_map[comparator]
-                query = query.having(getattr(count_fn, sa_comparator)(value))
+                query = query.having(getattr(count_fn, sa_comparator)(value))  # type: ignore
 
         else:
             for col in filter_meta_fields(aggregator.selections):

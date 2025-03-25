@@ -22,7 +22,7 @@ def get_primary_key(model) -> tuple[str, ColumnProperty]:
     pks = {k: v for k, v in pks.items() if v.table.name == model.__table__.name}
     if len(pks) != 1:
         raise Exception(f"Expected exactly one primary key for {model.__name__}")
-    for k, v in pks.items():
+    for k, _ in pks.items():
         return k, getattr(model, k)
     raise Exception("PK definition missing")
 

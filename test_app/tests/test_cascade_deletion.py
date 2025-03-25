@@ -70,7 +70,8 @@ async def test_cascade_delete(
     # Files from the first SequencingRead should be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ id: {{ _in: ["{sequencing_reads[0].r1_file.id}", "{sequencing_reads[0].r2_file.id}", "{sequencing_reads[0].primer_file.id}"] }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[0].r1_file.id}", "{sequencing_reads[0].r2_file.id}",
+                        "{sequencing_reads[0].primer_file.id}"] }} }}) {{
             id
         }}
       }}
@@ -81,7 +82,8 @@ async def test_cascade_delete(
     # Files from the second SequencingRead should NOT be deleted
     query = f"""
       query MyQuery {{
-        files(where: {{ id: {{ _in: ["{sequencing_reads[1].r1_file.id}", "{sequencing_reads[1].r2_file.id}", "{sequencing_reads[1].primer_file.id}"] }} }}) {{
+        files(where: {{ id: {{ _in: ["{sequencing_reads[1].r1_file.id}", "{sequencing_reads[1].r2_file.id}",
+                       "{sequencing_reads[1].primer_file.id}"] }} }}) {{
             id
         }}
       }}

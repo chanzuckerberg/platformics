@@ -123,7 +123,7 @@ class AuthzClient:
         plan = self.client.plan_resources(action, principal, rd)
 
         attr_map = {}
-        joins = []
+        joins = []  # type: ignore
         # Send all non-relationship columns to cerbos to make decisions
         for col in sqlalchemy_helpers.model_class_cols(model_cls):
             attr_map[f"request.resource.attr.{col.key}"] = getattr(model_cls, col.key)

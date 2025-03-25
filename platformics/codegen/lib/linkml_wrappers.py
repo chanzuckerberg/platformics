@@ -239,7 +239,7 @@ class FieldWrapper:
 
     @cached_property
     def is_virtual_relationship(self) -> bool | None:
-        return self.wrapped_field.range in self.view.all_classes() and self.multivalued
+        return bool(self.wrapped_field.range in self.view.all_classes() and self.multivalued)
 
 
 class EnumWrapper:
@@ -297,16 +297,18 @@ class EntityWrapper:
     @cached_property
     def parent_key(self) -> FieldWrapper | None:
         if not self.is_a:
-            return
+            return None
         for field in self.all_fields:
             if field.inverse and field.inverse.split(".")[0] == self.is_a_snake:
                 return field
+        return None
 
     @cached_property
-    def type_designator(self) -> FieldWrapper:
+    def type_designator(self) -> FieldWrapper | None:
         for field in self.all_fields:
             if field.designates_type:
                 return field
+        return None
 
     @cached_property
     def name(self) -> str:

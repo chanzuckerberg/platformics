@@ -26,6 +26,15 @@ types:
     description: A UUID
 
 enums:
+  HomeworkScoreType:
+    description: Types of homework scores
+    permissible_values:
+      Penmanship:
+        description: A binary mask volume
+      Composition:
+        description: A series of coordinates and an orientation
+      Content:
+        description: A series of coordinates
   FileStatus:
     permissible_values:
       SUCCESS:
@@ -263,8 +272,107 @@ classes:
         required: true
       grade:
         range: integer
+      school:
+        range: School
+        inverse: School.students
+      homework_assignments:
+        range: HomeworkAssignment
+        inverse: homework_assignments.student
+        multivalued: true
     annotations:
       plural: Students
+
+  Teacher:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      subject:
+        range: string
+      school:
+        range: School
+        inverse: School.teachers
+    annotations:
+      plural: Teachers
+
+  School:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      min_grade:
+        range: integer
+      max_grade:
+        range: integer
+      students:
+        description: Students who go to this school
+        multivalued: true
+        inverse: Student.school
+        range: Student
+      teachers:
+        description: Teacher who teach at this school
+        multivalued: true
+        inverse: Teacher.school
+        range: Teacher
+      district:
+        range: District
+        inverse: District.schools
+    annotations:
+      plural: Schools
+
+  HomeworkAssignment:
+    mixins:
+      - IntIDMixin
+    attributes:
+      student:
+        range: Student
+        inverse: Student.homework_assignments
+      name:
+        range: string
+        required: true
+      scores:
+        range: HomeworkScore
+        inverse: HomeworkScore.homework_assignment
+        multivalued: true
+    annotations:
+      plural: HomeworkAssignments
+
+  HomeworkScore:
+    mixins:
+      - IntIDMixin
+    attributes:
+      homework_assignment:
+        range: HomeworkAssignment
+        inverse: HomeworkAssignment.scores
+      score_type:
+        range: HomeworkScoreType
+      score_value:
+        range: integer
+        required: true
+    annotations:
+      plural: HomeworkScores
+
+  District:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+      location:
+        range: string
+        required: true
+      schools:
+        description: Schools in the district
+        multivalued: true
+        inverse: Schoool.district
+        range: School
+    annotations:
+      plural: Districts
 
   NotGenerated:
     mixins:
@@ -287,6 +395,15 @@ classes:
         required: true
         annotations:
           auto_increment: true
+      # Just included for auth reasons
+      owner_user_id:
+        range: integer
+        minimum_value: 0
+        required: true
+      collection_id:
+        range: integer
+        minimum_value: 0
+        required: True
 
   EntityMixin:
     mixin: true
