@@ -28,13 +28,6 @@ services:
       - PLATFORMICS_DATABASE_USER=postgres
       - PLATFORMICS_DATABASE_PASSWORD=password_postgres
       - PLATFORMICS_DATABASE_NAME=platformics
-      - DEFAULT_UPLOAD_BUCKET=local-bucket
-      - DEFAULT_UPLOAD_PROTOCOL=s3
-      - OUTPUT_S3_PREFIX=platformics
-      - BOTO_ENDPOINT_URL=http://motoserver.platformics:4000
-      - AWS_REGION=us-west-2
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
       # TODO - these are keypairs for testing only! Do not use in prod!!
       - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
       - JWK_PRIVATE_KEY_FILE=/app/etc/private_key.pem

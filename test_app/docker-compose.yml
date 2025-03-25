@@ -1,24 +1,4 @@
 services:
-  # Mock boto with persistence.
-  # To use it from the CLI: aws --endpoint-url=http://localhost:4000 s3 ls
-  # To reset all services without restarting the container: curl -X POST http://localhost:4000/moto-api/reset
-  motoserver:
-    image: motoserver/moto:latest
-    ports:
-      - "4000:4000"
-    environment:
-      - MOTO_PORT=4000
-      - MOTO_ENABLE_RECORDING=True
-      - MOTO_S3_CUSTOM_ENDPOINTS=http://motoserver.platformics:4000
-      - S3_IGNORE_SUBDOMAIN_BUCKETNAME=True
-      - MOTO_DOCKER_NETWORK_NAME=platformics
-      - MOTO_DOCKER_NETWORK_MODE=overlay
-    volumes:
-      - .moto_recording:/moto/moto_recording
-      - ./bin:/moto/bin
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    entrypoint: ["/bin/bash"]
-    command: ["/moto/bin/init_moto.sh"]
   platformics-db:
     image: postgres:15
     restart: always
@@ -39,8 +19,7 @@ services:
       - "3693:3693"
     volumes:
       - ./cerbos:/platformics
-    command:
-      ["server", "--config", "/platformics/config.yaml"]
+    command: ["server", "--config", "/platformics/config.yaml"]
   graphql-api:
     image: "graphql-api"
     build:
@@ -61,12 +40,6 @@ services:
       - PLATFORMICS_DATABASE_PASSWORD=password_postgres
       - PLATFORMICS_DATABASE_NAME=platformics
       - DEFAULT_UPLOAD_BUCKET=local-bucket
-      - DEFAULT_UPLOAD_PROTOCOL=s3
-      - OUTPUT_S3_PREFIX=platformics
-      - BOTO_ENDPOINT_URL=http://motoserver.platformics:4000
-      - AWS_REGION=us-west-2
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
       - DB_ECHO=true
       # TODO - these are keypairs for testing only! Do not use in prod!!
       - JWK_PUBLIC_KEY_FILE=/app/etc/public_key.pem
