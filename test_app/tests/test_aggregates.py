@@ -37,13 +37,13 @@ async def test_simple_aggregate(
         # create a school that matches the student filter but not the name filter.
         r3 = SchoolFactory.create(name="012", **auth_args)
         for school in [r1, r2, r3]:
-            # important: add *two* membrane homeworkAssignments for each student!
+            # important: add *two* smith students for each school!
             StudentFactory.create(school=school, name="jack smith", **auth_args)
             StudentFactory.create(school=school, name="jane smith", **auth_args)
             StudentFactory.create(school=school, name="bob jones", **auth_args)
         # create a school that matches the name filter but not the student filter
         r4 = SchoolFactory.create(name="003", **auth_args)
-        StudentFactory.create(school=r4, name="ribosome", **auth_args)
+        StudentFactory.create(school=r4, name="NewSchool", **auth_args)
 
     # Fetch all schools that have smith students and names starting with "00"
     query = """
