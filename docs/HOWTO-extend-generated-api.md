@@ -9,7 +9,7 @@ Platformics primarily generates a GraphQL API, but there are certain functionali
 # your_app/main.py
 
 # This code is already in main.py (app is a standard FastAPI application)
-app = get_app(settings, schema, models)
+app = get_app(settings, schema)
 
 # This adds an extra REST endpoint at GET http://localhost:9009/example
 @app.get("/example")
