@@ -8,7 +8,6 @@ import typing
 from typing import Optional
 from platformics.graphql_api.core.error_handler import HandleErrors
 
-import boto3
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI

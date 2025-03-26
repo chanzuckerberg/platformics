@@ -1,4 +1,3 @@
-import typing
 from functools import cached_property
 
 from jwcrypto import jwk
