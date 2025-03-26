@@ -8,20 +8,16 @@ import typing
 from typing import Optional
 from platformics.graphql_api.core.error_handler import HandleErrors
 
-import boto3
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 from graphql_api.mutations import Mutation
 from graphql_api.queries import Query
 from httpx import AsyncClient
-from moto import mock_s3
-from mypy_boto3_s3.client import S3Client
 from platformics.graphql_api.core.deps import (
     get_auth_principal,
     get_db_session,
     get_engine,
-    get_s3_client,
     require_auth_principal,
 )
 from platformics.security.authorization import Principal
@@ -41,7 +37,6 @@ from database import models
 
 __all__ = [
     "gql_client",
-    "moto_client",
     "GQLTestClient",
     "SessionStorage",
 ]  # needed by tests
@@ -143,24 +138,6 @@ class GQLTestClient:
 
 
 @pytest_asyncio.fixture()
-async def moto_client() -> typing.AsyncGenerator[S3Client, None]:
-    """
-    Create S3 Moto client.
-    """
-    mocks3 = mock_s3()
-    mocks3.start()
-    res = boto3.resource("s3")
-    res.create_bucket(Bucket="local-bucket")
-    res.create_bucket(Bucket="remote-bucket")
-    yield boto3.client("s3")
-    mocks3.stop()
-
-
-async def patched_s3_client() -> typing.AsyncGenerator[S3Client, None]:
-    yield boto3.client("s3")
-
-
-@pytest_asyncio.fixture()
 async def gql_client(http_client: AsyncClient) -> GQLTestClient:
     """
     Create a GQL client.
@@ -206,7 +183,6 @@ def overwrite_api(api: FastAPI, async_db: AsyncDB) -> None:
     api.dependency_overrides[get_db_session] = patched_session
     api.dependency_overrides[require_auth_principal] = patched_authprincipal
     api.dependency_overrides[get_auth_principal] = patched_authprincipal
-    api.dependency_overrides[get_s3_client] = patched_s3_client
 
 
 def raise_exception() -> str:
@@ -230,6 +206,6 @@ async def api_test_schema(async_db: AsyncDB) -> FastAPI:
     settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
     strawberry_config = get_strawberry_config()
     schema = strawberry.Schema(query=MyQuery, mutation=Mutation, config=strawberry_config, extensions=[HandleErrors()])
-    api = get_app(settings, schema, models)
+    api = get_app(settings, schema)
     overwrite_api(api, async_db)
     return api

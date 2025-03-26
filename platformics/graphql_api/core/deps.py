@@ -1,10 +1,6 @@
 import typing
 
-import boto3
-from botocore.client import Config
 from fastapi import Depends
-from mypy_boto3_s3.client import S3Client
-from mypy_boto3_sts.client import STSClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
@@ -86,20 +82,3 @@ def require_system_user(principal: Principal = Depends(require_auth_principal)) 
     if principal.attr.get("service_identity"):
         return None
     raise PlatformicsError("Unauthorized")
-
-
-def get_s3_client(
-    settings: APISettings = Depends(get_settings),
-) -> S3Client:
-    return boto3.client(
-        "s3",
-        region_name=settings.AWS_REGION,
-        endpoint_url=settings.BOTO_ENDPOINT_URL,
-        config=Config(signature_version="s3v4"),
-    )
-
-
-def get_sts_client(
-    settings: APISettings = Depends(get_settings),
-) -> STSClient:
-    return boto3.client("sts", region_name=settings.AWS_REGION, endpoint_url=settings.BOTO_ENDPOINT_URL)

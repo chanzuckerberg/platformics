@@ -52,7 +52,6 @@ class CustomNameConverter(NameConverter):
 def get_app(
     settings: APISettings,
     schema: strawberry.Schema,
-    db_module: typing.Any,
     dependencies: typing.Optional[typing.Sequence[Depends]] = [],
 ) -> FastAPI:
     """
@@ -65,7 +64,6 @@ def get_app(
     _app.include_router(graphql_app, prefix="/graphql")
     # Add a global settings object to the app that we can use as a dependency
     _app.state.settings = settings
-    _app.state.db_module = db_module
 
     return _app
 

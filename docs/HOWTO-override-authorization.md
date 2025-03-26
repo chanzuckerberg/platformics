@@ -33,7 +33,7 @@ from starlette.requests import Request
 ...
 
 # Create and run app
-app = get_app(settings, schema, models)
+app = get_app(settings, schema)
 
 
 # This is a FastAPI Dependency (https://fastapi.tiangolo.com/tutorial/dependencies/) and can

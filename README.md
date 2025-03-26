@@ -28,14 +28,13 @@ The libraries and tools that make Platformics work:
 - [x] Generated Test fixtures
 - [x] pytest wiring
 - [x] VSCode debugger integration
-- [x] Authorized S3 file up/downloads
 - [x] Add custom REST endpoints to generated API
 - [x] Add custom GQL queries/mutations to generated API
+- [x] Support arbitrary class inheritance hierarchies (1-level deep)
+- [x] Package and publish to PyPI
 
 ## Roadmap
 - [ ] Plugin hooks to add business logic to generated GQL resolvers
-- [ ] Support arbitrary class inheritance hierarchies
-- [ ] Package and publish to PyPI
 
 ## How to set up your own platformics API
 1. Copy the test_app boilerplate code to your own repository.
@@ -45,9 +44,9 @@ The libraries and tools that make Platformics work:
 5. Run `make token` to generate an authorization token that you can use to interact with the API. The `make` target copies the necessary headers to the system clipboard. Paste the token into the `headers` section at the bottom of the GraphQL explorer API
 
 ## Versioning platformics
-Platformics can be used in downstream applications by
-1) using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image
-2) installing as a dependency, `pip install platformics`.
+Platformics can be used in downstream applications by either
+- using the platformics image as the base Docker image. To select a version of platformics, add the appropriate version tags to the docker image
+- installing as a python dependency, `pip install platformics`.
 
 The version in `pyproject.toml` is managed using [poetry-dynamic-versioning](https://pypi.org/project/poetry-dynamic-versioning/) which determines version based on git tags.
 
