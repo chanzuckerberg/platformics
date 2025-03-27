@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/chanzuckerberg/platformics/compare/v1.0.0...v1.0.1) (2025-03-27)
+
+
+### Bug Fixes
+
+* Update release action config. ([#130](https://github.com/chanzuckerberg/platformics/issues/130)) ([dac33c1](https://github.com/chanzuckerberg/platformics/commit/dac33c1f2b31c78bf76b7e9acdd2a41d2bd4b0d4))
+
 ## [1.0.0](https://github.com/chanzuckerberg/platformics/compare/v0.4.1...v1.0.0) (2025-03-26)
 
 
