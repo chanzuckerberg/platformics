@@ -1,6 +1,8 @@
 name: Test pushing docker repo
 
 on: push
+permissions:
+  packages: write
 
 jobs:
   build-and-push:
@@ -15,17 +17,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.12"
-      - name: install poetry
-        run: |
-          python -m pip install --no-cache-dir poetry==1.8 supervisor
-          poetry self add "poetry-dynamic-versioning[plugin]"
-
-      - name: set up docker
-        run: |
-          make gha-setup
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Build with Poetry
         run: make build-wheel
