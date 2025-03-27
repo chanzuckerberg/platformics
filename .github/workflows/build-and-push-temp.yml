@@ -43,5 +43,4 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-test:${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository }}-test:latest
+            ghcr.io/${{ github.repository }}-test:sometag
