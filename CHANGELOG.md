@@ -5,12 +5,12 @@
 
 ### ⚠ BREAKING CHANGES
 
-* big changes ([#127](https://github.com/chanzuckerberg/platformics/issues/127))
+* Support classes that don't descend from Entity ([#127](https://github.com/chanzuckerberg/platformics/issues/127))
 * remove file handling ([#124](https://github.com/chanzuckerberg/platformics/issues/124))
 
 ### Features
 
-* big changes ([#127](https://github.com/chanzuckerberg/platformics/issues/127)) ([e1b7bb2](https://github.com/chanzuckerberg/platformics/commit/e1b7bb2aae7f9f7b22aa5edd7e6672488714b794))
+* Support classes that don't descend from Entity ([#127](https://github.com/chanzuckerberg/platformics/issues/127)) ([e1b7bb2](https://github.com/chanzuckerberg/platformics/commit/e1b7bb2aae7f9f7b22aa5edd7e6672488714b794))
 * Make authorization code pluggable ([#102](https://github.com/chanzuckerberg/platformics/issues/102)) ([09218c4](https://github.com/chanzuckerberg/platformics/commit/09218c460a8c11d813f3ca8e9c22744931453792))
 * remove file handling ([#124](https://github.com/chanzuckerberg/platformics/issues/124)) ([ac03bce](https://github.com/chanzuckerberg/platformics/commit/ac03bce56648a8e00c4c82bc2d4d9ba921b7b44e))
 
