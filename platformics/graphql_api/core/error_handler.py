@@ -41,6 +41,28 @@ class ValidationExceptionHandler(ExceptionHandler):
         return errors
 
 
+class ValueErrorHandler(ExceptionHandler):
+    def convert_exception(self, err: GraphQLError) -> list[GraphQLError]:
+        value_err: ValueError | None = err.original_error  # type: ignore
+        errors: list[GraphQLError] = []
+        if not value_err:
+            return []
+        message = value_err.args[0] if value_err.args else "ValueError"
+        if "cannot be higher than" not in message:
+            message = "Unexpected error."
+        errors.append(
+            GraphQLError(
+                message=message,
+                nodes=err.nodes,
+                source=err.source,
+                positions=err.positions,
+                path=err.path,
+                original_error=None,
+            ),
+        )
+        return errors
+
+
 class DefaultExceptionHandler(ExceptionHandler):
     error_message: str = "Unexpected error."
 
@@ -66,6 +88,7 @@ class HandleErrors(SchemaExtension):
     def __init__(self) -> None:
         self.handlers: dict[type, ExceptionHandler] = {
             ValidationError: ValidationExceptionHandler(),
+            ValueError: ValueErrorHandler(),
             PlatformicsError: NoOpHandler(),
         }
         self.default_handler = DefaultExceptionHandler()

@@ -7,7 +7,6 @@ import uvicorn
 from platformics.graphql_api.setup import get_app, get_strawberry_config
 from platformics.graphql_api.core.error_handler import HandleErrors
 from platformics.settings import APISettings
-from database import models
 
 from graphql_api.mutations import Mutation
 from graphql_api.queries import Query
