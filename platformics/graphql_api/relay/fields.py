@@ -1,66 +1,69 @@
+# NOTE - this is a copy of strawberry/relay/fields.py except that we've commented out a single line in
+# NodeExtension.apply. It's unclear why we need to do this but it's required to make platformics work.
 from __future__ import annotations
 
 import asyncio
 import dataclasses
 import inspect
-from collections.abc import AsyncIterable
-from typing import (
-    TYPE_CHECKING,
-    Any,
+from collections import defaultdict
+from collections.abc import (
+    AsyncIterable,
     AsyncIterator,
-    Callable,
-    Dict,
-    ForwardRef,
+    Awaitable,
     Iterable,
     Iterator,
-    List,
     Mapping,
-    Optional,
     Sequence,
-    Type,
+)
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Callable,
+    ForwardRef,
+    Optional,
     Union,
     cast,
-    overload,
 )
+from typing_extensions import get_args, get_origin
 
-import strawberry
 from strawberry.annotation import StrawberryAnnotation
 from strawberry.extensions.field_extension import (
     AsyncExtensionResolver,
     FieldExtension,
     SyncExtensionResolver,
 )
+from strawberry.relay.exceptions import (
+    RelayWrongAnnotationError,
+    RelayWrongResolverAnnotationError,
+)
 from strawberry.types.arguments import StrawberryArgument, argument
 from strawberry.types.base import StrawberryList, StrawberryOptional
+from strawberry.types.cast import cast as strawberry_cast
 from strawberry.types.field import _RESOLVER_TYPE, StrawberryField, field
 from strawberry.types.fields.resolver import StrawberryResolver
 from strawberry.types.lazy_type import LazyType
 from strawberry.utils.aio import asyncgen_to_list
-from strawberry.utils.typing import eval_type
-from typing_extensions import Annotated, get_origin
+from strawberry.utils.typing import eval_type, is_generic_alias, is_optional, is_union
 
-from platformics.graphql_api.relay.exceptions import (
-    RelayWrongAnnotationError,
-    RelayWrongResolverAnnotationError,
-)
-
-from .types import Connection, Node, NodeIterableType, NodeType
+from strawberry.relay.types import Connection, GlobalID, Node
 
 if TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from strawberry.permission import BasePermission
     from strawberry.types.info import Info
-    from typing_extensions import Literal
 
 
 class NodeExtension(FieldExtension):
     def apply(self, field: StrawberryField) -> None:
-        # TODO FIXME why did I have to comment this out????
+        # TODO FIXME, why do we have to comment out this assertion??
         # assert field.base_resolver is None
 
         if isinstance(field.type, StrawberryList):
             resolver = self.get_node_list_resolver(field)
         else:
-            resolver = self.get_node_resolver(field)
+            resolver = self.get_node_resolver(field)  # type: ignore
 
         field.base_resolver = StrawberryResolver(resolver, type_override=field.type)
 
@@ -75,93 +78,114 @@ class NodeExtension(FieldExtension):
         # async extensions.
         return await retval if inspect.isawaitable(retval) else retval
 
-    def get_node_resolver(self, field: StrawberryField):  # noqa: ANN201
+    def get_node_resolver(
+        self, field: StrawberryField
+    ) -> Callable[[Info, GlobalID], Union[Node, None, Awaitable[Union[Node, None]]]]:
         type_ = field.type
         is_optional = isinstance(type_, StrawberryOptional)
 
         def resolver(
             info: Info,
-            id: Annotated[strawberry.ID, argument(description="The ID of the object.")],
-        ):
-            type_resolvers = []
-            for selected_type in info.selected_fields[0].selections:
-                field_type = selected_type.type_condition
-                type_def = info.schema.get_type_by_name(field_type)
-                origin = type_def.origin.resolve_type if isinstance(type_def.origin, LazyType) else type_def.origin
-                assert issubclass(origin, Node)
-                type_resolvers.append(origin)
-            # FIXME TODO this only works if we're getting a *single* subclassed `Node` type --
-            # if we're getting multiple subclass types, we need to resolve them all somehow
-            return type_resolvers[0].resolve_node(
-                id,
+            id: Annotated[GlobalID, argument(description="The ID of the object.")],
+        ) -> Union[Node, None, Awaitable[Union[Node, None]]]:
+            node_type = id.resolve_type(info)
+            resolved_node = node_type.resolve_node(
+                id.node_id,
                 info=info,
                 required=not is_optional,
             )
 
+            # We are using `strawberry_cast` here to cast the resolved node to make
+            # sure `is_type_of` will not try to find its type again. Very important
+            # when returning a non type (e.g. Django/SQLAlchemy/Pydantic model), as
+            # we could end up resolving to a different type in case more than one
+            # are registered.
+            if inspect.isawaitable(resolved_node):
+
+                async def resolve() -> Any:
+                    return strawberry_cast(node_type, await resolved_node)
+
+                return resolve()
+
+            return cast(Node, strawberry_cast(node_type, resolved_node))
+
         return resolver
 
-    def nodes_by_gid(self, node_lists):
-        result: Dict[strawberry.ID, Type[Node]] = {}
-        for node_list in node_lists:
-            result.update({str(item.id): item for item in node_list})
-        return result
-
-    def get_node_list_resolver(self, field: StrawberryField):  # noqa: ANN201
+    def get_node_list_resolver(
+        self, field: StrawberryField
+    ) -> Callable[[Info, list[GlobalID]], Union[list[Node], Awaitable[list[Node]]]]:
         type_ = field.type
         assert isinstance(type_, StrawberryList)
         is_optional = isinstance(type_.of_type, StrawberryOptional)
 
         def resolver(
             info: Info,
-            ids: Annotated[List[strawberry.ID], argument(description="The IDs of the objects.")],
-        ):
-            # Identify the types identified by the query so we can send ID's to their resolvers in a moment
-            type_resolvers = []
-            for selected_type in info.selected_fields[0].selections:
-                field_type = selected_type.type_condition
-                type_def = info.schema.get_type_by_name(field_type)
-                origin = type_def.origin.resolve_type if isinstance(type_def.origin, LazyType) else type_def.origin
-                assert issubclass(origin, Node)
-                type_resolvers.append(origin)
+            ids: Annotated[list[GlobalID], argument(description="The IDs of the objects.")],
+        ) -> Union[list[Node], Awaitable[list[Node]]]:
+            nodes_map: defaultdict[type[Node], list[str]] = defaultdict(list)
+            # Store the index of the node in the list of nodes of the same type
+            # so that we can return them in the same order while also supporting
+            # different types
+            index_map: dict[GlobalID, tuple[type[Node], int]] = {}
+            for gid in ids:
+                node_t = gid.resolve_type(info)
+                nodes_map[node_t].append(gid.node_id)
+                index_map[gid] = (node_t, len(nodes_map[node_t]) - 1)
 
-            resolved_nodes = [
-                node_t.resolve_nodes(
+            resolved_nodes = {
+                node_t: node_t.resolve_nodes(
                     info=info,
-                    node_ids=ids,
+                    node_ids=node_ids,
                     required=not is_optional,
                 )
-                for node_t in type_resolvers
-            ]
-            awaitable_nodes = [nodes for nodes in resolved_nodes if inspect.isawaitable(nodes)]
+                for node_t, node_ids in nodes_map.items()
+            }
+            awaitable_nodes = {node_t: nodes for node_t, nodes in resolved_nodes.items() if inspect.isawaitable(nodes)}
             # Async generators are not awaitable, so we need to handle them separately
-            asyncgen_nodes = [nodes for nodes in resolved_nodes if inspect.isasyncgen(nodes)]
+            asyncgen_nodes = {node_t: nodes for node_t, nodes in resolved_nodes.items() if inspect.isasyncgen(nodes)}
+
+            # We are using `strawberry_cast` here to cast the resolved node to make
+            # sure `is_type_of` will not try to find its type again. Very important
+            # when returning a non type (e.g. Django/SQLAlchemy/Pydantic model), as
+            # we could end up resolving to a different type in case more than one
+            # are registered
+            def cast_nodes(node_t: type[Node], nodes: Iterable[Any]) -> list[Node]:
+                return [cast(Node, strawberry_cast(node_t, node)) for node in nodes]
 
             if awaitable_nodes or asyncgen_nodes:
 
-                async def resolve(resolved=resolved_nodes):  # noqa: ANN001
-                    # Resolve all awaitable nodes concurrently
-                    resolved = await asyncio.gather(
-                        *awaitable_nodes,
-                        *(asyncgen_to_list(nodes) for nodes in asyncgen_nodes),
+                async def resolve(resolved: Any = resolved_nodes) -> list[Node]:
+                    resolved.update(
+                        zip(
+                            [
+                                *awaitable_nodes.keys(),
+                                *asyncgen_nodes.keys(),
+                            ],
+                            # Resolve all awaitable nodes concurrently
+                            await asyncio.gather(
+                                *awaitable_nodes.values(),
+                                *(asyncgen_to_list(nodes) for nodes in asyncgen_nodes.values()),  # type: ignore
+                            ),
+                        )
                     )
 
                     # Resolve any generator to lists
-                    resolved = [list(nodes) for nodes in resolved]
-                    nodes_by_gid = self.nodes_by_gid(resolved)
-                    return [nodes_by_gid.get(gid) for gid in ids]
+                    resolved = {node_t: cast_nodes(node_t, nodes) for node_t, nodes in resolved.items()}
+                    return [resolved[index_map[gid][0]][index_map[gid][1]] for gid in ids]
 
                 return resolve()
 
             # Resolve any generator to lists
-            resolved = [list(cast(Iterator[Node], nodes)) for nodes in resolved_nodes]
-            nodes_by_gid = self.nodes_by_gid(resolved)
-            return [nodes_by_gid.get(gid) for gid in ids]
+            resolved = {
+                node_t: cast_nodes(node_t, cast(Iterable[Node], nodes)) for node_t, nodes in resolved_nodes.items()
+            }
+            return [resolved[index_map[gid][0]][index_map[gid][1]] for gid in ids]
 
         return resolver
 
 
 class ConnectionExtension(FieldExtension):
-    connection_type: Type[Connection[Node]]
+    connection_type: type[Connection[Node]]
 
     def apply(self, field: StrawberryField) -> None:
         field.arguments = [
@@ -170,14 +194,14 @@ class ConnectionExtension(FieldExtension):
                 python_name="before",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come before the specified cursor."),
+                description=("Returns the items in the list that come before the " "specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
                 python_name="after",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come after the specified cursor."),
+                description=("Returns the items in the list that come after the " "specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
@@ -191,13 +215,23 @@ class ConnectionExtension(FieldExtension):
                 python_name="last",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[int]),
-                description=("Returns the items in the list that come after the specified cursor."),
+                description=("Returns the items in the list that come after the " "specified cursor."),
                 default=None,
             ),
         ]
 
         f_type = field.type
-        if not isinstance(f_type, type) or not issubclass(f_type, Connection):
+
+        if isinstance(f_type, LazyType):
+            f_type = f_type.resolve_type()
+            field.type = f_type
+
+        if isinstance(f_type, StrawberryOptional):
+            f_type = f_type.of_type
+
+        type_origin = get_origin(f_type) if is_generic_alias(f_type) else f_type
+
+        if not isinstance(type_origin, type) or not issubclass(type_origin, Connection):
             raise RelayWrongAnnotationError(field.name, cast(type, field.origin))
 
         assert field.base_resolver
@@ -216,11 +250,17 @@ class ConnectionExtension(FieldExtension):
                 None,
             )
 
+        if is_union(resolver_type):
+            assert is_optional(resolver_type)
+
+            resolver_type = get_args(resolver_type)[0]
+
         origin = get_origin(resolver_type)
+
         if origin is None or not issubclass(origin, (Iterator, Iterable, AsyncIterator, AsyncIterable)):
             raise RelayWrongResolverAnnotationError(field.name, field.base_resolver)
 
-        self.connection_type = cast(Type[Connection[Node]], field.type)
+        self.connection_type = cast(type[Connection[Node]], f_type)
 
     def resolve(
         self,
@@ -288,59 +328,32 @@ else:
         return field(*args, **kwargs)
 
 
-@overload
-def connection(
-    graphql_type: Optional[Type[Connection[NodeType]]] = None,
-    *,
-    resolver: Optional[_RESOLVER_TYPE[NodeIterableType[Any]]] = None,
-    name: Optional[str] = None,
-    is_subscription: bool = False,
-    description: Optional[str] = None,
-    init: Literal[True] = True,
-    permission_classes: Optional[List[Type[BasePermission]]] = None,
-    deprecation_reason: Optional[str] = None,
-    default: Any = dataclasses.MISSING,
-    default_factory: Union[Callable[..., object], object] = dataclasses.MISSING,
-    metadata: Optional[Mapping[Any, Any]] = None,
-    directives: Optional[Sequence[object]] = (),
-    extensions: List[FieldExtension] = (),  # type: ignore
-) -> Any: ...
-
-
-@overload
-def connection(
-    graphql_type: Optional[Type[Connection[NodeType]]] = None,
-    *,
-    name: Optional[str] = None,
-    is_subscription: bool = False,
-    description: Optional[str] = None,
-    permission_classes: Optional[List[Type[BasePermission]]] = None,
-    deprecation_reason: Optional[str] = None,
-    default: Any = dataclasses.MISSING,
-    default_factory: Union[Callable[..., object], object] = dataclasses.MISSING,
-    metadata: Optional[Mapping[Any, Any]] = None,
-    directives: Optional[Sequence[object]] = (),
-    extensions: List[FieldExtension] = (),  # type: ignore
-) -> StrawberryField: ...
+# we used to have `Type[Connection[NodeType]]` here, but that when we added
+# support for making the Connection type optional, we had to change it to
+# `Any` because otherwise it wouldn't be type check since `Optional[Connection[Something]]`
+# is not a `Type`, but a special form, see https://discuss.python.org/t/is-annotated-compatible-with-type-t/43898/46
+# for more information, and also https://peps.python.org/pep-0747/, which is currently
+# in draft status (and no type checker supports it yet)
+ConnectionGraphQLType = Any
 
 
 def connection(
-    graphql_type: Optional[Type[Connection[NodeType]]] = None,
+    graphql_type: Optional[ConnectionGraphQLType] = None,
     *,
     resolver: Optional[_RESOLVER_TYPE[Any]] = None,
     name: Optional[str] = None,
     is_subscription: bool = False,
     description: Optional[str] = None,
-    permission_classes: Optional[List[Type[BasePermission]]] = None,
+    permission_classes: Optional[list[type[BasePermission]]] = None,
     deprecation_reason: Optional[str] = None,
     default: Any = dataclasses.MISSING,
     default_factory: Union[Callable[..., object], object] = dataclasses.MISSING,
     metadata: Optional[Mapping[Any, Any]] = None,
     directives: Optional[Sequence[object]] = (),
-    extensions: List[FieldExtension] = (),  # type: ignore
+    extensions: list[FieldExtension] = (),  # type: ignore
     # This init parameter is used by pyright to determine whether this field
     # is added in the constructor or not. It is not used to change
-    # any behavior at the moment.
+    # any behaviour at the moment.
     init: Literal[True, False, None] = None,
 ) -> Any:
     """Annotate a property or a method to create a relay connection field.
@@ -355,48 +368,66 @@ def connection(
     case for this is to provide a filtered iterable of nodes by using some custom
     filter arguments.
 
+    Args:
+        graphql_type: The type of the nodes in the connection. This is used to
+            determine the type of the edges and the node field in the connection.
+        resolver: The resolver for the connection. This is expected to return an
+            iterable of the expected node type.
+        name: The GraphQL name of the field.
+        is_subscription: Whether the field is a subscription.
+        description: The GraphQL description of the field.
+        permission_classes: The permission classes to apply to the field.
+        deprecation_reason: The deprecation reason of the field.
+        default: The default value of the field.
+        default_factory: The default factory of the field.
+        metadata: The metadata of the field.
+        directives: The directives to apply to the field.
+        extensions: The extensions to apply to the field.
+        init: Used only for type checking purposes.
+
     Examples:
-        Annotating something like this:
+    Annotating something like this:
 
-        >>> @strawberry.type
-        >>> class X:
-        ...     some_node: relay.Connection[SomeType] = relay.connection(
-                    resolver=get_some_nodes,
-        ...         description="ABC",
-        ...     )
-        ...
-        ...     @relay.connection(relay.Connection[SomeType], description="ABC")
-        ...     def get_some_nodes(self, age: int) -> Iterable[SomeType]:
-        ...         ...
+    ```python
+    @strawberry.type
+    class X:
+        some_node: relay.Connection[SomeType] = relay.connection(
+            resolver=get_some_nodes,
+            description="ABC",
+        )
 
-        Will produce a query like this:
+        @relay.connection(relay.Connection[SomeType], description="ABC")
+        def get_some_nodes(self, age: int) -> Iterable[SomeType]: ...
+    ```
 
-        ```
-        query {
-            someNode (
-                before: String
-                after: String
-                first: String
-                after: String
-                age: Int
-            ) {
-                totalCount
-                pageInfo {
-                    hasNextPage
-                    hasPreviousPage
-                    startCursor
-                    endCursor
-                }
-                edges {
-                    cursor
-                    node {
-                        id
-                        ...
-                    }
+    Will produce a query like this:
+
+    ```graphql
+    query {
+        someNode (
+            before: String
+            after: String
+            first: String
+            after: String
+            age: Int
+        ) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                endCursor
+            }
+            edges {
+                cursor
+                node {
+                    id
+                    ...
                 }
             }
         }
-        ```
+    }
+    ```
 
     .. _Relay connections:
         https://relay.dev/graphql/connections.htm
@@ -419,3 +450,6 @@ def connection(
     if resolver is not None:
         f = f(resolver)
     return f
+
+
+__all__ = ["connection", "node"]

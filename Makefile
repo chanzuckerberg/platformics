@@ -22,7 +22,7 @@ help: ## display help for this makefile
 
 .PHONY: codegen
 codegen: build-docker-base ## Run codegen to convert the LinkML schema to a GQL API
-	$(docker_compose_run) $(BUILD_CONTAINER) api generate --schemafile ./schema/schema.yaml --output-prefix .
+	$(docker_compose_run) $(BUILD_CONTAINER) api generate  --template-override-paths ./template_overrides --schemafile ./schema/schema.yaml --output-prefix .
 	$(docker_compose_run) $(CONTAINER) black .
 	#$(docker_compose_run) $(CONTAINER) ruff check --fix  .
 
