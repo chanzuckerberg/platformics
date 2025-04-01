@@ -38,7 +38,7 @@ build: ## Build docker containers
 .PHONY: init
 init:
 	docker compose up -d
-	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile /app/schema/schema.yaml --output-prefix /app
+	$(MAKE) codegen
 	$(MAKE) alembic-autogenerate
 	$(MAKE) alembic-upgrade-head
 	$(docker_compose_run) $(APP_CONTAINER) black .
