@@ -25,7 +25,6 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import get_args, get_origin
 
 from strawberry.annotation import StrawberryAnnotation
 from strawberry.extensions.field_extension import (
@@ -37,6 +36,7 @@ from strawberry.relay.exceptions import (
     RelayWrongAnnotationError,
     RelayWrongResolverAnnotationError,
 )
+from strawberry.relay.types import Connection, GlobalID, Node
 from strawberry.types.arguments import StrawberryArgument, argument
 from strawberry.types.base import StrawberryList, StrawberryOptional
 from strawberry.types.cast import cast as strawberry_cast
@@ -45,14 +45,12 @@ from strawberry.types.fields.resolver import StrawberryResolver
 from strawberry.types.lazy_type import LazyType
 from strawberry.utils.aio import asyncgen_to_list
 from strawberry.utils.typing import eval_type, is_generic_alias, is_optional, is_union
-
-from strawberry.relay.types import Connection, GlobalID, Node
+from typing_extensions import get_args, get_origin
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal
-
     from strawberry.permission import BasePermission
     from strawberry.types.info import Info
+    from typing_extensions import Literal
 
 
 class NodeExtension(FieldExtension):
@@ -79,7 +77,8 @@ class NodeExtension(FieldExtension):
         return await retval if inspect.isawaitable(retval) else retval
 
     def get_node_resolver(
-        self, field: StrawberryField
+        self,
+        field: StrawberryField,
     ) -> Callable[[Info, GlobalID], Union[Node, None, Awaitable[Union[Node, None]]]]:
         type_ = field.type
         is_optional = isinstance(type_, StrawberryOptional)
@@ -112,7 +111,8 @@ class NodeExtension(FieldExtension):
         return resolver
 
     def get_node_list_resolver(
-        self, field: StrawberryField
+        self,
+        field: StrawberryField,
     ) -> Callable[[Info, list[GlobalID]], Union[list[Node], Awaitable[list[Node]]]]:
         type_ = field.type
         assert isinstance(type_, StrawberryList)
@@ -166,7 +166,8 @@ class NodeExtension(FieldExtension):
                                 *awaitable_nodes.values(),
                                 *(asyncgen_to_list(nodes) for nodes in asyncgen_nodes.values()),  # type: ignore
                             ),
-                        )
+                            strict=False,
+                        ),
                     )
 
                     # Resolve any generator to lists
@@ -194,14 +195,14 @@ class ConnectionExtension(FieldExtension):
                 python_name="before",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come before the " "specified cursor."),
+                description=("Returns the items in the list that come before the specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
                 python_name="after",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[str]),
-                description=("Returns the items in the list that come after the " "specified cursor."),
+                description=("Returns the items in the list that come after the specified cursor."),
                 default=None,
             ),
             StrawberryArgument(
@@ -215,7 +216,7 @@ class ConnectionExtension(FieldExtension):
                 python_name="last",
                 graphql_name=None,
                 type_annotation=StrawberryAnnotation(Optional[int]),
-                description=("Returns the items in the list that come after the " "specified cursor."),
+                description=("Returns the items in the list that come after the specified cursor."),
                 default=None,
             ),
         ]

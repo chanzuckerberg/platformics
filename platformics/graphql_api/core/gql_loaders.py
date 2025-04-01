@@ -2,9 +2,9 @@ import typing
 from collections import defaultdict
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
+import sqlalchemy as sa
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
-import sqlalchemy as sa
 
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.errors import PlatformicsError
@@ -57,7 +57,7 @@ class EntityLoader:
         # if the field type is an int, we need to convert the node_ids to int
         # TODO - handle other types like date, bool, etc?
         if isinstance(field_type, (sa.Integer, sa.BigInteger, sa.SmallInteger)):
-            node_ids = [int(node_id) for node_id in node_ids]
+            node_ids = [int(node_id) for node_id in node_ids]  # type: ignore
         if pk_col_name is None:
             raise Exception("Primary keys are required for each class")
         where = {pk_col_name: {"_in": node_ids}}

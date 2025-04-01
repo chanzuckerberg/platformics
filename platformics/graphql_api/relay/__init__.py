@@ -1,4 +1,3 @@
-from .fields import ConnectionExtension, NodeExtension, connection, node
 from strawberry.relay.types import (
     Connection,
     Edge,
@@ -11,6 +10,8 @@ from strawberry.relay.types import (
     PageInfo,
 )
 from strawberry.relay.utils import from_base64, to_base64
+
+from .fields import ConnectionExtension, NodeExtension, connection, node
 
 __all__ = [
     "Connection",

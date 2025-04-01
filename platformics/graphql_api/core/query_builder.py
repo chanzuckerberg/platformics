@@ -295,7 +295,7 @@ def convert_where_clauses_to_sql(
 
     # Handle adding filters to the current model
     for col, v in local_where_clauses.items():
-        for comparator, value in v.items():
+        for comparator, value in v.items():  # type: ignore
             # Get the SQLAlchemy operator that corresponds to the GraphQL comparator
             sa_comparator = operator_map[comparator]
 
@@ -319,7 +319,7 @@ def convert_where_clauses_to_sql(
                     )
             else:
                 # Apply standard operators (e.g., ==, !=, >, <, etc.)
-                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))
+                query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))  # type: ignore
 
     # Return the modified query and the local order_by and group_by fields
     return query, local_order_by, local_group_by

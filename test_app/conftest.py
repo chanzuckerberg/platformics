@@ -33,7 +33,6 @@ from starlette.requests import Request
 from platformics.settings import APISettings
 from platformics.graphql_api.setup import get_strawberry_config
 import strawberry
-from database import models
 
 __all__ = [
     "gql_client",
