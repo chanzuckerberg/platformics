@@ -4,11 +4,13 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from sqlalchemy.orm import RelationshipProperty
 from strawberry.dataloader import DataLoader
+import sqlalchemy as sa
 
 from platformics.database.connect import AsyncDB
 from platformics.graphql_api.core.errors import PlatformicsError
 from platformics.graphql_api.core.query_builder import get_aggregate_db_query, get_db_query, get_db_rows
 from platformics.security.authorization import AuthzAction, AuthzClient, Principal
+from platformics.support import sqlalchemy_helpers
 
 E = typing.TypeVar("E")
 T = typing.TypeVar("T")
@@ -47,7 +49,18 @@ class EntityLoader:
         Given a list of node IDs from a Relay `node()` query, return corresponding entities
         """
         db_session = self.engine.session()
-        where = {"entity_id": {"_in": node_ids}}
+
+        # What's the class identifier?
+        pk_col_name, pk_field = sqlalchemy_helpers.get_primary_key(cls)
+        field_type = pk_field.property.columns[0].type
+
+        # if the field type is an int, we need to convert the node_ids to int
+        # TODO - handle other types like date, bool, etc?
+        if isinstance(field_type, (sa.Integer, sa.BigInteger, sa.SmallInteger)):
+            node_ids = [int(node_id) for node_id in node_ids]
+        if pk_col_name is None:
+            raise Exception("Primary keys are required for each class")
+        where = {pk_col_name: {"_in": node_ids}}
         rows = await get_db_rows(cls, db_session, self.authz_client, self.principal, where)
         await db_session.close()
         return rows
@@ -90,6 +103,7 @@ class EntityLoader:
                     self.principal,
                     where,
                     order_by,  # type: ignore
+                    relationship,  # type: ignore
                 )
                 for item in filters:
                     query = query.where(item)

@@ -65,7 +65,7 @@ start: ## Start the local dev environment.
 
 .PHONY: codegen
 codegen: ## Run codegen to convert the LinkML schema to a GQL API
-	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --schemafile ./schema/schema.yaml --output-prefix .
+	$(docker_compose_run) $(APP_CONTAINER) platformics api generate --template-override-paths ./template_overrides --schemafile ./schema/schema.yaml --output-prefix .
 
 .PHONY: test
 test: init ## Run tests

@@ -500,3 +500,14 @@ classes:
     annotations:
       mutable: false
       plural: ImmutableTypes
+
+  UncaughtException:
+    mixins:
+      - IntIDMixin
+    attributes:
+      name:
+        range: string
+        required: true
+    annotations:
+      mutable: false
+      plural: UncaughtExceptions
