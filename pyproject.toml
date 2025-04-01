@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "platformics"
 # placeholder version that will be replace by poetry-dynamic-versioning
-version = "1.0.2"
+version = "1.0.3"
 description = "Codegen Python GraphQL Entity Framework"
 authors = ["CZI Team <opensource@chanzuckerberg.com>"]
 license = "MIT License"
