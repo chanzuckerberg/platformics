@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/chanzuckerberg/platformics/compare/v1.0.2...v1.0.3) (2025-04-01)
+
+
+### Bug Fixes
+
+* include overriden template file paths in codegen'd file header. ([#135](https://github.com/chanzuckerberg/platformics/issues/135)) ([a68e58a](https://github.com/chanzuckerberg/platformics/commit/a68e58a5241de9863c1f9017c0de826bb377f521))
+
 ## [1.0.2](https://github.com/chanzuckerberg/platformics/compare/v1.0.1...v1.0.2) (2025-04-01)
 
 
