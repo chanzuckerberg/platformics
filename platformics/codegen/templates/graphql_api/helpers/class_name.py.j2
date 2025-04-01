@@ -1,8 +1,5 @@
 """
 Define GraphQL types and helper functions for supporting GROUPBY queries.
-
-Auto-gereanted by running 'make codegen'. Do not edit.
-Make changes to the template codegen/templates/graphql_api/groupby_helpers.py.j2 instead.
 """
 {% set related_fields = cls.related_fields | unique(attribute='related_class.name') | list %}
 {% set ignored_fields = [cls.name] %}

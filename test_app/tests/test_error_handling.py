@@ -47,7 +47,9 @@ async def test_python_error(
     """
     query = """
         query causeException {
-            uncaughtException
+            uncaughtExceptions {
+                name
+            }
         }
     """
     output = await gql_client.query(query, member_projects=[456])

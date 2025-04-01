@@ -184,19 +184,6 @@ def overwrite_api(api: FastAPI, async_db: AsyncDB) -> None:
     api.dependency_overrides[get_auth_principal] = patched_authprincipal
 
 
-def raise_exception() -> str:
-    raise Exception("Unexpected error")
-
-
-# Subclass Query with an additional field to test Exception handling.
-@strawberry.type
-class MyQuery(Query):
-    @strawberry.field
-    def uncaught_exception(self) -> str:
-        # Trigger an AttributeException
-        return self.kaboom  # type: ignore
-
-
 @pytest_asyncio.fixture()
 async def api_test_schema(async_db: AsyncDB) -> FastAPI:
     """
@@ -204,7 +191,7 @@ async def api_test_schema(async_db: AsyncDB) -> FastAPI:
     """
     settings = APISettings.model_validate({})  # Workaround for https://github.com/pydantic/pydantic/issues/3753
     strawberry_config = get_strawberry_config()
-    schema = strawberry.Schema(query=MyQuery, mutation=Mutation, config=strawberry_config, extensions=[HandleErrors()])
+    schema = strawberry.Schema(query=Query, mutation=Mutation, config=strawberry_config, extensions=[HandleErrors()])
     api = get_app(settings, schema)
     overwrite_api(api, async_db)
     return api

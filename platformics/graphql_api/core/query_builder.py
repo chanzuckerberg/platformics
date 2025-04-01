@@ -61,15 +61,51 @@ def convert_where_clauses_to_sql(
     depth: int,
 ) -> Tuple[Select, list[Any], list[Any]]:
     """
-    Convert a query with a where clause clause to a SQLAlchemy query.
-    If order_by is provided, also return a list of order_by fields that need to be applied.
+      Convert a GraphQL query with a where clause clause to a SQLAlchemy query.
+      Note that this method is recursive!! Basically we can accept a query along the lines of:
+      ```
+      query MyQuery {
+        schools(
+          where: {
+            id: {_gt: 5},  # school.id > 5
+            students: {name: {_like: "%alice%"}}  # school.students.name like "%alice%"
+          }
+          orderBy: {district: {name: asc}} # We want to order schools by a related model
+        ) {
+          id
+        }
+      }
+      ```
+      This GQL query gets translated to a SQL query roughly like this:
+      ```
+      SELECT school.*,                             -- Values that we need to return to our client.
+             anon_1.name AS district_order_field_0 -- We need to surface the district name from the subquery so we can order by it
+        FROM school JOIN (
+                 SELECT district.*
+                   FROM district
+                  WHERE district.collection_id = 12345     -- All queries, subqueries, and joined tables *MUST* include authorization filters!
+             ) AS anon_1 ON school.district_id = anon_1.id -- This is the join condition between the two tables
+       WHERE school.collection_id = 12345  -- All queries, subqueries, and joined tables *MUST* include authorization filters!
+         AND school.id > 5                 -- Filters that come from our GQL input
+         AND (EXISTS (                     -- We don't want a cartesian product of schools * students!! We only want schools that match our student filter(s) so we're using an EXISTS clause
+              SELECT student.*
+                FROM student
+               WHERE student.collection_id = 12345   -- All queries, subqueries, and joined tables *MUST* include authorization filters!
+                 AND student.name LIKE '%alice%'     -- Filters that come from our GQL input
+                 AND school.id = student.school_id)) -- This is the join condition between the two tables
+    ORDER BY district_order_field_0 ASC
+      ```
+
+      If order_by is provided, also return a list of order_by fields that need to be applied.
     """
 
-    # TODO, this may need to be adjusted, 5 just seemed like a reasonable starting point
+    # Prevent excessively deep recursive filtering
+    # TODO: this may need to be adjusted, 5 just seemed like a reasonable starting point
     if depth >= 5:
         raise PlatformicsError("Max filter depth exceeded")
     depth += 1
 
+    # Ensure optional args are safely defaulted to lists
     if not order_by:
         order_by = []
     if not where_clause:
@@ -77,53 +113,73 @@ def convert_where_clauses_to_sql(
     if not group_by:
         group_by = []
 
-    local_order_by = []  # Fields that we can sort by on the *current* class without having to deal with recursion
-    local_where_clauses = {}  # Fields that we can filter on the *current* class without having to deal with recursion
-    local_group_by = []  # Fields that we can group by on the *current* class without having to deal with recursion
+    # Containers for filtering/grouping/orering local (non-relationship) fields
+    local_order_by = []
+    local_where_clauses = {}
+    local_group_by = []
 
+    # SQLAlchemy model introspection
     mapper = inspect(sa_model)
 
     # Create a dictionary with the keys as the related field/field names
     # The values are dict of {order_by: {"field": ..., "index": ...}, where: {...}, group_by: [...]}
-    all_joins = defaultdict(dict)  # type: ignore
-    # Keep track of the joins we need to execute in order to make filtering by relationships work.
+    ordergroup_joins = defaultdict(dict)  # type: ignore
+    # Dictionary to track joins needed for filtering on related fields
     where_joins = defaultdict(dict)  # type: ignore
-    # Keep track of the joins we need to execute to handle filtering on related aggregates.
+    # Dictionary to track joins needed for filtering on aggregates of related fields
     aggregate_joins = defaultdict(dict)  # type: ignore
+
+    # Parse order_by clause
     for item in order_by:
         for col, v in item["field"].items():
             if col in mapper.relationships:  # type: ignore
-                if not all_joins[col].get("order_by"):
-                    all_joins[col]["order_by"] = []
-                all_joins[col]["order_by"].append({"field": v, "index": item["index"]})
+                # If ordering on a related field, defer it to recursive join handling
+                if not ordergroup_joins[col].get("order_by"):
+                    ordergroup_joins[col]["order_by"] = []
+                ordergroup_joins[col]["order_by"].append({"field": v, "index": item["index"]})
             else:
+                # Local sort field
                 local_order_by.append({"field": col, "sort": v, "index": item["index"]})
+
+    # Parse where_clause
     for col, v in where_clause.items():
         if col in mapper.relationships:  # type: ignore
+            # Handle nested filter on related model
             where_joins[col]["where"] = v
         elif col.removesuffix("_aggregate") in mapper.relationships:
+            # Handle aggregate filters on related model (e.g., _aggregate: { count: ... })
             col_name = col.removesuffix("_aggregate")
             aggregate_joins[col_name] = v  # type: ignore
         else:
+            # Local field filter
             local_where_clauses[col] = v
+
+    # Inject auth constraints into the where clause
     authz_client.modify_where_clause(principal, action, sa_model, local_where_clauses)
+
+    # Parse group_by selections
     for group in filter_meta_fields(group_by):  # type: ignore
         col = strcase.to_snake(group.name)
         if col in mapper.relationships:  # type: ignore
-            all_joins[col]["group_by"] = filter_meta_fields(group.selections)
+            # If grouping by related field, defer to join handling
+            ordergroup_joins[col]["group_by"] = filter_meta_fields(group.selections)
         else:
+            # Local group-by field
             local_group_by.append(getattr(sa_model, col))
 
     # Add the local_group_by fields to the query
     for col in local_group_by:
         query = query.add_columns(col)  # type: ignore
 
-    # Handle filtering on related fields
+    # Handle filtering on related models
     for join_field, join_info in where_joins.items():
         relationship = mapper.relationships[join_field]  # type: ignore
         related_cls = relationship.mapper.entity
+
+        # Start with a secure subquery from the related model
         secure_query = authz_client.get_resource_query(principal, action, related_cls)
-        # Get the subquery, nested order_by fields, and nested group_by fields that need to be applied to the current query
+
+        # Recurse into subquery to resolve nested filters/order/group, and get parameters to apply to the current query
         subquery, subquery_order_by, subquery_group_by = convert_where_clauses_to_sql(
             principal,
             authz_client,
@@ -135,24 +191,33 @@ def convert_where_clauses_to_sql(
             join_info.get("group_by"),
             depth,
         )
+
+        # Create an alias for the subquery
         query_alias = aliased(related_cls, subquery)  # type: ignore
+
+        # Create WHERE condition matching the current model to the subquery
         for local, remote in relationship.local_remote_pairs:
             subquery = subquery.filter((getattr(sa_model, local.key) == getattr(query_alias, remote.key)))
+
+        # Join the two queries with an EXISTS() clause
         query = query.where(subquery.exists())
-    # Handle filtering on aggregates
+
+    # Handle filtering on aggregates (e.g., school.students.count > 5)
     for aggregate_field, aggregate_info in aggregate_joins.items():
         relationship = mapper.relationships[aggregate_field]  # type: ignore
         related_cls = relationship.mapper.entity
+
         # We only support `count` for filtered aggregates right now, so we can
         # make simple assumptions here.
         count_input = aggregate_info.get("count", {})
         agg_where = count_input.get("filter", [])
 
         # This is a set of arguments we're passing to SelectedField to make this query look
-        # like the input structure from `XxxAggregate` gql fields
-        arguments = {}
-        arguments["having"] = count_input.get("predicate", {})
-        arguments["distinct"] = count_input.get("distinct", False)
+        # like the input structure from `SomeFieldAggregate` gql fields
+        arguments = {
+            "having": count_input.get("predicate", {}),
+            "distinct": count_input.get("distinct", False),
+        }
         if "arguments" in count_input:
             arguments["columns"] = count_input["arguments"].name
         # TODO - it would be better if query builder didn't depend on our GQL schema structure so much
@@ -168,15 +233,22 @@ def convert_where_clauses_to_sql(
             depth,
         )
         query_alias = aliased(related_cls, subquery)  # type: ignore
+
+        # Join this aggregate subquery back to the parent query
         for local, remote in relationship.local_remote_pairs:
             subquery = subquery.filter((getattr(sa_model, local.key) == getattr(query_alias, remote.key)))
         query = query.where(subquery.exists())
 
-    # Handle aggregating and sorting on related fields.
-    for join_field, join_info in all_joins.items():
+    # Handle ordering by and grouping by related models. e.g:
+    #    `schools(orderBy: {district: {name: asc}})`
+    #    `schoolsAggregate(groupBy: {district: {name}})`
+    for join_field, join_info in ordergroup_joins.items():
         relationship = mapper.relationships[join_field]  # type: ignore
         related_cls = relationship.mapper.entity
+
+        # Get a secure query for the related class
         secure_query = authz_client.get_resource_query(principal, action, related_cls)
+
         # Get the subquery, nested order_by fields, and nested group_by fields that need to be applied to the current query
         subquery, subquery_order_by, subquery_group_by = convert_where_clauses_to_sql(
             principal,
@@ -189,21 +261,30 @@ def convert_where_clauses_to_sql(
             join_info.get("group_by"),
             depth,
         )
+
+        # Convert the subquery to a subquery object
         subquery = subquery.subquery()  # type: ignore
+
+        # Create an alias for the related class
         query_alias = aliased(related_cls, subquery)  # type: ignore
+
+        # Create the join condition between parent and child tables
         joincondition_a = [
             (getattr(sa_model, local.key) == getattr(query_alias, remote.key))
             for local, remote in relationship.local_remote_pairs
         ]
+
+        # Join the parent query with the subquery
         query = query.join(query_alias, and_(*joincondition_a))
-        # Add the subquery columns and subquery_order_by fields to the current query
+
+        # Add the order_by fields from the subquery to the parent query
         for aliased_field_num, item in enumerate(subquery_order_by):
             aliased_field_name = f"{join_field}_order_field_{aliased_field_num}"
             field_to_match = getattr(subquery.c, item["field"])  # type: ignore
             query = query.add_columns(field_to_match.label(aliased_field_name))
             local_order_by.append({"field": aliased_field_name, "sort": item["sort"], "index": item["index"]})
 
-        # Add the subquery columns and subquery_group_by fields to the current query
+        # Add the group_by fields from the subquery to the parent query
         for item in subquery_group_by:
             # mypy is currently inferring the wrong type for `item` so we can silence it until we can fix it.
             field_name = item if isinstance(item, str) else item.key  # type: ignore[attr-defined]
@@ -212,28 +293,35 @@ def convert_where_clauses_to_sql(
             query = query.add_columns(field_to_match.label(aliased_field_name))
             local_group_by.append(aliased_field_name)
 
-    # Handle not-related fields
+    # Handle adding filters to the current model
     for col, v in local_where_clauses.items():
         for comparator, value in v.items():  # type: ignore
+            # Get the SQLAlchemy operator that corresponds to the GraphQL comparator
             sa_comparator = operator_map[comparator]
+
             if sa_comparator == "IS_NULL":
+                # Handle IS NULL and IS NOT NULL separately
                 if value:
                     query = query.filter(getattr(sa_model, col).is_(None))
                 else:
                     query = query.filter(getattr(sa_model, col).isnot(None))
-            # For the variants of regexp_match, we pass in a dict with the comparator, should_negate, and flag
             elif isinstance(sa_comparator, dict):
+                # Handle regexp operators which need additional parameters
                 if sa_comparator["should_negate"]:
+                    # Negate the condition (e.g., NOT LIKE, NOT ILIKE)
                     query = query.filter(
                         ~(getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"])),
                     )
                 else:
+                    # Apply the condition directly
                     query = query.filter(
                         getattr(getattr(sa_model, col), sa_comparator["comparator"])(value, sa_comparator["flag"]),
                     )
             else:
+                # Apply standard operators (e.g., ==, !=, >, <, etc.)
                 query = query.filter(getattr(getattr(sa_model, col), sa_comparator)(value))  # type: ignore
 
+    # Return the modified query and the local order_by and group_by fields
     return query, local_order_by, local_group_by
 
 
