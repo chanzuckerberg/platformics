@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/chanzuckerberg/platformics/compare/v1.0.1...v1.0.2) (2025-04-01)
+
+
+### Bug Fixes
+
+* Document code better and add relay fields back. ([#134](https://github.com/chanzuckerberg/platformics/issues/134)) ([3fd9e52](https://github.com/chanzuckerberg/platformics/commit/3fd9e521b6c6d8c37ecd116fbcc8e999e141da7b))
+* Handle ValueError exceptions that come from the Strawberry Relay implementation ([#132](https://github.com/chanzuckerberg/platformics/issues/132)) ([97b48cd](https://github.com/chanzuckerberg/platformics/commit/97b48cd5f6a1dd148585507759006718a2329f7a))
+
 ## [1.0.1](https://github.com/chanzuckerberg/platformics/compare/v1.0.0...v1.0.1) (2025-03-27)
 
 
